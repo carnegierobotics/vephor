@@ -1,0 +1,202 @@
+#pragma once
+
+#include "thirdparty/nlohmann/json.hpp"
+
+namespace vephor{
+
+using json = nlohmann::json;
+
+inline json toJson(const Vec2i& v)
+{
+	return {v[0], v[1]};
+}
+
+inline json toJson(const Vec2& v)
+{
+	return {v[0], v[1]};
+}
+
+inline json toJson(const Vec3& v)
+{
+	return {v[0], v[1], v[2]};
+}
+
+inline json toJson(const Vec4& v)
+{
+	return {v[0], v[1], v[2], v[3]};
+}
+
+inline json toJson(const Transform3& T)
+{
+	Eigen::AngleAxisf aa;
+    aa.fromRotationMatrix(T.rotation());
+	
+	const Vec3& t = T.translation();
+	Vec3 r = aa.axis() * aa.angle();
+	
+	return {
+		{"t", toJson(t)},
+		{"r", toJson(r)}
+	};
+}
+
+inline json toJson(const TransformSim3& T)
+{
+	Eigen::AngleAxisf aa;
+    aa.fromRotationMatrix(T.rotation());
+	
+	const Vec3& t = T.translation();
+	Vec3 r = aa.axis() * aa.angle();
+	
+	return {
+		{"t", toJson(t)},
+		{"r", toJson(r)},
+		{"scale", T.scale}
+	};
+}
+
+template <typename T>
+inline json toJson(const vector<T>& v)
+{
+	json data;
+	
+	for (const auto& item : v)
+	{
+		data.push_back(toJson(item));
+	}
+	
+	return data;
+}
+
+inline json toJson(const MatX& m)
+{
+	json data;
+	
+	for (int r = 0; r < m.rows(); r++)
+	{
+		json row;
+		for (int c = 0; c < m.cols(); c++)
+		{
+			row.push_back(m(r,c));
+		}
+		data.push_back(row);
+	}
+	
+	return data;
+}
+
+inline Vec2i readVec2i(const json& data)
+{
+    return Vec2i(data[0], data[1]);
+}
+
+inline Vec2 readVec2(const json& data)
+{
+    return Vec2(data[0], data[1]);
+}
+
+inline Vec3 readVec3(const json& data)
+{
+    return Vec3(data[0], data[1], data[2]);
+}
+
+inline Vec4 readVec4(const json& data)
+{
+    return Vec4(data[0], data[1], data[2], data[3]);
+}
+
+inline Transform3 readTransform3(const json& data)
+{
+    Vec3 t(0,0,0);
+    Vec3 r(0,0,0);
+
+    if (data.contains("t"))
+        t = readVec3(data["t"]);
+
+    if (data.contains("r"))
+        r = readVec3(data["r"]);
+
+    return Transform3(t,r);
+}
+
+inline TransformSim3 readTransformSim3(const json& data)
+{
+    Vec3 t(0,0,0);
+    Vec3 r(0,0,0);
+	float scale = 1.0f;
+
+    if (data.contains("t"))
+        t = readVec3(data["t"]);
+
+    if (data.contains("r"))
+        r = readVec3(data["r"]);
+	
+	if (data.contains("scale"))
+        scale = data["scale"];
+
+    return TransformSim3(t,r,scale);
+}
+
+inline MatX readMatX(const json& data)
+{
+	vector<vector<float>> cells;
+	
+	for (const auto& row : data)
+	{
+		vector<float> row_cells;
+		for (const auto& col : row)
+		{
+			row_cells.push_back(col);
+		}
+		cells.push_back(row_cells);
+	}
+	
+	if (cells.empty())
+		return MatX();
+	
+	MatX m(cells.size(), cells[0].size());
+	
+	for (int r = 0; r < m.rows(); r++)
+	{
+		for (int c = 0; c < m.cols(); c++)
+		{
+			m(r,c) = cells[r][c];
+		}
+	}
+	
+	return m;
+}
+
+template <typename T, typename S>
+T convert_from(const S& s)
+{
+	return (T)s;
+}
+
+template <>
+inline Vec2 convert_from<Vec2, json>(const json& s)
+{
+	return readVec2(s);
+}
+
+template <>
+inline Vec3 convert_from<Vec3, json>(const json& s)
+{
+	return readVec3(s);
+}
+
+template <>
+inline Vec4 convert_from<Vec4, json>(const json& s)
+{
+	return readVec4(s);
+}
+
+template <typename T>
+T readDefault(const json& data, const string& name, const T& default_value)
+{
+	if (data.contains(name))
+		return convert_from<T, json>(data[name]);
+	return default_value;
+}
+
+}
