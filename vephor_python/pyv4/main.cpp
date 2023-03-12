@@ -139,8 +139,23 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("height")=-1,
 			py::arg("name")="show")
         .def("render", &Window::render, py::arg("wait")=true)
-		.def_static("setClientMode", &Window::setClientMode, py::arg("wait")=false, py::arg("host")="localhost", py::arg("port")=2001)
-		.def_static("setServerMode", &Window::setServerMode, py::arg("wait")=false, py::arg("port")=2001)
+		.def_static("setClientMode", &Window::setClientMode, 
+			py::arg("wait")=false, 
+			py::arg("host")="localhost", 
+			py::arg("port")=2001,
+			py::arg("record_also")=false,
+			py::arg("record_path")="")
+		.def_static("setClientModeBYOS", &Window::setClientModeBYOS, 
+			py::arg("record_also")=false,
+			py::arg("record_path")="")
+		.def_static("setServerMode", &Window::setServerMode, 
+			py::arg("wait")=false, 
+			py::arg("port")=2001,
+			py::arg("record_also")=false,
+			py::arg("record_path")="")
+		.def_static("setServerModeBYOC", &Window::setServerModeBYOC, 
+			py::arg("record_also")=false,
+			py::arg("record_path")="")
 		.def("setTrackballMode", &Window::setTrackballMode, 
 			py::arg("to")=Vec3(0,0,0), 
 			py::arg("from")=Vec3(-1,0,-1), 
@@ -286,8 +301,8 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("layer")=0);
 
 	py::class_<Plot>(m, "Plot")
-        .def(py::init<bool>(),
-			py::arg("equal")=false)
+        .def(py::init<string>(),
+			py::arg("title")="plot")
 		.def("window", &Plot::window, py::return_value_policy::reference)
 		.def("title", &Plot::title)
 		.def("xlabel", &Plot::xlabel)
