@@ -61,6 +61,9 @@ int main(int argc, char* argv[])
 			break;
 		}			
 	}
+
+	if (optind < argc)
+		input_dir = argv[optind];
 	
 	if (!input_dir.empty())
 	{

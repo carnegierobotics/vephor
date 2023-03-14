@@ -880,10 +880,18 @@ public:
     	std::mt19937 rng(dev());
     	std::uniform_int_distribution<std::mt19937::result_type> port_dist(VEPHOR_MIN_RANDOM_PORT,VEPHOR_MAX_RANDOM_PORT);
 
-		int port = port_dist(rng);
-		v4print "Using port:", port;
+		int port;
+		
+		while (true)
+		{
+			port = port_dist(rng);
+			v4print "Using port:", port;
 
-		manager.net.connectServer(false, port);
+			if (manager.net.connectServer(false, port))
+				break;
+
+			v4print "Bind failed, tryin another port.";
+		}
 	
 		v4print "Starting server process...";
 		server_proc = make_unique<Process>(vector<string>{"vephor_show", 

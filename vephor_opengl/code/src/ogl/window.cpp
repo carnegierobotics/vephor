@@ -161,6 +161,9 @@ GLuint buildProgram(const string& program_name, const string& vert_shader, const
 Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p_resize_callback, const WindowOptions& opts)
 : resize_callback(p_resize_callback), title(p_title)
 {
+	id = next_id;
+	next_id++;
+
 	if (resize_callback == NULL)
 	{
 		resize_callback = [](Window* this_window, const Vec2i& window_size){
@@ -193,12 +196,16 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 	}
 
 	auto* monitor = glfwGetPrimaryMonitor();
+	int mon_xpos, mon_ypos;
+	glfwGetMonitorPos(monitor, &mon_xpos, &mon_ypos);
 	const auto* mode = glfwGetVideoMode(monitor);
 
+	bool monitor_size = false;
 	if (p_width == -1 && p_height == -1)
 	{
 		p_width = mode->width;
 		p_height = mode->height;
+		monitor_size = true;
 	}
 	
 	glfwGetMonitorContentScale(monitor, &content_scale[0], &content_scale[1]);
@@ -216,6 +223,17 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 	else
 	{
 		window = glfwCreateWindow(p_width, p_height, title.c_str(), NULL, first_window);
+
+		if (!monitor_size)
+		{
+			int xpos = 50 + (mode->width / 3.0f) * (id % 3);
+			int ypos = 50 + 50 * int(id / 3);
+			if (xpos + p_width > mode->width)
+				xpos = mode->width - p_width;
+			if (ypos + p_height > mode->height)
+				ypos = mode->height - p_height;
+			glfwSetWindowPos(window, mon_xpos + xpos, mon_ypos + ypos);
+		}
 	}
 
 	if( window == NULL ){

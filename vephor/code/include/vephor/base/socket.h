@@ -168,13 +168,13 @@ public:
 		
 		//enableTimeout();
 	}
-	shared_ptr<TCPSocket> listen(int port)
+	void bind_and_listen(int port)
 	{
 		if (needs_init)
 			init();
 		
 		int iResult;
-		struct addrinfo *result = NULL, *ptr = NULL, hints;
+		struct addrinfo *result = NULL, hints;
 
 		if (sock == INVALID_SOCKET)
 		{
@@ -202,7 +202,7 @@ public:
 			}
 			
 			// Setup the TCP listening socket
-			iResult = bind( sock, result->ai_addr, (int)result->ai_addrlen);
+			iResult = ::bind( sock, result->ai_addr, (int)result->ai_addrlen);
 			if (iResult == SOCKET_ERROR) {
 				freeaddrinfo(result);
 				error("bind failed", WSAGetLastError());
@@ -219,6 +219,12 @@ public:
 				throw std::runtime_error("Listen failed.");
 			}
 		}
+	}
+	shared_ptr<TCPSocket> accept(int port)
+	{
+		int iResult;
+
+		bind_and_listen(port);
 		
 		SOCKET client_sock;
 		
@@ -245,7 +251,7 @@ public:
 			if (FD_ISSET(sock, &rfds))
 			{
 				v4print "Attempt client connection accept";
-				client_sock = accept(sock, NULL, NULL);
+				client_sock = ::accept(sock, NULL, NULL);
 			}
 			else
 			{
@@ -414,7 +420,7 @@ public:
 
 		//enableTimeout();
 	}
-	shared_ptr<TCPSocket> listen(int port)
+	void bind_and_listen(int port)
 	{
 		signal(SIGPIPE, SIG_IGN);
 
@@ -433,15 +439,20 @@ public:
 			serv_addr.sin_family = AF_INET;
 			serv_addr.sin_addr.s_addr = INADDR_ANY;
 			serv_addr.sin_port = htons(port);
-			if (bind(sock_fd, (struct sockaddr *) &serv_addr,
+			if (::bind(sock_fd, (struct sockaddr *) &serv_addr,
 				sizeof(serv_addr)) < 0)
 			{				
-				error("Error on binding.");
+				error("Error on binding");
+				disconnect();
 				throw std::runtime_error("Error on binding.");
 			}
 			listen_socket = true;
 			::listen(sock_fd,5);
 		}
+	}
+	shared_ptr<TCPSocket> accept(int port)
+	{
+		bind_and_listen(port);
 		
 		
 		fd_set fds;
@@ -466,12 +477,12 @@ public:
 		socklen_t clilen;
 		struct sockaddr_in cli_addr;
 		clilen = sizeof(cli_addr);
-		int new_sock_fd = accept(sock_fd, 
+		int new_sock_fd = ::accept(sock_fd, 
 			(struct sockaddr *) &cli_addr, 
 			&clilen);
 		if (new_sock_fd < 0) 
 		{
-			error("Error on accept.");
+			error("Error on accept");
 			throw std::runtime_error("Error on accept.");
 		}
 		
@@ -727,22 +738,37 @@ public:
 
 		client_mode = true;
 	}
-	void connectServer(bool wait_for_connection = true, int port = VEPHOR_DEFAULT_PORT)
+	bool bind_and_listen(int port = VEPHOR_DEFAULT_PORT)
+	{
+		if (!listen_sock)
+		{
+			listen_sock = make_shared<TCPSocket>();
+			try {
+				listen_sock->bind_and_listen(port);
+			} catch (...) {
+				listen_sock = NULL;
+				return false;
+			}
+		}
+		return true;
+	}
+	bool connectServer(bool wait_for_connection = true, int port = VEPHOR_DEFAULT_PORT)
 	{
 		if (server_mode)
 			throw std::runtime_error("Server mode already active");
 		if (client_mode)
 			throw std::runtime_error("Can't use server and client mode at the same time.");
 		
+		if (!bind_and_listen(port))
+			return false;
+
 		if (wait_for_connection)
 		{
-			TCPSocket listen_sock;
-			
 			v4print "Waiting for server connection...";
 			shared_ptr<TCPSocket> sock;
 			while (true)
 			{
-				sock = listen_sock.listen(port);
+				sock = listen_sock->accept(port);
 				if (sock)
 					break;
 			}
@@ -752,14 +778,12 @@ public:
 		{
 			waiting_for_connections = true;
 			conn_wait_thread = std::thread([&,port](){
-				TCPSocket listen_sock;
-				
 				v4print "Waiting for server connection in background.";
 				while (!shutdown)
 				{
 					shared_ptr<TCPSocket> sock;
 					try {
-						sock = listen_sock.listen(port);
+						sock = listen_sock->accept(port);
 					}
 					catch (...) {
 						std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -778,6 +802,8 @@ public:
 		}
 
 		server_mode = true;
+
+		return true;
 	}
 	vector<int> getConnectionIdList() const
 	{
@@ -933,6 +959,7 @@ private:
 
 	bool shutdown = false;
 	ConnectionID next_id = 1;
+	shared_ptr<TCPSocket> listen_sock;
 	unordered_map<ConnectionID, shared_ptr<ConnRecord>> conns;
 	vector<ConnectionID> conn_id_list;
 	bool client_mode = false;

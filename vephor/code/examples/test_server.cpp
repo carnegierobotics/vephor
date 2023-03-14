@@ -5,7 +5,7 @@ using namespace vephor;
 int main()
 {
     TCPSocket listen_sock;
-    auto sock = listen_sock.listen(2001);
+    auto sock = listen_sock.accept(2001);
 
     v4print "Connected.";
 

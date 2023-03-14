@@ -392,6 +392,8 @@ private:
     string title;
 	Vec2 content_scale = Vec2(1,1);
     GLFWwindow* window = NULL;
+    int id;
+    inline static int next_id = 0;
     Mat4 proj_matrix;
     Transform3 cam_from_world;
     Mat4 overlay_proj_matrix;

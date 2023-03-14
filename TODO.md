@@ -1,8 +1,9 @@
 TODO:
-	- check for binding errors
+	- save screenshot
+	x check for binding errors
 	- check for memory leak in show
 	- check animation of trackball window - slow zoom?
-	- reposition multiple windows
+	x reposition multiple windows
 	- make methods (such as color ctor) more accepting of double vectors
 	- check interaction between save and server render
 	- Add key press based waiting and close-proof windows

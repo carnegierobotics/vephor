@@ -40,7 +40,7 @@ struct ShowRecord
 	}
 	void setParent(const shared_ptr<RenderNode>& node, int window_id, const string& parent_node, ConnectionID conn_id)
 	{
-		v4print "Parent:", parent_node;
+		//v4print "Parent:", parent_node;
 		
 		if (parent_node == "window_top_right")
 		{
