@@ -128,7 +128,7 @@ PYBIND11_MODULE(_core, m) {
 				}
 				else
 				{
-					throw std::runtime_error("imshow only supports uint8 or double typed arrays.");
+					throw std::runtime_error("Sprite only supports uint8 or double typed arrays.");
 				}
 
 				return make_shared<Sprite>(image, nearest);
@@ -369,7 +369,9 @@ PYBIND11_MODULE(_core, m) {
 		.def("rect", &Plot::rect)
 		// TODO: line
 		.def("imshow", [](Plot& p,
-			py::buffer buf){
+			py::buffer buf,
+			bool nearest,
+			const Vec2& offset){
 				py::buffer_info info = buf.request();
 				
 				v4print info.ndim;
@@ -401,10 +403,12 @@ PYBIND11_MODULE(_core, m) {
 					throw std::runtime_error("imshow only supports uint8 or double typed arrays.");
 				}
 				
-				p.imshow(image);
-			})
+				p.imshow(image, nearest, offset);
+			},
+			py::arg("image"), py::arg("nearest")=false, py::arg("offset")=Vec2::Zero())
 		.def("show", &Plot::show, py::arg("wait_close")=true, py::arg("wait_key")=true)
 		.def("clear", &Plot::clear);
+
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

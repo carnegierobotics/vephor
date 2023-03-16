@@ -88,10 +88,10 @@ public:
 	void limits(float min_x, float max_x, float min_y, float max_y)
 	{
 		inner_window.getCameraControlInfo()["auto_fit"] = false;
-		inner_window.getCameraControlInfo()["content_min"] = Vec3(min_x, min_y, 0);
-		inner_window.getCameraControlInfo()["content_max"] = Vec3(max_x, max_y, 0);
-		inner_window.getCameraControlInfo()["orig_content_min"] = Vec3(min_x, min_y, 0);
-		inner_window.getCameraControlInfo()["orig_content_max"] = Vec3(max_x, max_y, 0);
+		inner_window.getCameraControlInfo()["content_min"] = toJson(Vec3(min_x, min_y, 0));
+		inner_window.getCameraControlInfo()["content_max"] = toJson(Vec3(max_x, max_y, 0));
+		inner_window.getCameraControlInfo()["orig_content_min"] = toJson(Vec3(min_x, min_y, 0));
+		inner_window.getCameraControlInfo()["orig_content_max"] = toJson(Vec3(max_x, max_y, 0));
 	}
 	void plot(
 		const VecXRef& x, 
