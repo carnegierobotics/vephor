@@ -67,10 +67,10 @@ install(TARGETS vephor
     PUBLIC_HEADER DESTINATION include COMPONENT Development
     BUNDLE DESTINATION bin COMPONENT Runtime)
 
-install(EXPORT vehpor_targets DESTINATION lib/cmake/mylib)
+install(EXPORT vehpor_targets DESTINATION lib/cmake/vephor)
 install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
               "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-        DESTINATION lib/cmake/mylib)
+        DESTINATION lib/cmake/vephor)
 install(DIRECTORY include DESTINATION "${CMAKE_INSTALL_PREFIX}")
 
 configure_package_config_file(

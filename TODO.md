@@ -1,16 +1,15 @@
 TODO:
+	- remote trigger
+	- add key codes to python
 	- check if text is flipped in imshow
 	- screen space text size
 	- investigate some clients surviving python runs
 	- test performance with too many messages arriving
 	- save screenshot
-	x check for binding errors
 	- check for memory leak in show
 	- check animation of trackball window - slow zoom?
-	x reposition multiple windows
 	- make methods (such as color ctor) more accepting of double vectors
 	- check interaction between save and server render
-	x Add key press based waiting
 	- Add close-proof windows
 	- Server issue when closing one of multiple animated windows
 	- simple measuring tool in 3d - perhaps show size while holding mouse?
@@ -23,7 +22,6 @@ TODO:
 	- Clean comments
 	- Docs
 	- Python install instructions / Re-evaluate use of scikit-build
-	x create combined repo
 	- investigate plot usage with large values
 	- ensure all functions are available in python
 	- elective orthographic mode
@@ -32,18 +30,18 @@ TODO:
 	- Create service script for linux
 	- Click callbacks
 	- 2d plotting
-		x cv-like render methods
-			x circle (filled or not)
-			x line (with width)
-			x polygon (filled or not, with alpha and border)
-			x text
-			x rectangle (with alpha and border)
 		- ML labels
 		- histogram
 		- Text labels for y axis instead of numbers
 		- Box selection
 		- Axis scaling
 		- Subplots
+		x cv-like render methods
+			x circle (filled or not)
+			x line (with width)
+			x polygon (filled or not, with alpha and border)
+			x text
+			x rectangle (with alpha and border)
 		x Thick plot lines
 		x imshow
 		x Labels for axes
@@ -62,6 +60,10 @@ TODO:
 	- Close show windows whose connections have died?
 	- Evaluate 2d normal direction
 	- Materials
+	x check for binding errors
+	x reposition multiple windows
+	x Add key press based waiting
+	x create combined repo
 	x handle out of order parents
 	x check framerates on show windows, esp. for multiple
 	x particle broken pipe

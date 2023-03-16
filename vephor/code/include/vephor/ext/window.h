@@ -609,9 +609,7 @@ public:
 				for (const auto& msg : msgs)
 				{
 					if (msg["type"] == "key_press")
-					{
-						v4print "Key press:", msg["key"], "on window:", id;
-						
+					{	
 						if (key_press_callback)
 						{
 							key_press_callback(msg["key"]);
@@ -642,10 +640,9 @@ public:
 				};
 				if (id > 0)
 					heartbeat["window_id"] = id;
-				for (auto conn_id : manager.net.getConnectionIdList())
-				{
-					manager.net.sendJSONBMessage(conn_id, heartbeat, {});
-				}
+				
+				if (!manager.net.sendJSONBMessageToAll(heartbeat, {}))
+					break;
 			}
 		}
 		else
@@ -729,6 +726,13 @@ public:
 		messages_to_write.clear();
 
 		fs::remove_all(temp_dir);
+	}
+
+	static bool canRender()
+	{
+		if (manager.mode == WindowManager::Mode::Client || manager.mode == WindowManager::Mode::Server)
+			return !manager.net.getConnectionIdList().empty();
+		return true;
 	}
 
 	static void setRecordMode(const string& path = "")

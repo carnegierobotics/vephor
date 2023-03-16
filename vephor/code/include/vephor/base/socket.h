@@ -827,11 +827,17 @@ public:
 		conns = active_conns;
 		conn_id_list = active_conn_id_list;
 	}
-	void sendJSONBMessage(ConnectionID conn_id, const json& header, const vector<vector<char>>& payloads)
+	bool sendJSONBMessage(ConnectionID conn_id, const json& header, const vector<vector<char>>& payloads)
 	{
 		if (!find(conns, conn_id))
 			throw std::runtime_error("Attempt to send using invalid conn id: " + std::to_string(conn_id));
-		conns[conn_id]->sock->sendJSONBMessage(header, payloads);
+		try {
+			conns[conn_id]->sock->sendJSONBMessage(header, payloads);
+		} catch (...)
+		{
+			return false;
+		}
+		return true;
 	}
 	vector<JSONBMessage> getIncomingJSONBMessages(int conn_id)
 	{
@@ -841,12 +847,20 @@ public:
 		conns[conn_id]->incoming_messages.clear();
 		return msgs;
 	}
-	void sendJSONBMessageToAll(const json& header, const vector<vector<char>>& payloads)
+	bool sendJSONBMessageToAll(const json& header, const vector<vector<char>>& payloads)
 	{
+		bool any_success = false;
 		for (auto& conn : conns)
 		{
-			conn.second->sock->sendJSONBMessage(header, payloads);
+			try {
+				conn.second->sock->sendJSONBMessage(header, payloads);
+			} catch (...)
+			{
+				continue;
+			}
+			any_success = true;
 		}
+		return any_success;
 	}
 	vector<JSONBMessage> getIncomingJSONBMessagesFromAll()
 	{

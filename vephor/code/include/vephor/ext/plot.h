@@ -155,7 +155,7 @@ public:
 	void scatter(
 		const VecXRef& x, 
 		const MatXRef& y, 
-		const PlotScatterOptions& opts = PlotScatterOptions())//cmap
+		const PlotScatterOptions& opts = PlotScatterOptions())//TODO: color map
 	{
 		if (x.rows() == 0)
 			return;
