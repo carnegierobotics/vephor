@@ -230,10 +230,7 @@ public:
 		
 		client_sock = INVALID_SOCKET;
 
-		v4print "Waiting for client socket...";
-
 		// Accept a client socket
-		//while (client_sock == INVALID_SOCKET)
 		{
 			fd_set rfds;
 			FD_ZERO(&rfds);

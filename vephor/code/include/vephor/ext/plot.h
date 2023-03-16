@@ -85,6 +85,14 @@ public:
 	{
 		inner_window.getCameraControlInfo()["equal"] = is_equal;
 	}
+	void limits(float min_x, float max_x, float min_y, float max_y)
+	{
+		inner_window.getCameraControlInfo()["auto_fit"] = false;
+		inner_window.getCameraControlInfo()["content_min"] = Vec3(min_x, min_y, 0);
+		inner_window.getCameraControlInfo()["content_max"] = Vec3(max_x, max_y, 0);
+		inner_window.getCameraControlInfo()["orig_content_min"] = Vec3(min_x, min_y, 0);
+		inner_window.getCameraControlInfo()["orig_content_max"] = Vec3(max_x, max_y, 0);
+	}
 	void plot(
 		const VecXRef& x, 
 		const MatXRef& y,
@@ -242,6 +250,15 @@ public:
 			opts
 		);
 	}
+	void text(const string& raw_text, float size, const Vec2& offset, const Color& color)
+	{
+		auto text = make_shared<Text>(raw_text);
+		text->setAnchorCentered();
+		text->setColor(color);
+		auto node = inner_window.add(text, Vec3(offset[0],offset[1],plot_index + 1));
+		node->setScale(size);
+		plot_index++;
+	}
 	void polygon(const vector<Vec2>& verts, const Color& color, float thickness = 0)
 	{
 		// Non-negative border widths indicate border should be drawn
@@ -369,9 +386,9 @@ public:
 	{
 		return inner_window;
 	}
-	void show(bool wait = true)
+	bool show(bool wait_close = true, bool wait_key = false)
 	{
-		inner_window.render(wait);
+		return inner_window.render(wait_close, wait_key);
 	}
 	void save(const string& path)
 	{

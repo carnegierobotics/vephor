@@ -1,4 +1,8 @@
 TODO:
+	- check if text is flipped in imshow
+	- screen space text size
+	- investigate some clients surviving python runs
+	- test performance with too many messages arriving
 	- save screenshot
 	x check for binding errors
 	- check for memory leak in show
@@ -6,7 +10,8 @@ TODO:
 	x reposition multiple windows
 	- make methods (such as color ctor) more accepting of double vectors
 	- check interaction between save and server render
-	- Add key press based waiting and close-proof windows
+	x Add key press based waiting
+	- Add close-proof windows
 	- Server issue when closing one of multiple animated windows
 	- simple measuring tool in 3d - perhaps show size while holding mouse?
 	- pose playback server issue
@@ -27,11 +32,11 @@ TODO:
 	- Create service script for linux
 	- Click callbacks
 	- 2d plotting
-		- cv-like render methods
+		x cv-like render methods
 			x circle (filled or not)
 			x line (with width)
 			x polygon (filled or not, with alpha and border)
-			- text
+			x text
 			x rectangle (with alpha and border)
 		- ML labels
 		- histogram

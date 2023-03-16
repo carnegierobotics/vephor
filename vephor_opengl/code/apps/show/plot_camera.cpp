@@ -418,13 +418,25 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	}
 	
 	if (data.contains("content_min"))
+	{
 		content_min = readVec3(data["content_min"]);
+		content_min[2] = -1;
+	}
 	if (data.contains("content_max"))
+	{
 		content_max = readVec3(data["content_max"]);
+		content_max[2] = 1000;
+	}
 	if (data.contains("orig_content_min"))
+	{
 		orig_content_min = readVec3(data["orig_content_min"]);
+		orig_content_min[2] = -1;
+	}
 	if (data.contains("orig_content_max"))
+	{
 		orig_content_max = readVec3(data["orig_content_max"]);
+		orig_content_max[2] = 1000;
+	}
 	
 	if (data.contains("auto_fit"))
 		auto_fit = data["auto_fit"];

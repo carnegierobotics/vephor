@@ -2,6 +2,7 @@
 #include <vephor_ext.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
+#include <pybind11/functional.h>
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -138,7 +139,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("width")=-1,
 			py::arg("height")=-1,
 			py::arg("name")="show")
-        .def("render", &Window::render, py::arg("wait")=true)
+        .def("render", &Window::render, py::arg("wait_close")=true, py::arg("wait_key")=true)
 		.def_static("setClientMode", &Window::setClientMode, 
 			py::arg("wait")=false, 
 			py::arg("host")="localhost", 
@@ -161,6 +162,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("from")=Vec3(-1,0,-1), 
 			py::arg("up")=Vec3(0,0,-1), 
 			py::arg("use_3d")=false)
+		.def("setKeyPressCallback", &Window::setKeyPressCallback)
 		.def("save", &Window::save)
         .def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
             const Vec3&,
@@ -307,7 +309,9 @@ PYBIND11_MODULE(_core, m) {
 		.def("title", &Plot::title)
 		.def("xlabel", &Plot::xlabel)
 		.def("ylabel", &Plot::ylabel)
+		.def("yflip", &Plot::yflip, py::arg("equal")=true)
 		.def("equal", &Plot::equal, py::arg("equal")=true)
+		.def("limits", &Plot::limits, py::arg("min_x"), py::arg("max_x"), py::arg("min_y"), py::arg("max_y"))
 		.def("plot", [](Plot& p, 
 				const VecX& x, 
 				const MatX& y, 
@@ -357,6 +361,13 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color")=Vec3(-1,-1,-1),
 			py::arg("marker")="circle",
 			py::arg("label") = "")
+		.def("text", [](Plot& p, const string& text, float size, const Vec2& offset, const Vec3& color){
+			p.text(text, size, offset, color);
+		})
+		// TODO: polygon
+		.def("circle", &Plot::circle)
+		.def("rect", &Plot::rect)
+		// TODO: line
 		.def("imshow", [](Plot& p,
 			py::buffer buf){
 				py::buffer_info info = buf.request();
@@ -392,7 +403,8 @@ PYBIND11_MODULE(_core, m) {
 				
 				p.imshow(image);
 			})
-		.def("show", &Plot::show, py::arg("wait")=true);
+		.def("show", &Plot::show, py::arg("wait_close")=true, py::arg("wait_key")=true)
+		.def("clear", &Plot::clear);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
