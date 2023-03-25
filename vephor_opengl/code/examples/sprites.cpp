@@ -9,13 +9,11 @@ int main()
 
     window.setFrameLock(60.0f);
 
-	auto text_tex = loadTexture("../src/assets/Holstein.png", true);
-
-	auto sprite_sheet_1 = loadTexture("../src/assets/sphere_sprite.png", false);
-    auto normal_sprite_sheet_1 = loadTexture("../src/assets/sphere_sprite_normal.png", false);
+	auto sprite_sheet_1 = loadTexture(getBaseAssetDir()+"/assets/sphere_sprite.png", false);
+    auto normal_sprite_sheet_1 = loadTexture(getBaseAssetDir()+"/assets/sphere_sprite_normal.png", false);
 	
-	auto sprite_sheet_2 = loadTexture("../src/assets/diamond_sprite.png", false);
-    auto normal_sprite_sheet_2 = loadTexture("../src/assets/diamond_sprite_normal.png", false);
+	auto sprite_sheet_2 = loadTexture(getBaseAssetDir()+"/assets/diamond_sprite.png", false);
+    auto normal_sprite_sheet_2 = loadTexture(getBaseAssetDir()+"/assets/diamond_sprite_normal.png", false);
 
 	auto sprite_1 = make_shared<Sprite>(
 		sprite_sheet_1
@@ -96,6 +94,26 @@ int main()
 		Vec3(-2.0,0.0,0.0),
 		Vec3(0.0,0.0,0.0)
 	));
+	
+	
+	
+	auto overlay_sprite_tex = getTextureFromImage(*generateCheckerboardImage(Vec2i(256,256), Vec2i(16,16), Vec3(1.0,0.0,0.0), Vec3(0.0,0.0,1.0)));
+	auto overlay_sprite = make_shared<Sprite>(overlay_sprite_tex);
+	overlay_sprite->setDiffuse(Vec3::Zero());
+	overlay_sprite->setAmbient(Vec3::Zero());
+	overlay_sprite->setEmissive(Vec3(1,1,1));
+	auto overlay_sprite_node = window.add(overlay_sprite, Vec3(200,200,0), true);
+	overlay_sprite_node->setScale(200);
+	
+	
+	
+	MeshData overlay_mesh_data(6);
+	overlay_mesh_data.addQuad2D(Vec2(0,0), Vec2(200,200), Vec2(0,0), Vec2(1,1));
+	auto overlay_mesh = make_shared<Mesh>(overlay_mesh_data, Vec3(0.5,0.5,0.5));
+	overlay_mesh->setCull(false);
+	auto overlay_mesh_node = window.add(overlay_mesh, Vec3(400, 400, 0), true);
+	
+	
 
 
 	Vec3 light_dir(0,0,1);

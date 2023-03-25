@@ -67,9 +67,20 @@ int main(int argc, char* argv[])
 	else if (use_client_byos)
 		window.setClientModeBYOS();
 	else if (use_server)
-		window.setServerMode(wait, port);
+	{
+		ShowMetadata metadata;
+		metadata.flags["Click"].toggle = false;
+		metadata.flags["Toggle"].toggle = true;
+		window.setServerMode(wait, port, false, "", metadata);
+	}
 	else if (use_server_byoc)
 		window.setServerModeBYOC();
+	
+	string base_asset_dir = getBaseAssetDir();
+	
+	
+	
+	
 	
 	auto lines = make_shared<Lines>(
 		vector<Vec3>{
@@ -155,10 +166,8 @@ int main(int argc, char* argv[])
 	
 	auto plane = make_shared<Plane>(Vec2(10,10));
 	
-	string base_asset_dir = getBaseAssetDir();
-	
 	plane->setTexture(base_asset_dir+"/assets/maze.png", true);
-	window.add(plane, Transform3(Vec3(0,0,-0.5)));
+	auto plane_node = window.add(plane, Transform3(Vec3(0,0,-0.5)));
 	
 	auto circle = make_shared<Circle>(1.0,0.25);
 	circle->setColor(Vec3(1,0,1));
@@ -167,6 +176,9 @@ int main(int argc, char* argv[])
 	auto arrow = make_shared<Arrow>(Vec3(5,5,0), Vec3(2,2,0), 0.5);
 	arrow->setColor(Vec3(1,1,0));
 	window.add(arrow, Transform3())->setParent(top_node);
+	
+	
+	
 
 	float obj_mesh_dist = 10.0f;
 	auto obj_mesh = make_shared<ObjMesh>(base_asset_dir+"/assets/pyramid.obj");
@@ -204,11 +216,19 @@ int main(int argc, char* argv[])
 		auto sprite = make_shared<Sprite>(base_asset_dir+"/assets/world.png", true);
 		window.add(sprite, TransformSim3(Vec3(-100,-175,0), Vec3::Zero(), 175), true, 0)->setParent(window.getWindowTopRightNode());
 	}
+	
+	
+	
+	
+	
+	
 
 	bool new_object_added = false;
 	bool new_object_removed = false;
 
 	shared_ptr<RenderNode> arrow_2_node;
+	
+	float next_cone_pos = 0;
 
 	float time = 0;
 	float dt = 0.015f;
@@ -222,6 +242,16 @@ int main(int argc, char* argv[])
 	{	
 		while (true)
 		{
+			plane_node->setShow(!Window::checkAndConsumeFlag("Toggle"));
+			
+			if (Window::checkAndConsumeFlag("Click"))
+			{
+				auto cone = make_shared<Cone>();
+				cone->setColor(Vec3(1,0,0));
+				window.add(cone, Transform3(Vec3(12,next_cone_pos,-2.5), Vec3(M_PI/2,0,0)));
+				next_cone_pos += 2;
+			}
+			
 			if (!new_object_added && time > 5.0f)
 			{
 				auto arrow_2 = make_shared<Arrow>(3.0, 0.5);

@@ -252,6 +252,31 @@ private:
 using WindowID = int;
 using ObjectID = int;
 
+struct ShowFlag
+{
+	bool toggle;
+	bool state = false;
+};
+
+struct ShowMetadata
+{
+	unordered_map<string, ShowFlag> flags;
+	
+	json serialize()
+	{
+		json data;
+		data["type"] = "metadata";
+		for (const auto& flag : flags)
+		{
+			data["flags"].push_back({
+				{"name",flag.first},
+				{"toggle",flag.second.toggle}
+			});
+		}
+		return data;
+	}
+};
+
 struct WindowManager
 {
 	enum Mode
@@ -272,6 +297,8 @@ struct WindowManager
 	bool network_mode = false;
 	unordered_map<WindowID, vector<json>> window_messages;
 	bool first_render = false;
+	ShowMetadata show_metadata;
+	unordered_map<ConnectionID, bool> metadata_up_to_date;
 	
 	void checkIncomingMessages()
 	{
@@ -280,6 +307,21 @@ struct WindowManager
 		{
 			for (const auto& msg : net.getIncomingJSONBMessages(id))
 			{
+				if (msg.header["type"] == "flags")
+				{
+					for (const auto& [key, value] : msg.header["flags"].items())
+					{
+						if (show_metadata.flags[key].toggle)
+							show_metadata.flags[key].state = value;
+						else
+						{
+							if (value)
+								show_metadata.flags[key].state = true;
+						}
+					}
+					continue;
+				}
+				
 				WindowID window_id = 0;
 				if (msg.header.contains("window"))
 					window_id = msg.header["window"];
@@ -294,9 +336,20 @@ struct WindowManager
 		window_messages[id].clear();
 		return msgs;
 	}
+	void updateMetadata()
+	{
+		for (auto conn_id : net.getConnectionIdList())
+		{
+			if (!show_metadata.flags.empty() && (!find(metadata_up_to_date, conn_id) || !metadata_up_to_date[conn_id]))
+			{
+				JSONBMessage msg;
+				msg.header = show_metadata.serialize();
+				net.sendJSONBMessage(conn_id, msg.header, msg.payloads);
+				metadata_up_to_date[conn_id] = true;
+			}
+		}
+	}
 };
-
-
 	
 class Window
 {
@@ -519,6 +572,8 @@ public:
 			
 			for (auto conn_id : manager.net.getConnectionIdList())
 			{
+				manager.updateMetadata();
+				
 				JSONBMessage msg;
 				json scene_data = produceSceneJSON(conn_id, &msg.payloads);
 				
@@ -727,6 +782,22 @@ public:
 
 		fs::remove_all(temp_dir);
 	}
+	
+	static bool checkAndConsumeFlag(const string& flag)
+	{
+		if (!manager.network_mode)
+			return false;
+		
+		manager.checkIncomingMessages();
+		
+		if (!find(manager.show_metadata.flags, flag))
+			throw std::runtime_error("Flag " + flag + " does not exist.");
+		if (manager.show_metadata.flags[flag].toggle)
+			return manager.show_metadata.flags[flag].state;
+		bool ret_val = manager.show_metadata.flags[flag].state;
+		manager.show_metadata.flags[flag].state = false;
+		return ret_val;
+	}
 
 	static bool canRender()
 	{
@@ -861,7 +932,8 @@ public:
 		bool wait = false, 
 		int port = VEPHOR_DEFAULT_PORT, 
 		bool p_record_also = false, 
-		const string p_record_path = "")
+		const string p_record_path = "",
+		const ShowMetadata& p_show_metadata = ShowMetadata())
 	{
 		if (manager.mode == WindowManager::Mode::Server)
 			return;
@@ -887,7 +959,8 @@ public:
 			}
 			record_start_time = std::chrono::high_resolution_clock::now();
 		}
-
+		
+		manager.show_metadata = p_show_metadata;
 		manager.mode = WindowManager::Mode::Server;
 	}
 
@@ -922,13 +995,13 @@ public:
 			v4print "Bind failed, tryin another port.";
 		}
 	
-		v4print "Starting server process...";
+		v4print "Starting client process...";
 		server_proc = make_unique<Process>(vector<string>{"vephor_show", 
 			"-m", "client", 
 			"-o", "localhost", 
 			"-p", std::to_string(port),
 			"-r"});
-		v4print "Server process started.";
+		v4print "Client process started.";
 		
 		manager.network_mode = true;
 		
@@ -1090,11 +1163,11 @@ private:
 	shared_ptr<TransformNode> window_bottom_left_node;
 	vector<shared_ptr<RenderNode>> objects;
 	inline static WindowManager manager;
-	unordered_map<ConnectionID, bool> camera_up_to_date;
 	bool key_pressed = false;
 	std::thread server_message_thread;
 	bool shutdown = false;
 	json camera_control;
+	unordered_map<ConnectionID, bool> camera_up_to_date;
 	KeyActionCallback key_press_callback = NULL;
 	inline static vector<JSONBMessage> messages_to_write;
 	inline static unique_ptr<Process> server_proc;

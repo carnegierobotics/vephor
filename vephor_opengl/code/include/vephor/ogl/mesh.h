@@ -19,7 +19,9 @@ public:
 	void setTexture(const shared_ptr<Texture>& p_tex){tex = p_tex;}
 	void setNormalMap(const shared_ptr<Texture>& p_normal_map){normal_map = p_normal_map;}
 	void setDiffuse(const Vec3& p_color){diffuse = p_color;}
+	Vec3 getDiffuse() const {return diffuse;}
 	void setAmbient(const Vec3& p_color){ambient = p_color;}
+	Vec3 getAmbient() const {return ambient;}
 	void setOpacity(const float& p_opacity){opacity = p_opacity;}
 	void setCull(bool p_cull){cull = p_cull;}
     void setSpecular(bool p_specular){specular = p_specular;}
@@ -40,7 +42,6 @@ private:
 
     bool cull = true;
 	
-    //vector<GLfloat> vertex_buffer_data;
     GLuint vao_id;
     GLuint pos_buffer_id;
     GLuint uv_buffer_id;

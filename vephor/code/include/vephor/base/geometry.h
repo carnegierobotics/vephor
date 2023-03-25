@@ -14,6 +14,13 @@ struct MeshData
 	
 	int curr_index = 0;
 	
+	MeshData(){}
+	MeshData(int n_verts)
+	{
+		verts.resize(n_verts, 3);
+		uvs.resize(n_verts, 2);
+		norms.resize(n_verts, 3);
+	}
 	void addQuad2D(
 		const Vec2& lower, 
 		const Vec2& upper, 
@@ -22,6 +29,9 @@ struct MeshData
 		bool flip_uv_corners = false
 	)
 	{
+		if (curr_index + 6 > verts.rows() || curr_index + 6 > uvs.rows() || curr_index + 6 > norms.rows())
+			throw std::runtime_error("Mesh data not large enough to contain Quad2D.");
+		
 		verts.row(curr_index) = Vec3(lower[0], lower[1], 0);
 		uvs.row(curr_index) = Vec2(lower_uv[0], lower_uv[1]);
 		norms.row(curr_index) = Vec3(0,0,-1);
@@ -69,6 +79,9 @@ struct MeshData
 		const Vec2& uv01 = Vec2(0,1)
 	)
 	{
+		if (curr_index + 6 > verts.rows() || curr_index + 6 > uvs.rows() || curr_index + 6 > norms.rows())
+			throw std::runtime_error("Mesh data not large enough to contain LooseQuad2D.");
+		
 		verts.row(curr_index) = Vec3(v00[0], v00[1], 0);
 		uvs.row(curr_index) = Vec2(uv00[0], uv00[1]);
 		norms.row(curr_index) = Vec3(0,0,-1);

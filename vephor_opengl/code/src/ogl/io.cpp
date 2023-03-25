@@ -23,8 +23,13 @@ void setTextureSampling(bool nearest)
 shared_ptr<Texture> loadTexture(const std::string& path, bool nearest){
 	v4print "Loading texture:", path;
 	
+	if (!fs::exists(path))
+		throw std::runtime_error("Texture does not exist at path: " + path);
+	
 	int width, height, channels;
 	const uint8_t* img = stbi_load(path.c_str(), &width, &height, &channels, 0);
+	
+	v4print "Load", path, width, height, channels;
 	
 	// Create one OpenGL texture
 	GLuint textureID;

@@ -1,4 +1,5 @@
 TODO:
+	- Windows show/test_show client/server pair - show doesn't exit after window is closed, though test_show does
 	- remote trigger
 	- add key codes to python
 	- check if text is flipped in imshow

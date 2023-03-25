@@ -291,6 +291,9 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
     glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
 	glDisableVertexAttribArray(3);
+	
+	glVertexAttribDivisor(2, 0);
+	glVertexAttribDivisor(3, 0);
 }
 
 }

@@ -2,6 +2,19 @@
 
 #include "show_record_window.h"
 
+struct FlagRecord
+{
+	string name;
+	bool toggle;
+	bool state = false;
+};
+
+struct FlagsRecord
+{
+	vector<FlagRecord> flags;
+	std::chrono::time_point<std::chrono::steady_clock> last_update;
+};
+
 struct ShowRecord
 {
 	// Window management
@@ -9,6 +22,8 @@ struct ShowRecord
 	unordered_set<WindowID> closed_windows;
 	bool shutdown = false;
 	bool wait_flag = false;
+	shared_ptr<Window> control_window;
+	shared_ptr<Texture> text_tex;
 	
 	// Object management
 	unordered_map<ObjectID, shared_ptr<RenderNode>> objects_by_id;
@@ -28,6 +43,7 @@ struct ShowRecord
 	std::chrono::time_point<std::chrono::high_resolution_clock> path_start_time;
 	float playback_speed = 1;
 	string input_path;
+	unordered_map<ConnectionID, FlagsRecord> flags_per_conn;
 
 	ShowRecord()
 	{
@@ -193,7 +209,7 @@ struct ShowRecord
 
 		path_start_time = std::chrono::high_resolution_clock::now();
 	}
-	void handleMessages()
+	void handleIncomingMessages()
 	{
 		// Check to see if additional messages have arrived
 		while (!message_list.empty())
@@ -226,7 +242,69 @@ struct ShowRecord
 					break;
 			}
 			
-			if (message["type"] == "file")
+			if (message["type"] == "metadata")
+			{
+				if (!message["flags"].empty())
+				{
+					control_window = make_shared<Window>(500,800,"Control");
+					
+					text_tex = loadTexture(assets.getAssetPath("/assets/Holstein.png"));
+					
+					const float fps = 60.0f;
+					control_window->setFrameLock(fps);
+					
+					FlagsRecord flags_record;
+					
+					for (const auto& flag : message["flags"])
+					{
+						float vpos = -((int)flags_record.flags.size()+1)*100;
+						
+						MeshData mesh_data(6);
+						mesh_data.addQuad2D(Vec2(0,0), Vec2(400,50), Vec2(0,0), Vec2(1,1));
+						auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.5,0.5,0.5));
+						mesh->setCull(false);
+						auto mesh_node = control_window->add(mesh, Vec3(50, vpos, 0), true);
+						mesh_node->setParent(control_window->getWindowTopLeftNode());
+						
+						auto text = make_shared<Text>(flag["name"], text_tex);
+						text->setColor(Vec3(1,1,1));
+						auto text_node = control_window->add(text, Vec3(50, vpos, 0), true, 1);
+						text_node->setScale(50);
+						text_node->setParent(control_window->getWindowTopLeftNode());
+						
+						flags_record.flags.push_back({flag["name"], flag["toggle"], false});
+					}
+					flags_per_conn[conn_id] = flags_record;
+					
+					auto control_window_ptr = control_window.get();
+					
+					control_window->setLeftMouseButtonReleaseCallback([this, control_window_ptr, conn_id](){
+						v4print "(Control window) Left click @", control_window_ptr->getMousePos().transpose();
+						
+						auto& flags_record = flags_per_conn[conn_id];
+						
+						for (int i = 0; i < flags_record.flags.size(); i++)
+						{
+							Vec2 corner_rel_pos = control_window_ptr->getMousePos() - Vec2(50, control_window_ptr->getSize()[1]);
+							float v_pos = -(i+1)*100;
+							corner_rel_pos[1] -= v_pos;
+							
+							if (corner_rel_pos[0] >= 0 && corner_rel_pos[1] >= 0 &&
+								corner_rel_pos[0] <= 400 && corner_rel_pos[1] <= 50)
+							{
+								v4print "Clicked", flags_record.flags[i].name;
+								if (flags_record.flags[i].toggle)
+									flags_record.flags[i].state = !flags_record.flags[i].state;
+								else
+									flags_record.flags[i].state = true;
+							}
+						}
+					});
+					
+					flags_per_conn[conn_id].last_update = std::chrono::steady_clock::now();
+				}
+			}
+			else if (message["type"] == "file")
 			{
 				string name = message["name"];
 
@@ -299,6 +377,7 @@ struct ShowRecord
 						} catch (...) {}
 					}
 
+					message_list.pop_front();
 					continue;
 				}
 			
@@ -395,6 +474,40 @@ struct ShowRecord
 			message_list.pop_front();
 		}
 	}
+	void handleOutgoingMessages()
+	{
+		for (auto& flags_record : flags_per_conn)
+		{
+			auto curr_time = std::chrono::steady_clock::now();
+			auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - flags_record.second.last_update).count();
+			if (diff > 100)
+			{
+				flags_record.second.last_update = curr_time;
+				
+				json flags_message;
+				flags_message["type"] = "flags";
+				
+				for (auto& flag : flags_record.second.flags)
+				{
+					flags_message["flags"][flag.name] = flag.state;
+					
+					//v4print "Send flag:", flag.name, flag.state;
+					
+					if (!flag.toggle)
+						flag.state = false;
+				}
+				
+				try {
+					net_manager.sendJSONBMessage(flags_record.first, flags_message, {});
+				} catch (...) {}
+			}
+		}
+	}
+	void handleMessages()
+	{
+		handleIncomingMessages();
+		handleOutgoingMessages();
+	}
 	void cleanObjects()
 	{
 		bool destroy_found = false;
@@ -477,6 +590,7 @@ struct ShowRecord
 		
 		while (true)
 		{
+			v4print "Cleaning conns.";
 			net_manager.cleanConns();
 			
 			if (!net_manager.getConnectionIdList().empty())
@@ -502,6 +616,9 @@ struct ShowRecord
 				save_flag |= window.second->save_flag;
 				window.second->save_flag = false;
 			}
+			
+			if (control_window)
+				control_window->render();
 
 			size_t windows_before = windows.size();
 			unordered_map<WindowID, shared_ptr<ShowRecordWindow>> curr_windows;
@@ -538,6 +655,8 @@ struct ShowRecord
 				}
 			}
 		}
+		
+		v4print "Exiting main show loop.";
 		
 		shutdown = true;
 		
