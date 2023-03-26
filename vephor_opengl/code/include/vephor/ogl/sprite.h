@@ -23,6 +23,7 @@ public:
 	void setEmissive(const Vec3& p_color){emissive = p_color;}
 	void setOpacity(const float& p_opacity){opacity = p_opacity;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
+	void cleanup();
 private:
     MatX verts;
 	MatX uvs;
@@ -45,7 +46,7 @@ private:
     GLuint pos_attr_loc;
 	GLuint uv_attr_loc;
 
-    GLuint mvp_matrix_id;
+    GLuint proj_matrix_id;
     GLuint view_matrix_id;
 	GLuint inv_view_matrix_id;
 	GLuint model_matrix_id;

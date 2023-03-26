@@ -116,8 +116,8 @@ InstancedPoints::InstancedPoints(
 	verts = verts.transpose().eval();
 	uvs = uvs.transpose().eval();
 
-    program_id = buildProgram("InstancedPoints", instancedPointsVertexShader, instancedPointsFragmentShader);
-	ss_program_id = buildProgram("InstancedPointsScreenSpace", instancedPointsScreenSpaceScaleVertexShader, instancedPointsFragmentShader);
+    program_id = buildProgram("instanced_points", instancedPointsVertexShader, instancedPointsFragmentShader);
+	ss_program_id = buildProgram("instanced_points_screen_space", instancedPointsScreenSpaceScaleVertexShader, instancedPointsFragmentShader);
 
     
 	pos_attr_loc = glGetAttribLocation(program_id, "pos_in_model");
@@ -142,32 +142,147 @@ InstancedPoints::InstancedPoints(
 	ss_aspect_id = glGetUniformLocation(ss_program_id, "aspect");
 	ss_tex_sampler_id  = glGetUniformLocation(ss_program_id, "tex_sampler");
 	
+	glGenBuffers(1, &pos_buffer_id);
+	glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
+	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(GLfloat), verts.data(), GL_STATIC_DRAW);
+
+	glGenBuffers(1, &uv_buffer_id);
+	glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
+	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(GLfloat), uvs.data(), GL_STATIC_DRAW);
+
+	glGenBuffers(1, &offset_buffer_id);
+	glBindBuffer(GL_ARRAY_BUFFER, offset_buffer_id);
+	glBufferData(GL_ARRAY_BUFFER, offsets.size() * sizeof(GLfloat), offsets.data(), GL_STATIC_DRAW);
+
+	glGenBuffers(1, &color_buffer_id);
+	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_id);
+	glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(GLfloat), colors.data(), GL_STATIC_DRAW);
+
+
 
 	
     glGenVertexArrays(1, &vao_id);
     glBindVertexArray(vao_id);
 
-	glGenBuffers(1, &pos_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(GLfloat), verts.data(), GL_STATIC_DRAW);
 
-    glGenBuffers(1, &uv_buffer_id);
+	glVertexAttribPointer(
+        pos_attr_loc,
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+	glEnableVertexAttribArray(pos_attr_loc);
+
 	glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(GLfloat), uvs.data(), GL_STATIC_DRAW);
+
+	glVertexAttribPointer(
+        uv_attr_loc,                                // attribute
+        2,                                // size
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+	glEnableVertexAttribArray(uv_attr_loc);
 	
-	glGenBuffers(1, &offset_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, offset_buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, offsets.size() * sizeof(GLfloat), offsets.data(), GL_STATIC_DRAW);
+
+	glVertexAttribPointer(
+        offset_attr_loc,
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+	glVertexAttribDivisor(offset_attr_loc, 1);
+	glEnableVertexAttribArray(offset_attr_loc);
 	
-	glGenBuffers(1, &color_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(GLfloat), colors.data(), GL_STATIC_DRAW);
+
+	glVertexAttribPointer(
+        color_attr_loc,
+        4,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+	glVertexAttribDivisor(color_attr_loc, 1);
+	glEnableVertexAttribArray(color_attr_loc);
+
+
+
+
+	glGenVertexArrays(1, &ss_vao_id);
+    glBindVertexArray(ss_vao_id);
+
+	glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
+
+	glVertexAttribPointer(
+        ss_pos_attr_loc,
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+	glEnableVertexAttribArray(ss_pos_attr_loc);
+
+	glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
+
+	glVertexAttribPointer(
+        ss_uv_attr_loc,                                // attribute
+        2,                                // size
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+	glEnableVertexAttribArray(ss_uv_attr_loc);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, offset_buffer_id);
+
+	glVertexAttribPointer(
+        ss_offset_attr_loc,  
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+	glVertexAttribDivisor(ss_offset_attr_loc, 1);
+	glEnableVertexAttribArray(ss_offset_attr_loc);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_id);
+
+	glVertexAttribPointer(
+        ss_color_attr_loc, 
+        4,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+	glVertexAttribDivisor(ss_color_attr_loc, 1);
+	glEnableVertexAttribArray(ss_color_attr_loc);
+
+
+
+
+	glBindVertexArray(0);
 }
 
 InstancedPoints::~InstancedPoints()
 {
-	glBindVertexArray(vao_id);
-    glDeleteBuffers(1, &pos_buffer_id);
+}
+
+void InstancedPoints::cleanup()
+{
+	glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &uv_buffer_id);
 	glDeleteBuffers(1, &offset_buffer_id);
 	glDeleteBuffers(1, &color_buffer_id);
@@ -199,11 +314,6 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
 	
 	Mat4 cam_from_body_mat = cam_from_world_mat * world_from_body_mat;
 	
-	GLuint curr_pos_attr_loc;
-	GLuint curr_uv_attr_loc;
-	GLuint curr_offset_attr_loc;
-	GLuint curr_color_attr_loc;
-	
 	if (ss_mode)
 	{
 		glUniform1i(ss_tex_sampler_id, 0);
@@ -211,11 +321,8 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
 		glUniformMatrix4fv(ss_modelview_matrix_id, 1, GL_FALSE, cam_from_body_mat.data());
 		glUniform1f(ss_size_id, size * world_from_body.scale);
 		glUniform1f(ss_aspect_id, (float)window->getSize()[0] / (float)window->getSize()[1]);
-		
-		curr_pos_attr_loc = ss_pos_attr_loc;
-		curr_uv_attr_loc = ss_uv_attr_loc;
-		curr_offset_attr_loc = ss_offset_attr_loc;
-		curr_color_attr_loc = ss_color_attr_loc;
+
+		glBindVertexArray(ss_vao_id);
 	}
 	else
 	{
@@ -223,16 +330,13 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
 		glUniformMatrix4fv(mvp_matrix_id, 1, GL_FALSE, MVP.data());
 		glUniformMatrix4fv(modelview_matrix_id, 1, GL_FALSE, cam_from_body_mat.data());
 		glUniform1f(size_id, size * world_from_body.scale);
-		
-		curr_pos_attr_loc = pos_attr_loc;
-		curr_uv_attr_loc = uv_attr_loc;
-		curr_offset_attr_loc = offset_attr_loc;
-		curr_color_attr_loc = color_attr_loc;
+
+		glBindVertexArray(vao_id);
 	}
 
-	glBindVertexArray(vao_id);
 	
-    glEnableVertexAttribArray(0);
+	
+    /*glEnableVertexAttribArray(curr_pos_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
     glVertexAttribPointer(
         curr_pos_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -243,7 +347,7 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
         (void*)0            // array buffer offset
     );
 
-    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(curr_uv_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
     glVertexAttribPointer(
         curr_uv_attr_loc,                                // attribute
@@ -254,7 +358,7 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
         (void*)0                          // array buffer offset
     );
 	
-	glEnableVertexAttribArray(2);
+	glEnableVertexAttribArray(curr_offset_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, offset_buffer_id);
 	glVertexAttribPointer(
         curr_offset_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -266,7 +370,7 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
     );
 	glVertexAttribDivisor(2, 1);
 	
-	glEnableVertexAttribArray(3);
+	glEnableVertexAttribArray(curr_color_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, color_buffer_id);
 	glVertexAttribPointer(
         curr_color_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -276,7 +380,7 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
         0,                  // stride
         (void*)0            // array buffer offset
     );
-	glVertexAttribDivisor(3, 1);
+	glVertexAttribDivisor(3, 1);*/
 
 
 	glDisable(GL_CULL_FACE);
@@ -287,13 +391,15 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(2);
-	glDisableVertexAttribArray(3);
+    /*glDisableVertexAttribArray(curr_pos_attr_loc);
+    glDisableVertexAttribArray(curr_uv_attr_loc);
+	glDisableVertexAttribArray(curr_offset_attr_loc);
+	glDisableVertexAttribArray(curr_color_attr_loc);*/
 	
-	glVertexAttribDivisor(2, 0);
-	glVertexAttribDivisor(3, 0);
+	//glVertexAttribDivisor(2, 0);
+	//glVertexAttribDivisor(3, 0);
+
+	glBindVertexArray(0);
 }
 
 }

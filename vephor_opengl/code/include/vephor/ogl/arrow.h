@@ -66,6 +66,11 @@ public:
 		head->renderOGL(window, world_from_arrow_head);
 		body->renderOGL(window, world_from_arrow_body);
 	}
+	void cleanup()
+	{
+		head->cleanup();
+		body->cleanup();
+	}
 private:
 	Transform3 body_from_arrow_head;
 	Transform3 body_from_arrow_body;

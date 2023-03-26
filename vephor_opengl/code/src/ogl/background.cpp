@@ -56,12 +56,8 @@ Background::Background(
     verts = verts.transpose().eval();
 	uvs = uvs.transpose().eval();
 
-    vert_shader_id = compileShaders(backgroundVertexShader, GL_VERTEX_SHADER);
-    frag_shader_id = compileShaders(backgroundFragmentShader, GL_FRAGMENT_SHADER);
-
-    program_id = linkProgram(vert_shader_id, frag_shader_id);
-
-    // Get the 'pos' variable location inside this program
+    program_id = buildProgram("background", backgroundVertexShader, backgroundFragmentShader);
+    
     pos_attr_loc = glGetAttribLocation(program_id, "pos_in_model");
 	uv_attr_loc = glGetAttribLocation(program_id, "in_uv");
 
@@ -74,16 +70,41 @@ Background::Background(
 	glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(GLfloat), verts.data(), GL_STATIC_DRAW);
 
+    glVertexAttribPointer(
+        pos_attr_loc,   
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+    glEnableVertexAttribArray(pos_attr_loc);
+
     glGenBuffers(1, &uv_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(GLfloat), uvs.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        uv_attr_loc,                                // attribute
+        2,                                // size
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+    glEnableVertexAttribArray(uv_attr_loc);
+
+    glBindVertexArray(0);
 }
 
 Background::~Background()
+{ 
+}
+
+void Background::cleanup()
 {
     glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &uv_buffer_id);
-	glDeleteProgram(program_id);
     glDeleteVertexArrays(1, &vao_id);
 }
 
@@ -97,7 +118,7 @@ void Background::renderOGL(Window* window, const TransformSim3& world_from_body)
 
 	glBindVertexArray(vao_id);
 	
-    glEnableVertexAttribArray(0);
+    /*glEnableVertexAttribArray(pos_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
     glVertexAttribPointer(
         pos_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -108,7 +129,7 @@ void Background::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0            // array buffer offset
     );
 
-    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(uv_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
     glVertexAttribPointer(
         uv_attr_loc,                                // attribute
@@ -117,7 +138,7 @@ void Background::renderOGL(Window* window, const TransformSim3& world_from_body)
         GL_FALSE,                         // normalized?
         0,                                // stride
         (void*)0                          // array buffer offset
-    );
+    );*/
 
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
@@ -133,8 +154,10 @@ void Background::renderOGL(Window* window, const TransformSim3& world_from_body)
     glDepthMask(GL_TRUE);
     //glDepthFunc(GL_LESS);
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
+    //glDisableVertexAttribArray(pos_attr_loc);
+    //glDisableVertexAttribArray(uv_attr_loc);
+
+    glBindVertexArray(0);
 }
 
 }

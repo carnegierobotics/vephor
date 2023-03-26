@@ -260,11 +260,10 @@ ambient(Vec3(0.1,0.1,0.1))
 
     program_id = buildProgram("sprite", spriteVertexShader, spriteFragmentShader);
 
-    // Get the 'pos' variable location inside this program
     pos_attr_loc = glGetAttribLocation(program_id, "pos_in_model");
 	uv_attr_loc = glGetAttribLocation(program_id, "in_uv");
 
-    mvp_matrix_id = glGetUniformLocation(program_id, "proj_from_camera");
+    proj_matrix_id = glGetUniformLocation(program_id, "proj_from_camera");
 	view_matrix_id = glGetUniformLocation(program_id, "cam_from_world");
 	inv_view_matrix_id = glGetUniformLocation(program_id, "world_from_cam");
 	model_matrix_id = glGetUniformLocation(program_id, "world_from_model");
@@ -281,7 +280,7 @@ ambient(Vec3(0.1,0.1,0.1))
 	uv_offset_id = glGetUniformLocation(program_id, "uv_offset");
 	tex_sampler_id  = glGetUniformLocation(program_id, "tex_sampler");
 	normal_sampler_id  = glGetUniformLocation(program_id, "normal_sampler");
-
+	
     glGenVertexArrays(1, &vao_id);
     glBindVertexArray(vao_id);
 
@@ -289,23 +288,46 @@ ambient(Vec3(0.1,0.1,0.1))
 	glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(GLfloat), verts.data(), GL_STATIC_DRAW);
 
+	glVertexAttribPointer(
+        pos_attr_loc,       
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+	glEnableVertexAttribArray(pos_attr_loc);
+
     glGenBuffers(1, &uv_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(GLfloat), uvs.data(), GL_STATIC_DRAW);
+
+	glVertexAttribPointer(
+        uv_attr_loc,                                // attribute
+        2,                                // size
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+	glEnableVertexAttribArray(uv_attr_loc);
+
+	glBindVertexArray(0);
 }
 
 Sprite::~Sprite()
 {
-	glBindVertexArray(vao_id);
-    glDeleteBuffers(1, &pos_buffer_id);
+}
+
+void Sprite::cleanup()
+{
+	glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &uv_buffer_id);
     glDeleteVertexArrays(1, &vao_id);
 }
 
 void Sprite::renderOGL(Window* window, const TransformSim3& world_from_body)
 {
-	glBindVertexArray(vao_id);
-	
     glUseProgram(program_id);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -324,14 +346,11 @@ void Sprite::renderOGL(Window* window, const TransformSim3& world_from_body)
 	Mat4 world_from_body_mat = world_from_body.matrix();
 	
 	Mat4 cam_from_world_mat = window->getCamFromWorldMatrix();
-	//cam_from_world_mat.block<3,3>(0,0) = Mat3::Identity();
 	Mat4 world_from_cam_mat = cam_from_world_mat.inverse();
-	//world_from_cam_mat.block<3,3>(0,0) = Mat3::Identity();
-	//cam_from_world_mat = world_from_cam_mat.inverse();
 
-    Mat4 MVP = window->getProjectionMatrix();// * cam_from_world_mat * world_from_body_mat;
+    Mat4 proj = window->getProjectionMatrix();
 
-    glUniformMatrix4fv(mvp_matrix_id, 1, GL_FALSE, MVP.data());
+    glUniformMatrix4fv(proj_matrix_id, 1, GL_FALSE, proj.data());
     glUniformMatrix4fv(model_matrix_id, 1, GL_FALSE, world_from_body_mat.data());
     glUniformMatrix4fv(view_matrix_id, 1, GL_FALSE, cam_from_world_mat.data());
 	glUniformMatrix4fv(inv_view_matrix_id, 1, GL_FALSE, world_from_cam_mat.data());
@@ -341,8 +360,6 @@ void Sprite::renderOGL(Window* window, const TransformSim3& world_from_body)
 	glUniform3fv(emissive_id, 1, emissive.data());
 	glUniform2fv(uv_scale_id, 1, uv_scale.data());
 	glUniform2fv(uv_offset_id, 1, uvs_per_cell[curr_cell].data());
-	
-	//v4print "UV:", uv_scale.transpose(), uvs_per_cell[curr_cell].transpose();
 
 	for (const auto& point_light : window->getPointLights())
     {
@@ -360,40 +377,15 @@ void Sprite::renderOGL(Window* window, const TransformSim3& world_from_body)
 	
 	glBindVertexArray(vao_id);
 
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
-    glVertexAttribPointer(
-        pos_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-        3,                  // size
-        GL_FLOAT,           // type
-        GL_FALSE,           // normalized?
-        0,                  // stride
-        (void*)0            // array buffer offset
-    );
-
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
-    glVertexAttribPointer(
-        uv_attr_loc,                                // attribute
-        2,                                // size
-        GL_FLOAT,                         // type
-        GL_FALSE,                         // normalized?
-        0,                                // stride
-        (void*)0                          // array buffer offset
-    );
-
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
-	//glDisable(GL_ALPHA_TEST);
 
     glDrawArrays(GL_TRIANGLES, 0, verts.cols());
 	
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
-	//glEnable(GL_ALPHA_TEST);
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
+	glBindVertexArray(0);
 }
 
 }

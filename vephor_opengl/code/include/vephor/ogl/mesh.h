@@ -26,6 +26,7 @@ public:
 	void setCull(bool p_cull){cull = p_cull;}
     void setSpecular(bool p_specular){specular = p_specular;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
+    void cleanup();
 private:
     MatX verts;
     MatX uvs;
@@ -48,8 +49,6 @@ private:
     GLuint norm_buffer_id;
 	GLuint tangent_buffer_id;
 	GLuint bitangent_buffer_id;
-    GLuint vert_shader_id;
-    GLuint frag_shader_id;
     GLuint program_id;
 
     GLuint pos_attr_loc;

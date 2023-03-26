@@ -33,6 +33,12 @@ public:
 		axes[1]->renderOGL(window, axis_1);
 		axes[2]->renderOGL(window, axis_2);
 	}
+	void cleanup()
+	{
+		axes[0]->cleanup();
+		axes[1]->cleanup();
+		axes[2]->cleanup();
+	}
 private:
 	array<shared_ptr<Cylinder>, 3> axes;
 };

@@ -26,6 +26,10 @@ public:
 	{
 		mesh->renderOGL(window, world_from_body);
 	}
+	void cleanup()
+	{
+		mesh->cleanup();
+	}
 private:
 	shared_ptr<Mesh> mesh;
 };

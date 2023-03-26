@@ -106,8 +106,11 @@ Particle::Particle(
 
 Particle::~Particle()
 {
-	glBindVertexArray(vao_id);
-    glDeleteBuffers(1, &pos_buffer_id);
+}
+
+void Particle::cleanup()
+{
+	glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &uv_buffer_id);
     glDeleteVertexArrays(1, &vao_id);
 }
@@ -144,7 +147,7 @@ void Particle::renderOGL(Window* window, const TransformSim3& world_from_body)
 
 	glBindVertexArray(vao_id);
 
-    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(pos_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
     glVertexAttribPointer(
         pos_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -155,7 +158,7 @@ void Particle::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0            // array buffer offset
     );
 
-    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(uv_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
     glVertexAttribPointer(
         uv_attr_loc,                                // attribute
@@ -178,8 +181,8 @@ void Particle::renderOGL(Window* window, const TransformSim3& world_from_body)
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(pos_attr_loc);
+    glDisableVertexAttribArray(uv_attr_loc);
 }
 
 }

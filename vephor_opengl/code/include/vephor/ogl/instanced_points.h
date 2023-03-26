@@ -22,6 +22,7 @@ public:
 		ss_mode = p_ss_mode;
 	}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
+	void cleanup();
 private:
     MatX verts;
 	MatX uvs;
@@ -33,6 +34,8 @@ private:
     shared_ptr<Texture> tex;
 
     GLuint vao_id;
+	GLuint ss_vao_id;
+
     GLuint pos_buffer_id;
 	GLuint uv_buffer_id;
 	GLuint offset_buffer_id;

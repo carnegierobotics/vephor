@@ -16,6 +16,7 @@ public:
     ~ThickLines();
     void setLineWidth(float p_line_width){line_width = p_line_width;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
+	void cleanup();
 private:
 	MatX verts;
 	MatX next;
@@ -25,8 +26,6 @@ private:
 	VecXui indices;
     float line_width = 0.1f;
 
-    GLuint vert_shader_id;
-    GLuint frag_shader_id;
     GLuint program_id;
 	
 	GLuint vao_id;

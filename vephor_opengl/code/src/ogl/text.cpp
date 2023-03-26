@@ -53,10 +53,7 @@ Text::Text(
 : color(p_color),
 x_border(p_x_border)
 {
-    vert_shader_id = compileShaders(textVertexShader, GL_VERTEX_SHADER);
-    frag_shader_id = compileShaders(textFragmentShader, GL_FRAGMENT_SHADER);
-
-    program_id = linkProgram(vert_shader_id, frag_shader_id);
+	program_id = buildProgram("text", textVertexShader, textFragmentShader);
 
     pos_attr_loc = glGetAttribLocation(program_id, "pos_in_model");
 	uv_attr_loc = glGetAttribLocation(program_id, "in_uv");
@@ -68,9 +65,8 @@ x_border(p_x_border)
 	billboard_id = glGetUniformLocation(program_id, "billboard");
     color_id = glGetUniformLocation(program_id, "mat_color");
 	tex_sampler_id  = glGetUniformLocation(program_id, "tex_sampler");
-
+	
     glGenVertexArrays(1, &vao_id);
-    glBindVertexArray(vao_id);
 
 	setTexture(p_tex);
 	setText(p_text);
@@ -78,9 +74,12 @@ x_border(p_x_border)
 
 Text::~Text()
 {
-    glDeleteBuffers(1, &pos_buffer_id);
+}
+
+void Text::cleanup()
+{
+	glDeleteBuffers(1, &pos_buffer_id);
 	glDeleteBuffers(1, &uv_buffer_id);
-	glDeleteProgram(program_id);
     glDeleteVertexArrays(1, &vao_id);
 }
 
@@ -146,13 +145,37 @@ void Text::setText(const string& p_text)
 		uvs.col(i*6+5) = uv_down_left;
 	}
 
+	glBindVertexArray(vao_id);
+
 	glGenBuffers(1, &pos_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(GLfloat), verts.data(), GL_STATIC_DRAW);
 
+	glVertexAttribPointer(
+        pos_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+	glEnableVertexAttribArray(pos_attr_loc);
+
 	glGenBuffers(1, &uv_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(GLfloat), uvs.data(), GL_STATIC_DRAW);
+
+	glVertexAttribPointer(
+        uv_attr_loc,                                // attribute
+        2,                                // size
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+	glEnableVertexAttribArray(uv_attr_loc);
+
+	glBindVertexArray(0);
 
 	buffers_set = true;
 	
@@ -188,7 +211,7 @@ void Text::renderOGL(Window* window, const TransformSim3& world_from_body)
 	
 	glBindVertexArray(vao_id);
 
-    glEnableVertexAttribArray(0);
+    /*glEnableVertexAttribArray(pos_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
     glVertexAttribPointer(
         pos_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -199,7 +222,7 @@ void Text::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0            // array buffer offset
     );
 
-	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(uv_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
     glVertexAttribPointer(
         uv_attr_loc,                                // attribute
@@ -208,9 +231,7 @@ void Text::renderOGL(Window* window, const TransformSim3& world_from_body)
         GL_FALSE,                         // normalized?
         0,                                // stride
         (void*)0                          // array buffer offset
-    );
-
-    //glLineWidth(line_width);
+    );*/
 
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
@@ -221,8 +242,10 @@ void Text::renderOGL(Window* window, const TransformSim3& world_from_body)
 	glDisable(GL_BLEND);
 	glEnable(GL_CULL_FACE);
 
-    glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
+    //glDisableVertexAttribArray(pos_attr_loc);
+	//glDisableVertexAttribArray(uv_attr_loc);
+
+	glBindVertexArray(0);
 }
 
 }

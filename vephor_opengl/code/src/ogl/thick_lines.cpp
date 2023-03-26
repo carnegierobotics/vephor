@@ -135,11 +135,7 @@ ThickLines::ThickLines(
 		indices[ind++] = i+1;
 	}
 	
-	
-	vert_shader_id = compileShaders(thickLinesVertexShader, GL_VERTEX_SHADER);
-    frag_shader_id = compileShaders(thickLinesFragmentShader, GL_FRAGMENT_SHADER);
-
-    program_id = linkProgram(vert_shader_id, frag_shader_id);
+	program_id = buildProgram("thick_lines", thickLinesVertexShader, thickLinesFragmentShader);
 
 	pos_attr_loc = glGetAttribLocation(program_id, "pos_in_model");
 	next_attr_loc = glGetAttribLocation(program_id, "next_in_model");
@@ -183,6 +179,10 @@ ThickLines::ThickLines(
 
 ThickLines::~ThickLines()
 {
+}
+
+void ThickLines::cleanup()
+{
 	glDeleteBuffers(1, &pos_buffer_id);
 	glDeleteBuffers(1, &next_buffer_id);
 	glDeleteBuffers(1, &prev_buffer_id);
@@ -207,7 +207,7 @@ void ThickLines::renderOGL(Window* window, const TransformSim3& world_from_body)
 	
 	glBindVertexArray(vao_id);
 
-    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(pos_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
     glVertexAttribPointer(
         pos_attr_loc,       // attr
@@ -218,7 +218,7 @@ void ThickLines::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0            // array buffer offset
     );
 	
-	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(next_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, next_buffer_id);
     glVertexAttribPointer(
         next_attr_loc,      // attr
@@ -229,7 +229,7 @@ void ThickLines::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0            // array buffer offset
     );
 	
-	glEnableVertexAttribArray(2);
+	glEnableVertexAttribArray(prev_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, prev_buffer_id);
     glVertexAttribPointer(
         prev_attr_loc,      // attr
@@ -240,7 +240,7 @@ void ThickLines::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0            // array buffer offset
     );
 
-    glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(color_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, color_buffer_id);
 	glVertexAttribPointer(
         color_attr_loc,     // attr
@@ -251,7 +251,7 @@ void ThickLines::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0            // array buffer offset
     );
 	
-	glEnableVertexAttribArray(4);
+	glEnableVertexAttribArray(dir_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, dir_buffer_id);
 	glVertexAttribPointer(
         dir_attr_loc,     // attr
@@ -271,11 +271,11 @@ void ThickLines::renderOGL(Window* window, const TransformSim3& world_from_body)
 	glEnable(GL_CULL_FACE);
 	
 	
-	glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(2);
-	glDisableVertexAttribArray(3);
-	glDisableVertexAttribArray(4);
+	glDisableVertexAttribArray(pos_attr_loc);
+    glDisableVertexAttribArray(next_attr_loc);
+	glDisableVertexAttribArray(prev_attr_loc);
+	glDisableVertexAttribArray(color_attr_loc);
+	glDisableVertexAttribArray(dir_attr_loc);
 }
 
 }

@@ -338,7 +338,9 @@ void removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects)
 	{
 		const auto& obj = objects[i];
 		
-		if (!obj->checkDestroy())
+		if (obj->checkDestroy())
+			obj->cleanup();
+		else
 			alive_obj_inds.push_back(i);
 	}
 	
@@ -382,6 +384,8 @@ bool Window::render()
 
 	overlay_phase = false;
 
+	int objects_rendered = 0;
+
 	for (auto& objects : object_layers)
 	{
 		removeDestroyedObjects(objects);
@@ -403,10 +407,13 @@ bool Window::render()
 			return cam_pos[l][2] < cam_pos[r][2];
 		});
 
-		for (auto ind : obj_inds)//const auto& obj : objects)
+		for (auto ind : obj_inds)
 		{
 			if (objects[ind]->isShow())
+			{
 				objects[ind]->render(this);
+				objects_rendered++;
+			}
 		}
 	}
 
@@ -421,7 +428,10 @@ bool Window::render()
 		for (const auto& obj : objects)
 		{
 			if (obj->isShow())
+			{
 				obj->render(this);
+				objects_rendered++;
+			}
 		}
 	}
 
@@ -483,12 +493,15 @@ void Window::shutdown()
 		return;
 	
 	v4print "Window: Shutting down.";
+
+	glfwMakeContextCurrent(window);
 	
 	for (auto& objects : object_layers)
 	{
 		for (const auto& obj : objects)
 		{
 			obj->setDestroy();
+			obj->cleanup();
 		}
 	}
 
@@ -497,6 +510,7 @@ void Window::shutdown()
 		for (const auto& obj : objects)
 		{
 			obj->setDestroy();
+			obj->cleanup();
 		}
 	}
 	

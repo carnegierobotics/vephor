@@ -69,6 +69,7 @@ int main(int argc, char* argv[])
 	else if (use_server)
 	{
 		ShowMetadata metadata;
+		metadata.app_name = "test_show";
 		metadata.flags["Click"].toggle = false;
 		metadata.flags["Toggle"].toggle = true;
 		window.setServerMode(wait, port, false, "", metadata);

@@ -49,6 +49,10 @@ public:
 	{
 		lines->renderOGL(window, world_from_body);
 	}
+	void cleanup()
+	{
+		lines->cleanup();
+	}
 private:
 	shared_ptr<Lines> lines;
 };

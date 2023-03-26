@@ -22,7 +22,7 @@ struct ShowRecord
 	unordered_set<WindowID> closed_windows;
 	bool shutdown = false;
 	bool wait_flag = false;
-	shared_ptr<Window> control_window;
+	unordered_map<ConnectionID, shared_ptr<Window>> control_window_per_conn;
 	shared_ptr<Texture> text_tex;
 	
 	// Object management
@@ -244,9 +244,17 @@ struct ShowRecord
 			
 			if (message["type"] == "metadata")
 			{
-				if (!message["flags"].empty())
+				if (!message["flags"].empty() && !find(control_window_per_conn,conn_id))
 				{
-					control_window = make_shared<Window>(500,800,"Control");
+					v4print "Setting up viz control window.";
+
+					string name = "Viz Control";
+					string inner_name;
+					if (message.contains("name"))
+						 inner_name = message["name"];
+					if (!inner_name.empty())
+						name = inner_name + " " + name;
+					auto control_window = make_shared<Window>(500,800,name);
 					
 					text_tex = loadTexture(assets.getAssetPath("/assets/Holstein.png"));
 					
@@ -300,6 +308,8 @@ struct ShowRecord
 							}
 						}
 					});
+
+					control_window_per_conn[conn_id] = control_window;
 					
 					flags_per_conn[conn_id].last_update = std::chrono::steady_clock::now();
 				}
@@ -590,7 +600,6 @@ struct ShowRecord
 		
 		while (true)
 		{
-			v4print "Cleaning conns.";
 			net_manager.cleanConns();
 			
 			if (!net_manager.getConnectionIdList().empty())
@@ -617,8 +626,21 @@ struct ShowRecord
 				window.second->save_flag = false;
 			}
 			
-			if (control_window)
-				control_window->render();
+			unordered_set<ConnectionID> control_windows_to_remove;
+			for (auto control_window : control_window_per_conn)
+			{
+				if (net_manager.isActiveConn(control_window.first))
+					control_window.second->render();
+				else
+				{
+					control_window.second->shutdown();
+					control_windows_to_remove.insert(control_window.first);
+				}
+			}
+			for (auto& id : control_windows_to_remove)
+			{
+				control_window_per_conn.erase(id);
+			}
 
 			size_t windows_before = windows.size();
 			unordered_map<WindowID, shared_ptr<ShowRecordWindow>> curr_windows;

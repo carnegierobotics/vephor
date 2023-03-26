@@ -22,10 +22,11 @@ public:
 	}
 	void renderOGL(Window* window, const TransformSim3& world_from_body)
 	{
-		auto dir_light = window->getDirLight();
-		v4print "Cone light:", dir_light.pos.transpose(), dir_light.strength, mesh->getDiffuse().transpose(), mesh->getAmbient().transpose();
-		
 		mesh->renderOGL(window, world_from_body);
+	}
+	void cleanup()
+	{
+		mesh->cleanup();
 	}
 private:
 	shared_ptr<Mesh> mesh;

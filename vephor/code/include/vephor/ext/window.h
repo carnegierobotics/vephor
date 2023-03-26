@@ -260,12 +260,14 @@ struct ShowFlag
 
 struct ShowMetadata
 {
+	string app_name;
 	unordered_map<string, ShowFlag> flags;
 	
 	json serialize()
 	{
 		json data;
 		data["type"] = "metadata";
+		data["name"] = app_name;
 		for (const auto& flag : flags)
 		{
 			data["flags"].push_back({
@@ -344,7 +346,9 @@ struct WindowManager
 			{
 				JSONBMessage msg;
 				msg.header = show_metadata.serialize();
-				net.sendJSONBMessage(conn_id, msg.header, msg.payloads);
+				v4print "Sending metadata.";
+				if (!net.sendJSONBMessage(conn_id, msg.header, msg.payloads))
+					v4print "Failed to send metadata to connection", conn_id;
 				metadata_up_to_date[conn_id] = true;
 			}
 		}
@@ -787,11 +791,12 @@ public:
 	{
 		if (!manager.network_mode)
 			return false;
-		
+
+		manager.updateMetadata();
 		manager.checkIncomingMessages();
 		
 		if (!find(manager.show_metadata.flags, flag))
-			throw std::runtime_error("Flag " + flag + " does not exist.");
+			return false;
 		if (manager.show_metadata.flags[flag].toggle)
 			return manager.show_metadata.flags[flag].state;
 		bool ret_val = manager.show_metadata.flags[flag].state;

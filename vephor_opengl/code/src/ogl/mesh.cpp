@@ -226,24 +226,80 @@ opacity(p_color.getAlpha())
 	glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(GLfloat), verts.data(), GL_STATIC_DRAW);
 
+    glVertexAttribPointer(
+        pos_attr_loc,                 
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+    glEnableVertexAttribArray(pos_attr_loc);
+
     glGenBuffers(1, &uv_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(GLfloat), uvs.data(), GL_STATIC_DRAW);
 
+    glVertexAttribPointer(
+        uv_attr_loc,                                // attribute
+        2,                                // size
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+    glEnableVertexAttribArray(uv_attr_loc);
+
     glGenBuffers(1, &norm_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, norm_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, norms.size() * sizeof(GLfloat), norms.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        norm_attr_loc,                                // attribute
+        3,                                // size
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+    glEnableVertexAttribArray(norm_attr_loc);
 	
 	glGenBuffers(1, &tangent_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, tangent_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, tangents.size() * sizeof(GLfloat), tangents.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        tangent_attr_loc,                                // attribute
+        3,                                // size
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+    glEnableVertexAttribArray(tangent_attr_loc);
 	
 	glGenBuffers(1, &bitangent_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, bitangent_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, bitangents.size() * sizeof(GLfloat), bitangents.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        bitangent_attr_loc,                                // attribute
+        3,                                // size
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+    glEnableVertexAttribArray(bitangent_attr_loc);
+
+    glBindVertexArray(0);
 }
 
 Mesh::~Mesh()
+{
+}
+
+void Mesh::cleanup()
 {
     glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &uv_buffer_id);
@@ -311,7 +367,7 @@ void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
 
 	glBindVertexArray(vao_id);
 
-    glEnableVertexAttribArray(0);
+    /*glEnableVertexAttribArray(pos_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
     glVertexAttribPointer(
         pos_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -322,7 +378,7 @@ void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0            // array buffer offset
     );
 
-    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(uv_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, uv_buffer_id);
     glVertexAttribPointer(
         uv_attr_loc,                                // attribute
@@ -333,7 +389,7 @@ void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0                          // array buffer offset
     );
     
-    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(norm_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, norm_buffer_id);
     glVertexAttribPointer(
         norm_attr_loc,                                // attribute
@@ -344,7 +400,7 @@ void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0                          // array buffer offset
     );
 	
-	glEnableVertexAttribArray(3);
+	glEnableVertexAttribArray(tangent_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, tangent_buffer_id);
     glVertexAttribPointer(
         tangent_attr_loc,                                // attribute
@@ -355,7 +411,7 @@ void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0                          // array buffer offset
     );
 	
-	glEnableVertexAttribArray(4);
+	glEnableVertexAttribArray(bitangent_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, bitangent_buffer_id);
     glVertexAttribPointer(
         bitangent_attr_loc,                                // attribute
@@ -364,7 +420,7 @@ void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
         GL_FALSE,                         // normalized?
         0,                                // stride
         (void*)0                          // array buffer offset
-    );
+    );*/
 	
 	if (!cull)
 		glDisable(GL_CULL_FACE);
@@ -378,11 +434,13 @@ void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
 	
 	glDisable(GL_BLEND);
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
-	glDisableVertexAttribArray(3);
-	glDisableVertexAttribArray(4);
+    /*glDisableVertexAttribArray(pos_attr_loc);
+    glDisableVertexAttribArray(uv_attr_loc);
+    glDisableVertexAttribArray(norm_attr_loc);
+	glDisableVertexAttribArray(tangent_attr_loc);
+	glDisableVertexAttribArray(bitangent_attr_loc);*/
+
+    glBindVertexArray(0);
 }
 
 }

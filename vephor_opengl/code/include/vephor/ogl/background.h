@@ -15,6 +15,7 @@ public:
 	void setScale(float p_scale){scale = p_scale;}
 	float getScale() const {return scale;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
+    void cleanup();
 private:
     MatX verts;
 	MatX uvs;
@@ -24,8 +25,6 @@ private:
     GLuint vao_id;
     GLuint pos_buffer_id;
 	GLuint uv_buffer_id;
-    GLuint vert_shader_id;
-    GLuint frag_shader_id;
     GLuint program_id;
 
     GLuint pos_attr_loc;

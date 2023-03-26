@@ -21,6 +21,7 @@ public:
         curr_window->setAmbientLight(strength);
     }
     void renderOGL(Window* window, const TransformSim3& world_from_body){}
+    void cleanup(){}
 private:
     Window* curr_window = NULL;
     Vec3 strength;
@@ -45,6 +46,7 @@ public:
 		});
     }
     void renderOGL(Window* window, const TransformSim3& world_from_body){}
+    void cleanup(){}
 private:
     Window* curr_window = NULL;
     int light_id;
@@ -70,6 +72,7 @@ public:
         curr_window->setDirLight(dir, strength);
     }
 	void renderOGL(Window* window, const TransformSim3& world_from_body){}
+    void cleanup(){}
 private:
     Window* curr_window = NULL;
     Vec3 dir;

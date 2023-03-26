@@ -109,6 +109,7 @@ public:
     void setName(const string& name){node->setName(name);}
 	void setObjectSerialization(const JSONBMessage& p_obj_ser){obj_serialization = p_obj_ser;}
 	const JSONBMessage* getObjectSerialization() const {return &obj_serialization;}
+    virtual void cleanup(){}
 protected:
 	shared_ptr<TransformNode> node;
 private:
@@ -507,6 +508,10 @@ private:
             }
             data["pose"] = toJson(node->getTransform());
             return data;
+        }
+        virtual void cleanup() override
+        {
+            obj->cleanup();
         }
     private:
         shared_ptr<T> obj;

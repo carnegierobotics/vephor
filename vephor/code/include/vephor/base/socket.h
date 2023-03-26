@@ -802,9 +802,13 @@ public:
 
 		return true;
 	}
-	vector<int> getConnectionIdList() const
+	vector<ConnectionID> getConnectionIdList() const
 	{
 		return conn_id_list;
+	}
+	bool isActiveConn(ConnectionID conn_id)
+	{
+		return find(conn_id_list, conn_id);
 	}
 	void cleanConns()
 	{

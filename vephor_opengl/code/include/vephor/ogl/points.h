@@ -15,6 +15,7 @@ public:
 	void setColor(const Vec3& p_color){color = p_color;}
     void setSize(float p_size){size = p_size;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
+    void cleanup();
 private:
     MatX verts;
     Vec3 color = Vec3(1,1,1);

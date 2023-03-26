@@ -47,10 +47,7 @@ Lines::Lines(
         colors.block(0,0,4,p_colors.rows()) = p_colors.transpose();
     colors.block(0,p_colors.rows(),4,p_verts.rows()-p_colors.rows()).colwise() = p_default_color.getRGBA();
 
-    vert_shader_id = compileShaders(linesVertexShader, GL_VERTEX_SHADER);
-    frag_shader_id = compileShaders(linesFragmentShader, GL_FRAGMENT_SHADER);
-
-    program_id = linkProgram(vert_shader_id, frag_shader_id);
+    program_id = buildProgram("lines", linesVertexShader, linesFragmentShader);
 
     // Get the 'pos' variable location inside this program
     pos_attr_loc = glGetAttribLocation(program_id, "pos_in_model");
@@ -65,12 +62,38 @@ Lines::Lines(
 	glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(GLfloat), verts.data(), GL_STATIC_DRAW);
 
+    glVertexAttribPointer(
+        pos_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+    glEnableVertexAttribArray(pos_attr_loc);
+
     glGenBuffers(1, &color_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(GLfloat), colors.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        color_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+        4,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+    glEnableVertexAttribArray(color_attr_loc);
+
+    glBindVertexArray(0);
 }
 
 Lines::~Lines()
+{
+}
+
+void Lines::cleanup()
 {
     glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &color_buffer_id);
@@ -89,7 +112,7 @@ void Lines::renderOGL(Window* window, const TransformSim3& world_from_body)
 
 	glBindVertexArray(vao_id);
 
-    glEnableVertexAttribArray(0);
+    /*glEnableVertexAttribArray(pos_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
     glVertexAttribPointer(
         pos_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -100,7 +123,7 @@ void Lines::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0            // array buffer offset
     );
 
-    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(color_attr_loc);
     glBindBuffer(GL_ARRAY_BUFFER, color_buffer_id);
 	glVertexAttribPointer(
         color_attr_loc,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -109,15 +132,17 @@ void Lines::renderOGL(Window* window, const TransformSim3& world_from_body)
         GL_FALSE,           // normalized?
         0,                  // stride
         (void*)0            // array buffer offset
-    );
+    );*/
 
     if (is_strip)
         glDrawArrays(GL_LINE_STRIP, 0, verts.cols());
     else
         glDrawArrays(GL_LINES, 0, verts.cols());
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
+    //glDisableVertexAttribArray(pos_attr_loc);
+    //glDisableVertexAttribArray(color_attr_loc);
+
+    glBindVertexArray(0);
 }
 
 }
