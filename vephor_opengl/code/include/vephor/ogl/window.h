@@ -27,10 +27,6 @@ GLuint buildProgram(const string& program_name, const string& vert_shader, const
 
 class Window;
 
-template <class T>
-void onAddToWindow(T* object, Window* window, const shared_ptr<TransformNode>& node)
-{}
-
 struct RenderNode
 {
 public:
@@ -109,7 +105,7 @@ public:
     void setName(const string& name){node->setName(name);}
 	void setObjectSerialization(const JSONBMessage& p_obj_ser){obj_serialization = p_obj_ser;}
 	const JSONBMessage* getObjectSerialization() const {return &obj_serialization;}
-    virtual void cleanup(){}
+    virtual void onRemoveFromWindow(Window* window){}
 protected:
 	shared_ptr<TransformNode> node;
 private:
@@ -188,6 +184,8 @@ public:
     {
 		if (window == NULL)
 			return NULL;
+
+        glfwMakeContextCurrent(window);
 		
 		layer += num_layers / 2;
 
@@ -198,8 +196,7 @@ public:
 
 		auto node = make_shared<TransformNode>(parent_from_node);
 
-		//obj->onAddToWindow(this, node);
-		onAddToWindow(obj.get(), this, node);
+		obj->onAddToWindow(this, node);
 
 		shared_ptr<RenderNode> inner_obj = make_shared<TRenderNode<T>>(obj, node);
 		if (on_overlay)
@@ -387,7 +384,16 @@ public:
 	void shutdown();
 
     json produceSceneJSON(vector<vector<char>>* bufs = NULL);
+
+    shared_ptr<Texture> loadTexture(const std::string& path, bool nearest = false);
+    shared_ptr<Texture> getTextureFromBuffer(const char* buf_data, int buf_size, const Vec2i& size, bool nearest = false);
+    shared_ptr<Texture> getTextureFromImage(const Image<uint8_t>& img, bool nearest = false);
+
+    using TexturePathResolveCallback = std::function<string(const string&)>;
+    shared_ptr<Texture> getTextureFromJSON(const json& data, int base_buf_index, const vector<vector<char>>& bufs, TexturePathResolveCallback path_callback = NULL, json* serial_header = NULL, vector<vector<char>>* serial_bufs = NULL);
 private:
+    void removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects);
+
     WindowResizeCallback resize_callback;
     Vec2i window_size;
     string title;
@@ -509,9 +515,9 @@ private:
             data["pose"] = toJson(node->getTransform());
             return data;
         }
-        virtual void cleanup() override
+        virtual void onRemoveFromWindow(Window* window) override
         {
-            obj->cleanup();
+            obj->onRemoveFromWindow(window);
         }
     private:
         shared_ptr<T> obj;

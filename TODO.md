@@ -1,4 +1,5 @@
 TODO:
+	- Look into deallocating textures as we do objects
 	- Windows show/test_show client/server pair - show doesn't exit after window is closed, though test_show does
 	- remote trigger
 	- add key codes to python

@@ -51,7 +51,17 @@ Text::Text(
     const Vec3& p_color,
 	float p_x_border)
 : color(p_color),
-x_border(p_x_border)
+x_border(p_x_border),
+tex(p_tex),
+text(p_text)
+{
+}
+
+Text::~Text()
+{
+}
+
+void Text::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
 {
 	program_id = buildProgram("text", textVertexShader, textFragmentShader);
 
@@ -68,25 +78,18 @@ x_border(p_x_border)
 	
     glGenVertexArrays(1, &vao_id);
 
-	setTexture(p_tex);
-	setText(p_text);
+	setupText();
 }
 
-Text::~Text()
-{
-}
-
-void Text::cleanup()
+void Text::onRemoveFromWindow(Window*)
 {
 	glDeleteBuffers(1, &pos_buffer_id);
 	glDeleteBuffers(1, &uv_buffer_id);
     glDeleteVertexArrays(1, &vao_id);
 }
 
-void Text::setText(const string& p_text)
+void Text::setupText()
 {
-	text = p_text;
-	
 	if (!tex)
 	{
 		throw std::runtime_error("Must set text texture before setting text.");
@@ -180,10 +183,15 @@ void Text::setText(const string& p_text)
 	buffers_set = true;
 	
 	setAnchorOffset(anchor_perc);
+
+	text_needs_setup = false;
 }
 
 void Text::renderOGL(Window* window, const TransformSim3& world_from_body)
 {
+	if (text_needs_setup)
+		setupText();
+
 	TransformSim3 world_from_anchor = world_from_body * body_from_anchor;
 	
     glUseProgram(program_id);

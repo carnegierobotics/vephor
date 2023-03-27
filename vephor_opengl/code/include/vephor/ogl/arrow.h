@@ -66,10 +66,15 @@ public:
 		head->renderOGL(window, world_from_arrow_head);
 		body->renderOGL(window, world_from_arrow_body);
 	}
-	void cleanup()
+	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+    {
+		head->onAddToWindow(window, node);
+		body->onAddToWindow(window, node);
+	}
+	void onRemoveFromWindow(Window* window)
 	{
-		head->cleanup();
-		body->cleanup();
+		head->onRemoveFromWindow(window);
+		body->onRemoveFromWindow(window);
 	}
 private:
 	Transform3 body_from_arrow_head;

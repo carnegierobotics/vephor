@@ -158,7 +158,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	tick_size = 10.0f * window.getContentScale()[1];
 	tick_dist = 100.0f * window.getContentScale()[1];
 
-	text_tex = loadTexture(assets.getAssetPath("/assets/Holstein.png"));
+	text_tex = window.loadTexture(assets.getAssetPath("/assets/Holstein.png"));
 	
 	if (!text_tex)
 		throw std::runtime_error("Failed to load text texture.");
@@ -172,7 +172,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	if (data.contains("y_axis"))
 		y_axis = data["y_axis"];
 
-	auto back_tex = getTextureFromImage(*generateSimpleImage(Vec2i(64,64), Vec3(1,1,1)));
+	auto back_tex = window.getTextureFromImage(*generateSimpleImage(Vec2i(64,64), Vec3(1,1,1)));
 	auto back = make_shared<Background>(back_tex);
 	window.add(back, Transform3(), false, -1);
 
@@ -361,13 +361,13 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 				shared_ptr<Texture> marker_tex; 
 				
 				if (label["type"] == "circle")
-					marker_tex = loadTexture(assets.getAssetPath("/assets/circle.png"));
+					marker_tex = window.loadTexture(assets.getAssetPath("/assets/circle.png"));
 				else if (label["type"] == "diamond")
-					marker_tex = loadTexture(assets.getAssetPath("/assets/diamond.png"));
+					marker_tex = window.loadTexture(assets.getAssetPath("/assets/diamond.png"));
 				else if (label["type"] == "plus")
-					marker_tex = loadTexture(assets.getAssetPath("/assets/plus.png"));
+					marker_tex = window.loadTexture(assets.getAssetPath("/assets/plus.png"));
 				else if (label["type"] == "square")
-					marker_tex = getTextureFromImage(*generateSimpleImage(Vec2i(8,8), Vec3(1,1,1)));
+					marker_tex = window.getTextureFromImage(*generateSimpleImage(Vec2i(8,8), Vec3(1,1,1)));
 				else
 					throw std::runtime_error("Invalid marker type: " + string(label["type"]));
 				

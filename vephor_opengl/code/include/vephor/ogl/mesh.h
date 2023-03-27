@@ -26,7 +26,8 @@ public:
 	void setCull(bool p_cull){cull = p_cull;}
     void setSpecular(bool p_specular){specular = p_specular;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
-    void cleanup();
+    void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
+	void onRemoveFromWindow(Window* window);
 private:
     MatX verts;
     MatX uvs;

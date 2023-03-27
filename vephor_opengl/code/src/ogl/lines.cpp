@@ -46,7 +46,14 @@ Lines::Lines(
     if (p_colors.cols() == 4 && p_colors.rows() > 0)
         colors.block(0,0,4,p_colors.rows()) = p_colors.transpose();
     colors.block(0,p_colors.rows(),4,p_verts.rows()-p_colors.rows()).colwise() = p_default_color.getRGBA();
+}
 
+Lines::~Lines()
+{
+}
+
+void Lines::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+{
     program_id = buildProgram("lines", linesVertexShader, linesFragmentShader);
 
     // Get the 'pos' variable location inside this program
@@ -89,11 +96,7 @@ Lines::Lines(
     glBindVertexArray(0);
 }
 
-Lines::~Lines()
-{
-}
-
-void Lines::cleanup()
+void Lines::onRemoveFromWindow(Window*)
 {
     glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &color_buffer_id);

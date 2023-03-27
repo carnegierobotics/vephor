@@ -16,7 +16,8 @@ public:
     ~ThickLines();
     void setLineWidth(float p_line_width){line_width = p_line_width;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
-	void cleanup();
+	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
+	void onRemoveFromWindow(Window* window);
 private:
 	MatX verts;
 	MatX next;

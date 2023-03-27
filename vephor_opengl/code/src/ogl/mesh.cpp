@@ -192,8 +192,15 @@ opacity(p_color.getAlpha())
 	
 	tangents = pre_tangents.transpose();
 	bitangents = pre_bitangents.transpose();
+}
 
-	program_id = buildProgram("mesh", vertexShader, fragmentShader);
+Mesh::~Mesh()
+{
+}
+
+void Mesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+{
+    program_id = buildProgram("mesh", vertexShader, fragmentShader);
 
     // Get the 'pos' variable location inside this program
     pos_attr_loc = glGetAttribLocation(program_id, "pos_in_model");
@@ -295,11 +302,7 @@ opacity(p_color.getAlpha())
     glBindVertexArray(0);
 }
 
-Mesh::~Mesh()
-{
-}
-
-void Mesh::cleanup()
+void Mesh::onRemoveFromWindow(Window*)
 {
     glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &uv_buffer_id);

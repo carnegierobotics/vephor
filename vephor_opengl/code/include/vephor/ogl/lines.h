@@ -16,7 +16,8 @@ public:
     ~Lines();
 	void setLineStrip(bool p_is_strip){is_strip = p_is_strip;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
-    void cleanup();
+    void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
+	void onRemoveFromWindow(Window* window);
 private:
     MatX verts;
     MatX colors;

@@ -24,9 +24,13 @@ public:
 	{
 		mesh->renderOGL(window, world_from_body);
 	}
-	void cleanup()
+	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+    {
+		mesh->onAddToWindow(window, node);
+	}
+	void onRemoveFromWindow(Window* window)
 	{
-		mesh->cleanup();
+		mesh->onRemoveFromWindow(window);
 	}
 private:
 	shared_ptr<Mesh> mesh;

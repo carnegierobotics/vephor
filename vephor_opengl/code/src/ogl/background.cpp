@@ -55,7 +55,14 @@ Background::Background(
 
     verts = verts.transpose().eval();
 	uvs = uvs.transpose().eval();
+}
 
+Background::~Background()
+{ 
+}
+
+void Background::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+{
     program_id = buildProgram("background", backgroundVertexShader, backgroundFragmentShader);
     
     pos_attr_loc = glGetAttribLocation(program_id, "pos_in_model");
@@ -97,11 +104,7 @@ Background::Background(
     glBindVertexArray(0);
 }
 
-Background::~Background()
-{ 
-}
-
-void Background::cleanup()
+void Background::onRemoveFromWindow(Window*)
 {
     glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &uv_buffer_id);

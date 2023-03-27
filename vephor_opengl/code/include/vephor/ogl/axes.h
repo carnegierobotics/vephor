@@ -33,11 +33,17 @@ public:
 		axes[1]->renderOGL(window, axis_1);
 		axes[2]->renderOGL(window, axis_2);
 	}
-	void cleanup()
+	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+    {
+		axes[0]->onAddToWindow(window, node);
+		axes[1]->onAddToWindow(window, node);
+		axes[2]->onAddToWindow(window, node);
+	}
+	void onRemoveFromWindow(Window* window)
 	{
-		axes[0]->cleanup();
-		axes[1]->cleanup();
-		axes[2]->cleanup();
+		axes[0]->onRemoveFromWindow(window);
+		axes[1]->onRemoveFromWindow(window);
+		axes[2]->onRemoveFromWindow(window);
 	}
 private:
 	array<shared_ptr<Cylinder>, 3> axes;

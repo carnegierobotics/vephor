@@ -257,8 +257,15 @@ ambient(Vec3(0.1,0.1,0.1))
     {
         throw std::runtime_error("No cells found in sprite sheet.");
     }
+}
 
-    program_id = buildProgram("sprite", spriteVertexShader, spriteFragmentShader);
+Sprite::~Sprite()
+{
+}
+
+void Sprite::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+{
+	program_id = buildProgram("sprite", spriteVertexShader, spriteFragmentShader);
 
     pos_attr_loc = glGetAttribLocation(program_id, "pos_in_model");
 	uv_attr_loc = glGetAttribLocation(program_id, "in_uv");
@@ -315,11 +322,7 @@ ambient(Vec3(0.1,0.1,0.1))
 	glBindVertexArray(0);
 }
 
-Sprite::~Sprite()
-{
-}
-
-void Sprite::cleanup()
+void Sprite::onRemoveFromWindow(Window*)
 {
 	glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &uv_buffer_id);

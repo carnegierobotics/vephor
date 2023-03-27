@@ -8,7 +8,7 @@ void TrackballCamera::resizeWindow(Window& window)
 
 void TrackballCamera::setup(const json& data, Window& window, AssetManager& assets)
 {	
-	auto back_tex = getTextureFromImage(*generateGradientImage(Vec2i(64,64), Vec3(0.3,0.3,0.6), Vec3(0.05,0.05,0.1)));
+	auto back_tex = window.getTextureFromImage(*generateGradientImage(Vec2i(64,64), Vec3(0.3,0.3,0.6), Vec3(0.05,0.05,0.1)));
 	auto back = make_shared<Background>(back_tex);
 	window.add(back, Transform3(), false, -1);
 	

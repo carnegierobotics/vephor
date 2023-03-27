@@ -17,7 +17,8 @@ public:
 	void setSize(float p_size){size = p_size;}
 	void setOpacity(const float& p_opacity){opacity = p_opacity;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
-	void cleanup();
+	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
+	void onRemoveFromWindow(Window* window);
 private:
     MatX verts;
 	MatX uvs;

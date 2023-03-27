@@ -15,7 +15,11 @@ public:
 		float x_border = 0.5f
     );
     ~Text();
-    void setText(const string& text);
+    void setText(const string& p_text)
+	{
+		text_needs_setup = true;
+		text = p_text;
+	}
 	void setColor(const Vec3& p_color){color = p_color;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
 	
@@ -85,8 +89,12 @@ public:
 	{
 		billboard = p_billboard;
 	}
-	void cleanup();
+	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
+	void onRemoveFromWindow(Window* window);
 private:
+	bool text_needs_setup = true;
+	void setupText();
+
     MatX verts;
     MatX uvs;
 	Vec3 anchor_offset = Vec3::Zero();

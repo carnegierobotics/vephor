@@ -115,8 +115,15 @@ InstancedPoints::InstancedPoints(
 	
 	verts = verts.transpose().eval();
 	uvs = uvs.transpose().eval();
+}
 
-    program_id = buildProgram("instanced_points", instancedPointsVertexShader, instancedPointsFragmentShader);
+InstancedPoints::~InstancedPoints()
+{
+}
+
+void InstancedPoints::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+{
+	program_id = buildProgram("instanced_points", instancedPointsVertexShader, instancedPointsFragmentShader);
 	ss_program_id = buildProgram("instanced_points_screen_space", instancedPointsScreenSpaceScaleVertexShader, instancedPointsFragmentShader);
 
     
@@ -276,11 +283,7 @@ InstancedPoints::InstancedPoints(
 	glBindVertexArray(0);
 }
 
-InstancedPoints::~InstancedPoints()
-{
-}
-
-void InstancedPoints::cleanup()
+void InstancedPoints::onRemoveFromWindow(Window*)
 {
 	glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &uv_buffer_id);
@@ -291,8 +294,6 @@ void InstancedPoints::cleanup()
 
 void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_body)
 {
-	glBindVertexArray(vao_id);
-	
 	if (ss_mode)
 		glUseProgram(ss_program_id);
 	else
@@ -381,7 +382,6 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
         (void*)0            // array buffer offset
     );
 	glVertexAttribDivisor(3, 1);*/
-
 
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);

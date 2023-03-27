@@ -38,7 +38,14 @@ Points::Points(
 		verts.row(i) = p_pts[i];
 	
 	verts = verts.transpose().eval();
-	
+}
+
+Points::~Points()
+{
+}
+
+void Points::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+{
     program_id = buildProgram("points", pointsVertexShader, pointsFragmentShader);
 
     // Get the 'pos' variable location inside this program
@@ -56,11 +63,7 @@ Points::Points(
 	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(GLfloat), verts.data(), GL_STATIC_DRAW);
 }
 
-Points::~Points()
-{
-}
-
-void Points::cleanup()
+void Points::onRemoveFromWindow(Window*)
 {
     glDeleteBuffers(1, &pos_buffer_id);
     glDeleteVertexArrays(1, &vao_id);

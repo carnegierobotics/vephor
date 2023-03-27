@@ -256,7 +256,7 @@ struct ShowRecord
 						name = inner_name + " " + name;
 					auto control_window = make_shared<Window>(500,800,name);
 					
-					text_tex = loadTexture(assets.getAssetPath("/assets/Holstein.png"));
+					text_tex = control_window->loadTexture(assets.getAssetPath("/assets/Holstein.png"));
 					
 					const float fps = 60.0f;
 					control_window->setFrameLock(fps);

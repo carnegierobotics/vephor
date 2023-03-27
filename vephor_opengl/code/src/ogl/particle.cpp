@@ -77,8 +77,15 @@ Particle::Particle(
 	
 	verts = verts.transpose().eval();
 	uvs = uvs.transpose().eval();
+}
 
-    program_id = buildProgram("particle", particleVertexShader, particleFragmentShader);
+Particle::~Particle()
+{
+}
+
+void Particle::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+{
+	program_id = buildProgram("particle", particleVertexShader, particleFragmentShader);
 
     // Get the 'pos' variable location inside this program
     pos_attr_loc = glGetAttribLocation(program_id, "pos_in_model");
@@ -104,11 +111,7 @@ Particle::Particle(
 	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(GLfloat), uvs.data(), GL_STATIC_DRAW);
 }
 
-Particle::~Particle()
-{
-}
-
-void Particle::cleanup()
+void Particle::onRemoveFromWindow(Window*)
 {
 	glDeleteBuffers(1, &pos_buffer_id);
     glDeleteBuffers(1, &uv_buffer_id);

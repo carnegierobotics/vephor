@@ -9,11 +9,11 @@ int main()
 
     window.setFrameLock(60.0f);
 
-	auto sprite_sheet_1 = loadTexture(getBaseAssetDir()+"/assets/sphere_sprite.png", false);
-    auto normal_sprite_sheet_1 = loadTexture(getBaseAssetDir()+"/assets/sphere_sprite_normal.png", false);
+	auto sprite_sheet_1 = window.loadTexture(getBaseAssetDir()+"/assets/sphere_sprite.png", false);
+    auto normal_sprite_sheet_1 = window.loadTexture(getBaseAssetDir()+"/assets/sphere_sprite_normal.png", false);
 	
-	auto sprite_sheet_2 = loadTexture(getBaseAssetDir()+"/assets/diamond_sprite.png", false);
-    auto normal_sprite_sheet_2 = loadTexture(getBaseAssetDir()+"/assets/diamond_sprite_normal.png", false);
+	auto sprite_sheet_2 = window.loadTexture(getBaseAssetDir()+"/assets/diamond_sprite.png", false);
+    auto normal_sprite_sheet_2 = window.loadTexture(getBaseAssetDir()+"/assets/diamond_sprite_normal.png", false);
 
 	auto sprite_1 = make_shared<Sprite>(
 		sprite_sheet_1
@@ -97,7 +97,7 @@ int main()
 	
 	
 	
-	auto overlay_sprite_tex = getTextureFromImage(*generateCheckerboardImage(Vec2i(256,256), Vec2i(16,16), Vec3(1.0,0.0,0.0), Vec3(0.0,0.0,1.0)));
+	auto overlay_sprite_tex = window.getTextureFromImage(*generateCheckerboardImage(Vec2i(256,256), Vec2i(16,16), Vec3(1.0,0.0,0.0), Vec3(0.0,0.0,1.0)));
 	auto overlay_sprite = make_shared<Sprite>(overlay_sprite_tex);
 	overlay_sprite->setDiffuse(Vec3::Zero());
 	overlay_sprite->setAmbient(Vec3::Zero());

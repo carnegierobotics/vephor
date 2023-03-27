@@ -15,7 +15,8 @@ public:
 	void setScale(float p_scale){scale = p_scale;}
 	float getScale() const {return scale;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
-    void cleanup();
+    void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
+	void onRemoveFromWindow(Window* window);
 private:
     MatX verts;
 	MatX uvs;

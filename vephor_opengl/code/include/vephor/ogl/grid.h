@@ -49,9 +49,13 @@ public:
 	{
 		lines->renderOGL(window, world_from_body);
 	}
-	void cleanup()
+	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+    {
+		lines->onAddToWindow(window, node);
+	}
+	void onRemoveFromWindow(Window* window)
 	{
-		lines->cleanup();
+		lines->onRemoveFromWindow(window);
 	}
 private:
 	shared_ptr<Lines> lines;

@@ -134,7 +134,14 @@ ThickLines::ThickLines(
 		indices[ind++] = i+1+p_verts.rows();
 		indices[ind++] = i+1;
 	}
-	
+}
+
+ThickLines::~ThickLines()
+{
+}
+
+void ThickLines::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+{
 	program_id = buildProgram("thick_lines", thickLinesVertexShader, thickLinesFragmentShader);
 
 	pos_attr_loc = glGetAttribLocation(program_id, "pos_in_model");
@@ -177,11 +184,7 @@ ThickLines::ThickLines(
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
 }
 
-ThickLines::~ThickLines()
-{
-}
-
-void ThickLines::cleanup()
+void ThickLines::onRemoveFromWindow(Window*)
 {
 	glDeleteBuffers(1, &pos_buffer_id);
 	glDeleteBuffers(1, &next_buffer_id);

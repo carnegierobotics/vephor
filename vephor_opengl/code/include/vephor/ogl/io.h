@@ -38,10 +38,4 @@ private:
 	Vec2i size_wh;
 };
 
-shared_ptr<Texture> loadTexture(const std::string& path, bool nearest = false);
-shared_ptr<Texture> getTextureFromBuffer(const char* buf_data, int buf_size, const Vec2i& size, bool nearest = false);
-shared_ptr<Texture> getTextureFromImage(const Image<uint8_t>& img, bool nearest = false);
-
-using TexturePathResolveCallback = std::function<string(const string&)>;
-shared_ptr<Texture> getTextureFromJSON(const json& data, int base_buf_index, const vector<vector<char>>& bufs, TexturePathResolveCallback path_callback = NULL, json* serial_header = NULL, vector<vector<char>>* serial_bufs = NULL);
 }

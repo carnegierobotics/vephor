@@ -93,7 +93,7 @@ void ShowRecordWindow::setup(const json& data, WindowID p_window_id, ConnectionI
 			camera->resizeWindow(*this_window);
 	}, opts);
 	
-	text_tex = loadTexture(assets.getAssetPath("/assets/Holstein.png"));
+	text_tex = window->loadTexture(assets.getAssetPath("/assets/Holstein.png"));
 	
 	const float fps = 60.0f;
 	window->setFrameLock(fps);
@@ -401,7 +401,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		
 		if (obj.contains("tex"))
 		{
-			shared_ptr<Texture> tex = getTextureFromJSON(
+			shared_ptr<Texture> tex = window->getTextureFromJSON(
 				obj["tex"], 
 				base_buf_index, 
 				bufs, 
@@ -521,7 +521,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		
 		if (obj.contains("tex"))
 		{
-			shared_ptr<Texture> tex = getTextureFromJSON(
+			shared_ptr<Texture> tex = window->getTextureFromJSON(
 				obj["tex"], 
 				base_buf_index, 
 				bufs, 
@@ -669,7 +669,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 			bool filter_nearest = false;
 			if (obj.contains("tex_filter_nearest"))
 				filter_nearest = obj["tex_filter_nearest"];
-			auto tex = loadTexture(assets.getAssetPath(obj["tex"]), filter_nearest);
+			auto tex = window->loadTexture(assets.getAssetPath(obj["tex"]), filter_nearest);
 			draw_obj->setTexture(tex);
 		}
 		
@@ -695,7 +695,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		float ambient = readDefault(obj, "ambient", 1.0f);
 		Vec3 color = readDefault(obj, "color_rgb", Vec3(1,1,1));
 
-		shared_ptr<Texture> tex = getTextureFromJSON(
+		shared_ptr<Texture> tex = window->getTextureFromJSON(
 			obj["tex"], 
 			base_buf_index, 
 			bufs, 
@@ -723,7 +723,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 
 		if (obj.contains("normal_tex"))
 		{
-			shared_ptr<Texture> tex = getTextureFromJSON(
+			shared_ptr<Texture> tex = window->getTextureFromJSON(
 				obj["normal_tex"], 
 				base_buf_index, 
 				bufs, 

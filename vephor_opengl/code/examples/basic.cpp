@@ -66,7 +66,7 @@ int main()
         hm_mesh_data,
         Vec3(1.0,1.0,1.0));
 
-    auto hm_tex = getTextureFromImage(*generateCheckerboardImage(Vec2i(256,256), Vec2i(16,16), Vec3(1.0,0.0,0.0), Vec3(0.0,0.0,1.0)));
+    auto hm_tex = window.getTextureFromImage(*generateCheckerboardImage(Vec2i(256,256), Vec2i(16,16), Vec3(1.0,0.0,0.0), Vec3(0.0,0.0,1.0)));
     hm_mesh->setTexture(hm_tex);
 
     window.add(hm_mesh, Transform3(
