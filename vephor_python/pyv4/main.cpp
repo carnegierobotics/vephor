@@ -33,6 +33,8 @@ PYBIND11_MODULE(_core, m) {
 
 	m.def("clamp", &clamp);
 
+	py::class_<ShowMetadata>(m, "ShowMetadata");
+
 	py::class_<Axes, shared_ptr<Axes>>(m, "Axes")
         .def(py::init<float>(),py::arg("size")=1.0f);
 
@@ -153,7 +155,8 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("wait")=false, 
 			py::arg("port")=2001,
 			py::arg("record_also")=false,
-			py::arg("record_path")="")
+			py::arg("record_path")="",
+			py::arg("show_metadata")=ShowMetadata())
 		.def_static("setServerModeBYOC", &Window::setServerModeBYOC, 
 			py::arg("record_also")=false,
 			py::arg("record_path")="")
