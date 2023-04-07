@@ -28,38 +28,59 @@ int main(int argc, char* argv[])
 	float playback_speed = 1;
 	
 	int opt;
-    while((opt = getopt(argc, argv, "hi:m:o:p:P:rR:")) != -1) 
-    {
-		switch(opt)
+	int pos_arg_ind = 0;
+	while (optind < argc)
+	{
+		v4print "optind:", optind;
+		if((opt = getopt(argc, argv, "hi:m:o:p:P:rR:")) != -1) 
 		{
-		case 'h':
-			usage(argv);
-			break;
-		case 'i': 
-			input_dir = optarg;
-			break;
-		case 'm': 
-			mode = optarg;
-			break;
-		case 'o': 
-			host = optarg;
-			break;
-		case 'p': 
-			port = std::atoi(optarg);
-			break;
-		case 'P': 
-			playback_speed = std::atof(optarg);
-			break;
-		case 'r':
-			redirect = true;
-			break;
-		case 'R': 
-			record_path = optarg;
-			break;
-		default:
-			usage(argv);
-			break;
-		}			
+			switch(opt)
+			{
+			case 'h':
+				usage(argv);
+				std::exit(0);
+				break;
+			case 'i': 
+				input_dir = optarg;
+				break;
+			case 'm': 
+				mode = optarg;
+				break;
+			case 'o': 
+				host = optarg;
+				break;
+			case 'p': 
+				port = std::atoi(optarg);
+				break;
+			case 'P': 
+				playback_speed = std::atof(optarg);
+				break;
+			case 'r':
+				redirect = true;
+				break;
+			case 'R': 
+				record_path = optarg;
+				break;
+			default:
+				usage(argv);
+				std::exit(1);
+				break;
+			}			
+		}
+		else {
+			if (pos_arg_ind == 0) // Input dir
+			{
+				input_dir = argv[optind];
+			}
+			else
+			{
+				v4print "Too many positional arguments.";
+				usage(argv);
+				std::exit(1);
+			}
+			optind++;  // Skip to the next argument
+			pos_arg_ind++;
+		}
 	}
 
 	if (optind < argc)
@@ -109,7 +130,10 @@ int main(int argc, char* argv[])
     else
     {
 		if (input_dir.empty())
-			throw std::runtime_error("Input dir empty.");
+		{
+			v4print "Input dir empty.";
+			std::exit(1);
+		}
 		show.setupFromPath(input_dir);
     }
     

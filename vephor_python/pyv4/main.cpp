@@ -97,7 +97,7 @@ PYBIND11_MODULE(_core, m) {
 			}, 
 			py::arg("rgba"))
 		.def("setSize",&Particle::setSize,py::arg("size"))
-		.def("setScreenSpaceMode",&Particle::setScreenSpaceMode);
+		.def("setScreenSpaceMode",&Particle::setScreenSpaceMode,py::arg("ss_mode")=true);
 
 	py::class_<Sprite, shared_ptr<Sprite>>(m, "Sprite")
 		.def(py::init<string,bool>())
