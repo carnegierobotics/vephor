@@ -29,7 +29,8 @@ PYBIND11_MODULE(_core, m) {
 		.def("setPos", &RenderNode::setPos)
 		.def("setOrient", &RenderNode::setOrient)
 		.def("setOrient", [](const shared_ptr<RenderNode>& node, const Vec3& r){node->setOrient(Orient3(r));})
-		.def("setScale", &RenderNode::setScale);
+		.def("setScale", &RenderNode::setScale)
+		.def("setShow", &RenderNode::setShow);
 
 	m.def("clamp", &clamp);
 
@@ -45,7 +46,17 @@ PYBIND11_MODULE(_core, m) {
         .def(py::init<float,float,int>(),py::arg("rad")=1.0f,py::arg("height")=1.0f,py::arg("slices")=12);
 
 	py::class_<Cube, shared_ptr<Cube>>(m, "Cube")
-        .def(py::init<float>(),py::arg("rad")=1.0f);
+        .def(py::init<float>(),py::arg("rad")=1.0f)
+		.def("setColor",[](Cube& c, 
+			const Vec3& rgb){
+				c.setColor(Color(rgb));
+			}, 
+			py::arg("rgb"))
+		.def("setColor",[](Cube& c, 
+			const Vec4& rgba){
+				c.setColor(Color(rgba));
+			}, 
+			py::arg("rgba"));
 
 	py::class_<Cone, shared_ptr<Cone>>(m, "Cone")
         .def(py::init<float,float,int>(),py::arg("rad")=1.0f,py::arg("height")=1.0f,py::arg("slices")=12);

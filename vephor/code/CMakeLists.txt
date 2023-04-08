@@ -23,15 +23,11 @@ write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
 set(EXAMPLE_APPS
 	test_show
 	mini_test_show
+	mini_test_server
 	test_plot
 	test_imshow
 	test_plot_render
 	test_show_two_windows
-	test_client
-	test_server
-	test_client_jsonb
-	test_server_jsonb
-	test_server_daemon_jsonb
 	produce_sprites_with_normals
 )
 
@@ -44,6 +40,25 @@ foreach (APP ${EXAMPLE_APPS})
 		target_link_libraries(${APP} Ws2_32)
 	else()
 		target_link_libraries(${APP} pthread)
+	endif()
+endforeach()
+
+set(EXAMPLE_NETWORKING_APPS
+	test_client
+	test_client_jsonb
+	test_server
+	test_server_jsonb
+	test_server_daemon_jsonb
+)
+
+foreach (APP ${EXAMPLE_NETWORKING_APPS})
+	add_executable (networking_${APP} examples/networking/${APP}.cpp)
+	target_link_libraries(networking_${APP} vephor)
+	
+	if (WIN32)
+		target_link_libraries(networking_${APP} Ws2_32)
+	else()
+		target_link_libraries(networking_${APP} pthread)
 	endif()
 endforeach()
 

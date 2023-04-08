@@ -12,7 +12,7 @@ public:
     Cube(float p_rad=1.0f)
 	: rad(p_rad)
 	{}
-	void setColor(const Vec3& p_color){color = p_color;}
+	void setColor(const Color& p_color){color = p_color.getRGB();}
 	json serialize(vector<vector<char>>* bufs)
 	{	
 		return {

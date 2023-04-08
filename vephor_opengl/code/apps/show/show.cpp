@@ -10,11 +10,16 @@ using namespace vephor;
 
 void usage(char* argv[])
 {
-	v4print "Usage:", argv[0], "\n";
-	v4print "\t-i <input dir>";
-	v4print "\t-m <mode>";
-	v4print "\t-o <host>";
-	v4print "\t-p <port>";
+	v4print "Usage:", argv[0];
+	v4print "\t-d                  - daemonizes a client, allowing it to survive window close";
+	v4print "\t-h                  - shows usage";
+	v4print "\t-i <input dir>      - specifies path to saved viz";
+	v4print "\t-m <mode>           - sets show mode, can be server or client";
+	v4print "\t-o <host>           - sets host for client to connect to";
+	v4print "\t-p <port>           - sets port to use for client or server";
+	v4print "\t-P <playback speed> - sets playback speed as a multiplier, with 1 being normal";
+	v4print "\t-r                  - redirects console output to a temporary dir";
+	v4print "\t-R <record dir>     - sets dir to record inputs into for later playback";
 }
 
 int main(int argc, char* argv[])
@@ -26,16 +31,20 @@ int main(int argc, char* argv[])
 	bool redirect = false;
 	string record_path;
 	float playback_speed = 1;
+	bool daemonize = false;
 	
 	int opt;
 	int pos_arg_ind = 0;
 	while (optind < argc)
 	{
 		v4print "optind:", optind;
-		if((opt = getopt(argc, argv, "hi:m:o:p:P:rR:")) != -1) 
+		if((opt = getopt(argc, argv, "dhi:m:o:p:P:rR:")) != -1) 
 		{
 			switch(opt)
 			{
+			case 'd':
+				daemonize = true;
+				break;
 			case 'h':
 				usage(argv);
 				std::exit(0);
@@ -132,12 +141,13 @@ int main(int argc, char* argv[])
 		if (input_dir.empty())
 		{
 			v4print "Input dir empty.";
+			usage(argv);
 			std::exit(1);
 		}
 		show.setupFromPath(input_dir);
     }
     
-	show.spin(use_server || use_client);
+	show.spin(use_server || daemonize);
 
 	v4print "Show: Exiting successfully.";
 	

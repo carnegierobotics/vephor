@@ -16,7 +16,7 @@ public:
 		data.verts *= p_rad;
 		mesh = make_shared<Mesh>(data);
 	}
-	void setColor(const Vec3& p_color)
+	void setColor(const Color& p_color)
 	{
 		mesh->setDiffuse(p_color);
 		mesh->setAmbient(p_color);
