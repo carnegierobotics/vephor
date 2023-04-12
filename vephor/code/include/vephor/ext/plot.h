@@ -363,15 +363,7 @@ public:
 	void imshow(const Image<uint8_t>& p_image, bool p_filter_nearest = false, const Vec2& offset = Vec2(0,0))
 	{
 		shared_ptr<Sprite> sprite;
-		
-		if (p_image.getChannels() == 1)
-		{
-			sprite = make_shared<Sprite>(p_image.changeChannels(3), p_filter_nearest);
-		}
-		else
-		{
-			sprite = make_shared<Sprite>(p_image, p_filter_nearest);
-		}
+		sprite = make_shared<Sprite>(p_image, p_filter_nearest);
 		sprite->setFlip(false, true);
 		auto node = inner_window.add(sprite, Vec3(
 			p_image.getSize()[0]/2.0f+offset[0],

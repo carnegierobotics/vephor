@@ -806,7 +806,8 @@ public:
 
 	static bool canRender()
 	{
-		if (manager.mode == WindowManager::Mode::Client || manager.mode == WindowManager::Mode::Server)
+		if (manager.mode == WindowManager::Mode::Client || 
+			manager.mode == WindowManager::Mode::Server)
 			return !manager.net.getConnectionIdList().empty();
 		return true;
 	}
@@ -1005,7 +1006,8 @@ public:
 			"-m", "client", 
 			"-o", "localhost", 
 			"-p", std::to_string(port),
-			"-r"});
+			"-r",
+			"-d"});
 		v4print "Client process started.";
 		
 		manager.network_mode = true;

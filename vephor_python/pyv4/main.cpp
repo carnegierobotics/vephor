@@ -26,10 +26,12 @@ PYBIND11_MODULE(_core, m) {
     py::class_<TransformNode, shared_ptr<TransformNode>>(m, "TransformNode");
     py::class_<RenderNode, shared_ptr<RenderNode>>(m, "RenderNode")
 		.def("setParent", static_cast<void (RenderNode::*)(const shared_ptr<RenderNode>&)>(&RenderNode::setParent))
+		.def("setParent", static_cast<void (RenderNode::*)(const shared_ptr<TransformNode>&)>(&RenderNode::setParent))
 		.def("setPos", &RenderNode::setPos)
 		.def("setOrient", &RenderNode::setOrient)
 		.def("setOrient", [](const shared_ptr<RenderNode>& node, const Vec3& r){node->setOrient(Orient3(r));})
 		.def("setScale", &RenderNode::setScale)
+		.def("setDestroy", &RenderNode::setDestroy)
 		.def("setShow", &RenderNode::setShow);
 
 	m.def("clamp", &clamp);
@@ -111,7 +113,7 @@ PYBIND11_MODULE(_core, m) {
 		.def("setScreenSpaceMode",&Particle::setScreenSpaceMode,py::arg("ss_mode")=true);
 
 	py::class_<Sprite, shared_ptr<Sprite>>(m, "Sprite")
-		.def(py::init<string,bool>())
+		.def(py::init<string,bool>(), py::arg("path"), py::arg("nearest")=false)
 		.def(py::init([](py::buffer buf, bool nearest){
 				py::buffer_info info = buf.request();
 				
@@ -121,8 +123,12 @@ PYBIND11_MODULE(_core, m) {
 					v4print "\t", info.shape[i], info.strides[i];
 				}
 				v4print info.itemsize, info.size, info.format;
+
+				int channels = 1;
+				if (info.shape.size() > 2)
+					channels = info.shape[2];
 				
-				Image<uint8_t> image(info.shape[1], info.shape[0], info.shape[2]);
+				Image<uint8_t> image(info.shape[1], info.shape[0], channels);
 				
 				if (info.format == py::format_descriptor<uint8_t>::format())
 					image.copyFromBuffer(reinterpret_cast<const char*>(info.ptr), info.size);
@@ -145,13 +151,14 @@ PYBIND11_MODULE(_core, m) {
 				}
 
 				return make_shared<Sprite>(image, nearest);
-		}));
+		}), py::arg("buf"), py::arg("nearest")=false);
 	
     py::class_<Window>(m, "Window")
         .def(py::init<int,int,std::string>(),
 			py::arg("width")=-1,
 			py::arg("height")=-1,
 			py::arg("name")="show")
+		.def("clear", &Window::clear)
         .def("render", &Window::render, py::arg("wait_close")=true, py::arg("wait_key")=true)
 		.def_static("setClientMode", &Window::setClientMode, 
 			py::arg("wait")=false, 
@@ -171,6 +178,10 @@ PYBIND11_MODULE(_core, m) {
 		.def_static("setServerModeBYOC", &Window::setServerModeBYOC, 
 			py::arg("record_also")=false,
 			py::arg("record_path")="")
+		.def("getWindowBottomRightNode", &Window::getWindowBottomRightNode)
+		.def("getWindowTopLeftNode", &Window::getWindowTopLeftNode)
+		.def("getWindowBottomLeftNode", &Window::getWindowBottomLeftNode)
+		.def("getWindowTopRightNode", &Window::getWindowTopRightNode)
 		.def("setTrackballMode", &Window::setTrackballMode, 
 			py::arg("to")=Vec3(0,0,0), 
 			py::arg("from")=Vec3(-1,0,-1), 

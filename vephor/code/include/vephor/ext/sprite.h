@@ -15,7 +15,15 @@ public:
 	}
 	Sprite(const Image<uint8_t>& p_tex, bool p_filter_nearest)
 	{
-		tex_data.tex = p_tex;
+		if (p_tex.getChannels() == 1)
+		{
+			tex_data.tex = p_tex.changeChannels(3);
+		}
+		else
+		{
+			tex_data.tex = p_tex;
+		}
+
 		tex_data.filter_nearest = p_filter_nearest;
 	}
 	void setColor(const Color& p_color){color = p_color.getRGB();}
