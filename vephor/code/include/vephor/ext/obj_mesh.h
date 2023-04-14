@@ -27,7 +27,7 @@ public:
 	{
 	}
 	void setColor(const Vec3& p_color){color = p_color;}
-	json serialize(vector<vector<char>>* bufs) const
+	json serialize(vector<vector<char>>*) const
 	{
 		string temp_dir = getTempDir();
 		

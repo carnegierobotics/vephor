@@ -4,7 +4,7 @@
 
 using namespace vephor;
 
-int main(int argc, char* argv[])
+int main()
 {
 	Window window_1(640,640,"show 1");
 	window_1.setClientMode(true);
@@ -36,4 +36,6 @@ int main(int argc, char* argv[])
 		time += dt;
 		std::this_thread::sleep_for(std::chrono::milliseconds((int)(dt*1000)));
 	}
+
+	return 0;
 }

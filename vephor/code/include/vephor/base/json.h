@@ -125,14 +125,14 @@ inline TransformSim3 readTransformSim3(const json& data)
     Vec3 r(0,0,0);
 	float scale = 1.0f;
 
-    if (data.contains("t"))
-        t = readVec3(data["t"]);
-
-    if (data.contains("r"))
-        r = readVec3(data["r"]);
+	if (data.contains("t"))
+		t = readVec3(data["t"]);
+	
+	if (data.contains("r"))
+	    r = readVec3(data["r"]);
 	
 	if (data.contains("scale"))
-        scale = data["scale"];
+		scale = data["scale"];
 
     return TransformSim3(t,r,scale);
 }

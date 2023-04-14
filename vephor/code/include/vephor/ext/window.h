@@ -439,7 +439,7 @@ public:
 		node->setScale(parent_from_node.scale);
 		objects.push_back(inner_obj);
 		
-		node->addTransformCallback([this, inner_obj](const TransformSim3& world_from_node)
+		node->addTransformCallback([inner_obj](const TransformSim3&)
 		{
 			for (auto& status : inner_obj->net_status)
 				status.second.pose_up_to_date = false;
@@ -475,7 +475,7 @@ public:
 		inner_obj->layer = layer;
 		objects.push_back(inner_obj);
 		
-		node->addTransformCallback([this, inner_obj](const TransformSim3& world_from_node)
+		node->addTransformCallback([inner_obj](const TransformSim3&)
 		{
 			for (auto& status : inner_obj->net_status)
 				status.second.pose_up_to_date = false;
@@ -662,8 +662,6 @@ public:
 			}
 			while (true)
 			{
-				bool key_pressed = false;
-				
 				auto msgs = manager.getWindowMessages(id);
 				for (const auto& msg : msgs)
 				{
@@ -1105,7 +1103,7 @@ private:
         : RenderNode(p_node)
         {}
 
-        virtual json serialize(ConnectionID conn_id, vector<vector<char>>* bufs) override
+        virtual json serialize(ConnectionID conn_id, vector<vector<char>>*) override
         {
 			json data;
 			if (!net_status[conn_id].obj_up_to_date)
@@ -1170,7 +1168,6 @@ private:
 	shared_ptr<TransformNode> window_bottom_left_node;
 	vector<shared_ptr<RenderNode>> objects;
 	inline static WindowManager manager;
-	bool key_pressed = false;
 	std::thread server_message_thread;
 	bool shutdown = false;
 	json camera_control;

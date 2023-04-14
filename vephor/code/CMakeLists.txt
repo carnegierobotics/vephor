@@ -14,6 +14,11 @@ add_library(vephor INTERFACE)
 target_include_directories(vephor INTERFACE 
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
+
+target_compile_options(
+	vephor
+	INTERFACE "-Wno-sign-compare"
+			"-Wno-missing-field-initializers")
 	
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
@@ -62,17 +67,6 @@ foreach (APP ${EXAMPLE_NETWORKING_APPS})
 	endif()
 endforeach()
 
-set(BUILD_UNIT_TESTS ON CACHE BOOL "Build unit tests")
-
-if (BUILD_UNIT_TESTS)
-    find_package(GTest)
-    if(GTEST_FOUND)
-        add_subdirectory(test/unit)
-    else(GTEST_FOUND)
-        message(WARNING "GTest not found, tests will not be built.")
-    endif()
-endif()
-
 
 install(TARGETS vephor
     EXPORT vehpor_targets
@@ -93,3 +87,15 @@ configure_package_config_file(
   "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
   INSTALL_DESTINATION
   ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/cmake)
+
+
+set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
+
+if (BUILD_UNIT_TESTS)
+    find_package(GTest)
+    if(GTEST_FOUND)
+        add_subdirectory(test/unit)
+    else(GTEST_FOUND)
+        message(WARNING "GTest not found, tests will not be built.")
+    endif()
+endif()

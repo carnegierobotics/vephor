@@ -13,7 +13,7 @@ public:
 	: rad(p_rad), slices(p_slices), stacks(p_stacks)
 	{}
 	void setColor(const Vec3& p_color){color = p_color;}
-	json serialize(vector<vector<char>>* bufs)
+	json serialize(vector<vector<char>>*)
 	{	
 		return {
             {"type", "sphere"},

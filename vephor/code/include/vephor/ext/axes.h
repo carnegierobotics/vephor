@@ -12,7 +12,7 @@ public:
     Axes(float p_size = 1.0f)
 	: size(p_size)
 	{}
-	json serialize(vector<vector<char>>* bufs)
+	json serialize(vector<vector<char>>*)
 	{
 		return {
 			{"type", "axes"},

@@ -963,7 +963,7 @@ inline vector<OBJMeshData> loadOBJMesh(const string& path)
 	vector<OBJMeshData> mesh_parts;
 	
 	objl::Loader Loader;
-	bool loadout = Loader.LoadFile(path);
+	Loader.LoadFile(path);
 
 	for (int i = 0; i < Loader.LoadedMeshes.size(); i++)
 	{

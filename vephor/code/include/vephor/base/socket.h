@@ -423,9 +423,7 @@ public:
 
 		if (sock_fd < 0)
 		{
-			socklen_t clilen;
 			struct sockaddr_in serv_addr;
-			int n;
 			sock_fd = socket(AF_INET, SOCK_STREAM, 0);
 			if (sock_fd < 0)
 			{
@@ -453,7 +451,6 @@ public:
 		
 		
 		fd_set fds;
-		int n;
 		struct timeval tv;
 
 		// Set up the file descriptor set.

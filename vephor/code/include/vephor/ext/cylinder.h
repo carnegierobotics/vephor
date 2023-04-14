@@ -13,7 +13,7 @@ public:
 	: rad(p_rad), height(p_height), slices(p_slices)
 	{}
 	void setColor(const Vec3& p_color){color = p_color;}
-	json serialize(vector<vector<char>>* bufs)
+	json serialize(vector<vector<char>>*)
 	{	
 		return {
             {"type", "cylinder"},
