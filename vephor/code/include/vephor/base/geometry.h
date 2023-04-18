@@ -114,8 +114,32 @@ struct MeshData
 	}
 };
 
-inline void formLine(const vector<Vec2>& verts, float rad, MeshData& data)
+inline vector<Vec2> cleanOrderedVerts(const vector<Vec2>& orig_verts, float dist_min = 1e-3)
 {
+	vector<Vec2> verts;
+
+	if (orig_verts.empty())
+		return verts;
+
+	verts.reserve(orig_verts.size());
+
+	verts.push_back(orig_verts[0]);
+
+	for (size_t i = 1; i < orig_verts.size(); i++)
+	{
+		Vec2 diff = orig_verts[i] - *verts.rbegin();
+		float dist = diff.norm();
+		if (dist > dist_min)
+			verts.push_back(orig_verts[i]);
+	}
+
+	return verts;
+}
+
+inline void formLine(const vector<Vec2>& orig_verts, float rad, MeshData& data)
+{
+	auto verts = cleanOrderedVerts(orig_verts);
+
 	if (verts.size() < 2)
 	{
 		return;

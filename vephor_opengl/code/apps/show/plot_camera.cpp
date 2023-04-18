@@ -158,11 +158,6 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	tick_size = 10.0f * window.getContentScale()[1];
 	tick_dist = 100.0f * window.getContentScale()[1];
 
-	text_tex = window.loadTexture(assets.getAssetPath("/assets/Holstein.png"));
-	
-	if (!text_tex)
-		throw std::runtime_error("Failed to load text texture.");
-
 	if (data.contains("title"))
 		title = data["title"];
 

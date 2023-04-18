@@ -146,11 +146,29 @@ public:
 
     void show()
     {
-        glfwShowWindow(window);
+        if (!showing)
+        {
+            glfwShowWindow(window);
+            showing = true;
+        }
     }
     void hide()
     {
-        glfwHideWindow(window);
+        if (showing)
+        {
+            glfwHideWindow(window);
+            showing = false;
+        }
+    }
+
+    void setHideOnClose(bool p_hide_on_close)
+    {
+        hide_on_close = p_hide_on_close;
+    }
+
+    void setIgnoreClose(bool p_ignore_close)
+    {
+        ignore_close = p_ignore_close;
     }
 
     void setFrameLock(float p_fps){fps = p_fps;}
@@ -400,6 +418,9 @@ private:
 	Vec2 content_scale = Vec2(1,1);
     GLFWwindow* window = NULL;
     int id;
+    bool showing = true;
+    bool ignore_close = false;
+    bool hide_on_close = false;
     inline static int next_id = 0;
     Mat4 proj_matrix;
     Transform3 cam_from_world;
@@ -452,7 +473,7 @@ private:
 				return json();
 			
 			json data = serialization->header;
-            data["id"] = std::stoi(node->getName());
+            data["id"] = std::stoll(node->getName());
 			
 			if (bufs)
 			{
@@ -496,7 +517,7 @@ private:
 				return json();
 			
 			json data = serialization->header;
-            data["id"] = std::stoi(node->getName());
+            data["id"] = std::stoll(node->getName());
 			
 			if (bufs)
 			{

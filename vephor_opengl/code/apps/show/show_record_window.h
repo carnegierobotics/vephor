@@ -11,8 +11,8 @@
 #include "trackball_camera.h"
 #include "plot_camera.h"
 
-using WindowID = int;
-using ObjectID = int;
+using WindowID = int64_t;
+using ObjectID = int64_t;
 
 void waitForMessages(NetworkManager* net_manager, std::deque<JSONBMessage>* messages, std::mutex* message_mutex, bool* shutdown);
 
@@ -22,6 +22,7 @@ struct ShowRecordWindow
 	bool shutdown = false;
 	float dt;
 	shared_ptr<Texture> text_tex;
+	unordered_map<string, shared_ptr<Texture>> texture_bank;
 	bool save_flag = false;
 	
 	// Camera controls
@@ -57,4 +58,5 @@ struct ShowRecordWindow
 	void refreshKeyMotion();
 	shared_ptr<RenderNode> addFromJSON(const json& obj, const vector<vector<char>>& bufs, AssetManager& assets, JSONBMessage& serialization);
 	json produceSceneJSON(vector<vector<char>>* bufs = NULL);
+	shared_ptr<Texture> loadTexture(const string& path, bool nearest, AssetManager& assets);
 };

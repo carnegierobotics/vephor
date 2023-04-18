@@ -28,7 +28,6 @@ public:
 private:
 	json serialization;
 	bool auto_fit = true;
-	shared_ptr<Texture> text_tex;
 	string title;
 	string x_axis;
 	string y_axis;

@@ -193,6 +193,7 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 	if (!opts.show)
 	{
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		showing = false;
 	}
 
 	auto* monitor = glfwGetPrimaryMonitor();
@@ -209,7 +210,6 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 	}
 	
 	glfwGetMonitorContentScale(monitor, &content_scale[0], &content_scale[1]);
-	v4print "Content scale:", content_scale.transpose();
 
 	if (opts.fullscreen)
 	{
@@ -477,11 +477,21 @@ bool Window::render()
 
 	last_time = high_resolution_clock::now();
 	
-	bool close = glfwGetKey(window, GLFW_KEY_ESCAPE ) == GLFW_PRESS || glfwWindowShouldClose(window);
+	bool close = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS || glfwWindowShouldClose(window);
 	
 	if (close)
 	{
-		shutdown();
+		if (hide_on_close || ignore_close)
+		{
+			close = false;
+			glfwSetWindowShouldClose(window, false);
+			if (hide_on_close)
+				hide();
+		}
+		else
+		{
+			shutdown();
+		}
 	}
 	
 	return !close;
@@ -628,8 +638,6 @@ shared_ptr<Texture> Window::loadTexture(const std::string& path, bool nearest){
 	int width, height, channels;
 	const uint8_t* img = stbi_load(path.c_str(), &width, &height, &channels, 0);
 	
-	v4print "Load", path, width, height, channels;
-	
 	// Create one OpenGL texture
 	GLuint textureID;
 	glGenTextures(1, &textureID);
@@ -656,8 +664,6 @@ shared_ptr<Texture> Window::getTextureFromBuffer(const char* buf_data, int chann
 
 	int width = size[0];
 	int height = size[1];
-	
-	v4print "Image from buffer:", width, height, channels;
 	
 	// Create one OpenGL texture
 	GLuint textureID;

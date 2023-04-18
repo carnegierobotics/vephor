@@ -76,7 +76,7 @@ struct ShowRecord
 		}
 		else if (!parent_node.empty())
 		{
-			node->setParent(objects_by_id[std::stoi(parent_node)|(conn_id << 16)]);
+			node->setParent(objects_by_id[(int64_t)std::stoi(parent_node)|(conn_id << 32)]);
 		}
 	}
 	
@@ -89,7 +89,7 @@ struct ShowRecord
 		if (data.contains("window_id"))
 			base_window_id = (WindowID)data["window_id"];
 		
-		window_id = base_window_id | (conn_id << 16);
+		window_id = base_window_id | (conn_id << 32);
 		
 		if (find(closed_windows, window_id))
 		{
@@ -98,7 +98,10 @@ struct ShowRecord
 		}
 		
 		if (find(windows, window_id))
+		{
+			windows[window_id]->window->show();
 			return;
+		}
 		
 		window_added = true;
 		
@@ -209,7 +212,7 @@ struct ShowRecord
 
 		path_start_time = std::chrono::high_resolution_clock::now();
 	}
-	void handleIncomingMessages()
+	void handleIncomingMessages(bool verbose = false)
 	{
 		// Check to see if additional messages have arrived
 		while (!message_list.empty())
@@ -255,6 +258,7 @@ struct ShowRecord
 					if (!inner_name.empty())
 						name = inner_name + " " + name;
 					auto control_window = make_shared<Window>(500,800,name);
+					control_window->setIgnoreClose(true);
 					
 					text_tex = control_window->loadTexture(assets.getAssetPath("/assets/Holstein.png"));
 					
@@ -350,7 +354,7 @@ struct ShowRecord
 				if (message.contains("window_id"))
 					base_window_id = (WindowID)message["window_id"];
 				
-				WindowID window_id = base_window_id | ((WindowID)conn_id << 16);
+				WindowID window_id = base_window_id | ((WindowID)conn_id << 32);
 				
 				if (find(closed_windows, window_id))
 				{
@@ -394,7 +398,7 @@ struct ShowRecord
 				for (const auto& obj : data["objects"])
 				{
 					ObjectID id = obj["id"];
-					id |= ((ObjectID)conn_id << 16);
+					id |= ((ObjectID)conn_id << 32);
 					
 					if (find(objects_by_id, id))
 					{
@@ -411,7 +415,8 @@ struct ShowRecord
 					
 						if (obj.contains("destroy") && obj["destroy"])
 						{
-							v4print "Destroying object:", id;
+							if (verbose)
+								v4print "Destroying object:", id;
 							render_obj->setDestroy();
 							objects_by_id.erase(id);
 						}
@@ -419,7 +424,8 @@ struct ShowRecord
 						continue;
 					}
 					
-					v4print "Object:", id, obj["type"];
+					if (verbose)
+						v4print "Object:", id, obj["type"];
 
 					// Object starts destroyed, don't bother
 					if (obj.contains("destroy") && obj["destroy"])
@@ -439,7 +445,7 @@ struct ShowRecord
 				for (const auto& obj : data["objects"])
 				{
 					ObjectID id = obj["id"];
-					id |= ((ObjectID)conn_id << 16);
+					id |= ((ObjectID)conn_id << 32);
 					
 					if (find(objects_by_id, id))
 					{

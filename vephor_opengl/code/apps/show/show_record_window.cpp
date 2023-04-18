@@ -92,8 +92,10 @@ void ShowRecordWindow::setup(const json& data, WindowID p_window_id, ConnectionI
 		if (camera)
 			camera->resizeWindow(*this_window);
 	}, opts);
+
+	window->setHideOnClose(true);
 	
-	text_tex = window->loadTexture(assets.getAssetPath("/assets/Holstein.png"));
+	text_tex = loadTexture("/assets/Holstein.png", false, assets);
 	
 	const float fps = 60.0f;
 	window->setFrameLock(fps);
@@ -128,14 +130,15 @@ void ShowRecordWindow::addBoundPoint(const Vec3& pt, const TransformSim3& world_
 
 void ShowRecordWindow::addBoundVerts(const MatXRef& verts, const TransformSim3& world_from_body)
 {
+	if (verts.rows() == 0)
+		return;
+
 	Vec3 min, max;
 	for (int i = 0; i < 3; i++)
 	{
 		min[i] = verts.col(i).minCoeff();
 		max[i] = verts.col(i).maxCoeff();
 	}
-	
-	v4print "Object bound: verts (", min.transpose(), max.transpose(), world_from_body.translation().transpose(), world_from_body.scale, ")";
 	
 	addBoundPoint(min, world_from_body);
 	addBoundPoint(Vec3(min[0],min[1],max[2]), world_from_body);
@@ -149,8 +152,6 @@ void ShowRecordWindow::addBoundVerts(const MatXRef& verts, const TransformSim3& 
 
 void ShowRecordWindow::addBoundSphere(float rad, const TransformSim3& world_from_body)
 {
-	v4print "Object bound: sphere (", rad, world_from_body.translation().transpose(), world_from_body.scale, ")";
-	
 	addBoundPoint(Vec3(-rad,0,0), world_from_body);
 	addBoundPoint(Vec3(rad,0,0), world_from_body);
 	addBoundPoint(Vec3(0,-rad,0), world_from_body);
@@ -204,6 +205,7 @@ void ShowRecordWindow::setupCamera(const json& data, AssetManager& assets)
 			{
 				camera = make_shared<PlotCamera>();
 			}
+			camera->text_tex = text_tex;
 			camera->setup(control_data, *window.get(), assets);
 		}
 	}
@@ -669,7 +671,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 			bool filter_nearest = false;
 			if (obj.contains("tex_filter_nearest"))
 				filter_nearest = obj["tex_filter_nearest"];
-			auto tex = window->loadTexture(assets.getAssetPath(obj["tex"]), filter_nearest);
+			auto tex = loadTexture(obj["tex"], filter_nearest, assets);
 			draw_obj->setTexture(tex);
 		}
 		
@@ -766,4 +768,19 @@ json ShowRecordWindow::produceSceneJSON(vector<vector<char>>* bufs)
 	scene["camera"]["control"] = camera->serialize();
 
 	return scene;
+}
+
+shared_ptr<Texture> ShowRecordWindow::loadTexture(const string& path, bool nearest, AssetManager& assets)
+{
+	string full_path = assets.getAssetPath(path);
+
+	if (find(texture_bank, full_path))
+	{
+		// TODO: we don't allow one texture with two filter modes - problem?
+		return texture_bank[full_path];
+	}
+	
+	auto tex = window->loadTexture(full_path, nearest);
+	texture_bank[full_path] = tex;
+	return tex;
 }

@@ -28,4 +28,6 @@ public:
 	virtual void autoFitPoints(Window& window, const vector<Vec3>& pts){}
 	virtual void update(Window& window, float dt, const ControlInfo& control_info){}
 	virtual json serialize() = 0;
+
+	shared_ptr<Texture> text_tex;
 };

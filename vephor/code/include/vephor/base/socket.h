@@ -685,7 +685,7 @@ private:
 };
 	
 
-using ConnectionID = int;
+using ConnectionID = int64_t;
 
 class NetworkManager
 {
@@ -840,12 +840,19 @@ public:
 		}
 		return true;
 	}
-	vector<JSONBMessage> getIncomingJSONBMessages(int conn_id)
+	vector<JSONBMessage> getIncomingJSONBMessages(ConnectionID conn_id)
 	{
 		if (!find(conns, conn_id))
 			throw std::runtime_error("Attempt to get using invalid conn id: " + std::to_string(conn_id));
-		auto msgs = conns[conn_id]->incoming_messages;
-		conns[conn_id]->incoming_messages.clear();
+		
+		vector<JSONBMessage> msgs;
+
+		{
+			std::lock_guard<std::mutex> lock(conns[conn_id]->msg_lock);
+			msgs = conns[conn_id]->incoming_messages;
+			conns[conn_id]->incoming_messages.clear();
+		}
+
 		return msgs;
 	}
 	bool sendJSONBMessageToAll(const json& header, const vector<vector<char>>& payloads)
