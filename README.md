@@ -56,7 +56,26 @@ python setup.py install -G "MinGW Makefiles"
 
 ## API - TLDR
 
+The `Window` class is the primary way to interact with the library.  Objects that implement certain render functions can be added to the `Window`, yielding a `RenderNode` that can be used to control the object's pose, scale, visibility, and which allows object destruction.
 
+```
+w = Window()
+s = Sphere()
+node = w.add(s)
+node.setScale(2.0)
+w.render()
+```
+
+For 2d plotting, the `Plot` class is the recommended way to interact with the library.  This presents an interface similar to matplotlib, though the underlying `Window` can also be accessed.
+
+```
+p = Plot()
+p.plot([0,10],[0,10])
+p.scatter([0,10],[10,0])
+p.show()
+```
+
+The list of supported objects and function calls can be found farther down.
 
 ## Examples
 
@@ -186,9 +205,15 @@ vephor_show -m client
 
 "Bring your own client" mode allows you to create interactive visualizations without needing to separately call vephor_show.  It will create a server and also create a client process to talk to that server.
 
+TODO
+
 ### Transform tree
 
+TODO
+
 ### 2d plotting
+
+TODO
 
 ### Image plotting
 
@@ -212,7 +237,110 @@ plt.show()
 
 ### Image plotting - OpenCV images in C++
 
+TODO
+
 ## API - Exhaustive
 
-Here are, as compactly as possible, all the relevant functions this library provides.
+Here are, as compactly as possible, all the relevant functions this library provides.  This is meant to give an overview - see source for explicit data types.
 
+<table>
+	<tr><th>Window</th><td>Window</td><td>Create a window.  Width/height of (-1,-1) means the window should fill the screen.</td><td>(width=-1, height=-1, title="show")</td></tr>
+	<tr><td></td><td>add</td><td>Add an object to the window for rendering.</td><td>(obj, transform=identity, overlay=false, layer=0)</td></tr>
+	<tr><td></td><td>canRender</td><td>Check if rendering is possible, for example when a client is connected in server mode.</td></tr>
+	<tr><td></td><td>render</td><td>Render current window contents.</td><td>(wait_close=true, wait_key=false)</td></tr>
+	<tr><td></td><td>save</td><td>Save current window contents to a file.</td><td>(path)</td></tr>
+	<tr><td></td><td>clear</td><td>Remove all current window contents.</td></tr>
+	<tr><td></td><td>setTitle</td><td>Set window title.</td><td>(title)</td></tr>
+	<tr><td></td><td>setTrackballMode</td><td>Set up the standard 3d camera mode.</td><td>(to=(0,0,0), from=(-1,0,-1), up=(0,0,-1), use_3d=false)</td></tr>
+	<tr><td></td><td>setPlotMode</td><td>Set up the 2d plotting camera mode.</td><td>equal=false</td></tr>
+	<tr><td></td><td>setServerMode</td><td>Put the window in server mode.</td><td>(wait=false, port=5533, record_also=false, record_path="", metadata=default)</td></tr>
+	<tr><td></td><td>setServerModeBYOC</td><td>Put the window in server mode, and spawns a client to connect.</td><td>(record_also=false,record_path="")</td></tr>
+	<tr><td></td><td>setRecordMode</td><td>Put the window in record mode.</td><td>(path="")</td></tr>
+	<tr><td></td><td>checkAndConsumeFlag</td><td>Check a server metadata flag, and consume it if it is a one-shot flag.</td><td>(flag)</td></tr>
+	<tr><td></td><td>setKeyPressCallback</td><td>Set key press callback function.</td><td>(callback)</td></tr>
+	<tr><th>RenderNode</th></tr>
+	<tr><td></td><td>getPos</td><td>Get position of node in parent frame.</td></tr>
+	<tr><td></td><td>setPos</td><td>Set position of node in parent frame.</td><td>(pos_in_world)</td></tr>
+	<tr><td></td><td>getOrient</td><td>Get rotation that rotates node frame to parent frame.</td></tr>
+	<tr><td></td><td>setOrient</td><td>Set rotation that rotates node frame to parent frame.</td><td>(parent_from_node_rotation)</td></tr>
+	<tr><td></td><td>getTransform</td><td>Get transform that transforms node frame to parent frame.</td></tr>
+	<tr><td></td><td>setTransform</td><td>Set transform that transforms node frame to parent frame.</td><td>(parent_from_node)</td></tr>
+	<tr><td></td><td>getScale</td><td>Get scale of the node.</td></tr>
+	<tr><td></td><td>setScale</td><td>Set scale of the node.</td><td>(scale)</td></tr>
+	<tr><td></td><td>setParent</td><td>Set the transform parent of this node.  Replaces world frame as parent.</td><td>(parent)</td></tr>
+	<tr><td></td><td>getShow</td><td>Get whether node should be shown.</td></tr>
+	<tr><td></td><td>setShow</td><td>Set whether node should be shown.</td><td>(show)</td></tr>
+	<tr><td></td><td>getDestroy</td><td>Get whether node has been destroyed.</td></tr>
+	<tr><td></td><td>setDestroy</td><td>Set node to be destroyed.</td></tr>
+	<tr><th>Plot</th><td>Plot</td><td>Create a plot.</td><td>(title)</td></tr>
+	<tr><td></td><td>plot</td><td>Plot a continuous line.</td><td>(x_list, y_list, options)</td></tr>
+	<tr><td></td><td>scatter</td><td>Plot a set of points.</td><td>(x_list, y_list, options)</td></tr>
+	<tr><td></td><td>show</td><td>Render current plot contents.</td><td>(wait_close=true, wait_key=false)</td></tr>
+	<tr><td></td><td>save</td><td>Save current window contents to a file.</td><td>(path)</td></tr>
+	<tr><td></td><td>clear</td><td>Remove all current plot contents.</td></tr>
+	<tr><td></td><td>title</td><td>Set plot title.</td><td>(title)</td></tr>
+	<tr><td></td><td>xlabel</td><td>Set x axis label.</td><td>(label)</td></tr>
+	<tr><td></td><td>ylabel</td><td>Set y axis label.</td><td>(label)</td></tr>
+	<tr><td></td><td>equal</td><td>Set plot axes to have equal scales.</td><td>(is_equal)</td></tr>
+	<tr><td></td><td>limits</td><td>Set plot limits.</td><td>(min_x, max_x, min_y, max_y)</td></tr>
+	<tr><td></td><td>text</td><td>Add text to the plot.</td><td>(text, height, pos, color)</td></tr>
+	<tr><td></td><td>polygon</td><td>Add a polygon to the plot. 0 thickness for a thin line border, -1 for filled.</td><td>(verts, color, thickness=0)</td></tr>
+	<tr><td></td><td>circle</td><td>Add a circle to the plot. 0 thickness for a thin line border, -1 for filled.</td><td>(center, rad, color, thickness=0, slices=16)</td></tr>
+	<tr><td></td><td>rect</td><td>Add a rectangle to the plot. 0 thickness for a thin line border, -1 for filled.</td><td>(center, width, height, color, thickness=0</td></tr>
+	<tr><td></td><td>line</td><td>Add a line to the plot.</td><td>(vert_list, color, thickness)</td></tr>
+	<tr><td></td><td>imshow</td><td>Add an image to the plot.</td><td>(image, nearest_filtering=false, pos=(0,0))</td></tr>
+	<tr><th>Arrow</th><td>Arrow</td><td>Create an arrow.</td><td>(start, end, rad=1.0, slices=16)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><th>Axes</th><td>Axes</td><td>Create a set of axes.</td><td>(size=1.0)</td></tr>
+	<tr><th>Circle</th><td>Circle</td><td>Create a circular disc with a z axis normal.  Outer rim of the disc is set by rad, inner rim is thickness units inwards.</td><td>(rad=1.0, thickness=1.0, slices=16)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><th>Cone</th><td>Cone</td><td>Create a cone with the flat surface in the z=0 plane, with the top height units along the z axis.</td><td>(rad=1.0, height=1.0, slices=16)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><th>Cube</th><td>Cube</td><td>Create a cube.</td><td>(rad)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><th>Cylinder</th><td>Cylinder</td><td>Create a cylinder along the z axis, with half of height on either side.</td><td>(rad=1.0, height=1.0, slices=16)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><th>Grid</th><td>Grid</td><td>Create a grid.</td><td>(rad, normal=(0,0,1), right=(1,0,0), cell_size=1.0)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><th>Lines</th><td>Lines</td><td>Create a line.</td><td>(vert_list, color_list)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><td></td><td>setLineStrip</td><td>Set if verts form a continuous line - if false, each pair is a separate line.  Initial state is a continuous line.</td><td>(is_strip)</td></tr>
+	<tr><th>Mesh</th><td>Mesh</td><td>Create a mesh.</td><td>(mesh_data)</td></tr>
+	<tr><td></td><td>setTexture</td><td>Set texture for this mesh.</td><td>(image, nearest_filtering=false)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><td></td><td>setSpecular</td><td>Set whether specular highlights should be used.</td><td>(specular)</td></tr>
+	<tr><td></td><td>setCull</td><td>Set whether faces should be culled if facing away from the camera.</td><td>(cull)</td></tr>
+	<tr><th>ObjMesh</th><td>ObjMesh</td><td>Create geometry using a .obj mesh file.</td><td>(path)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><th>Particle</th><td>Particle</td><td>Create a point cloud.</td><td>(vert_list, color_list)</td></tr>
+	<tr><td></td><td>setSize</td><td>Set size of each particle.</td><td>(size)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><td></td><td>setTexture</td><td>Set texture for each particle.</td><td>(image, nearest_filtering=false)</td></tr>
+	<tr><td></td><td>setScreenSpaceMode</td><td>Set whether particle size is in metric space or screen space. If in screen space, size is taken as a screen space portion from 0 to 1.</td><td>(is_screen_space)</td></tr>
+	<tr><th>Plane</th><td>Plane</td><td>Create a rectangular plane segment.</td><td>(rads)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><td></td><td>setTexture</td><td>Set texture for each particle.</td><td>(image, nearest_filtering=false)</td></tr>
+	<tr><th>Sphere</th><td>Sphere</td><td>Create a sphere.</td><td>(rad=1.0, slices=16, stacks=16)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><th>Sprite</th><td>Sprite</td><td>Create a screen-facing rectangle bearing an image.</td><td>(image, nearest_filtering=false)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><td></td><td>setFlip</td><td>Set whether image should be flipped vertically.</td><td>(flip)</td></tr>
+	<tr><td></td><td>setNormalSpriteSheet</td><td>Set normal texture for the sprite.</td><td>(image, nearest_filtering=false)</td></tr>
+	<tr><th>Text</th><td>Text</td><td>Create text.  Initial zero point is at the bottom left.</td><td>(text)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><td></td><td>setAnchorBottomLeft</td><td>Set zero point of text to the bottom left.</td></tr>
+	<tr><td></td><td>setAnchorLeft</td><td>Set zero point of text to the left.</td></tr>
+	<tr><td></td><td>setAnchorTopLeft</td><td>Set zero point of text to the top left.</td></tr>
+	<tr><td></td><td>setAnchorBottom</td><td>Set zero point of text to the bottom middle.</td></tr>
+	<tr><td></td><td>setAnchorCentered</td><td>Set zero point of text to the middle.</td></tr>
+	<tr><td></td><td>setAnchorTop</td><td>Set zero point of text to the top middle.</td></tr>
+	<tr><td></td><td>setAnchorBottomRight</td><td>Set zero point of text to the bottom right.</td></tr>
+	<tr><td></td><td>setAnchorRight</td><td>Set zero point of text to the right.</td></tr>
+	<tr><td></td><td>setAnchorTopRight</td><td>Set zero point of text to the top right.</td></tr>
+	<tr><th>ThickLines</th><td>ThickLines</td><td>Create a set of lines with consistent screen space thickness.</td><td>(vert_list, color_list)</td></tr>
+	<tr><td></td><td>setColor</td><td>Set color.</td><td>(color)</td></tr>
+	<tr><td></td><td>setLineWidth</td><td>Set line width in screen space portion.</td><td>(line_width)</td></tr>
+	<tr><th>Loose functions</th><td>TODO</td></tr>
+	<tr><th>MeshData</th><td>TODO</td></tr>
+	<tr><th>Image</th><td>TODO</td></tr>
+</table>

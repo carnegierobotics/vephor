@@ -12,12 +12,12 @@ public:
 	: data(p_data)
 	{
 	}
-	void setTexture(const string& p_tex, bool p_filter_nearest)
+	void setTexture(const string& p_tex, bool p_filter_nearest = false)
 	{
 		tex_data.path = p_tex;
 		tex_data.filter_nearest = p_filter_nearest;
 	}
-	void setTexture(const Image<uint8_t>& p_tex, bool p_filter_nearest)
+	void setTexture(const Image<uint8_t>& p_tex, bool p_filter_nearest = false)
 	{
 		tex_data.tex = p_tex;
 		tex_data.filter_nearest = p_filter_nearest;

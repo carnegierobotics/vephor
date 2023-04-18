@@ -226,9 +226,9 @@ public:
 			status.second.show_up_to_date = false;
 		}
 	}
-	bool isShow() const {return show;}
+	bool getShow() const {return show;}
 	void setDestroy() {destroy = true;}
-	bool checkDestroy() const {return destroy;}	
+	bool getDestroy() const {return destroy;}	
 	ObjectID getID() const {return id;}
 private:
 	ObjectID id = -1;
@@ -460,7 +460,7 @@ public:
 	template <class T>
     shared_ptr<RenderNode> add(
 		const shared_ptr<T>& obj,
-		const TransformSim3& parent_from_node,
+		const TransformSim3& parent_from_node = TransformSim3(),
 		bool on_overlay = false, 
 		int layer = 0
 	)

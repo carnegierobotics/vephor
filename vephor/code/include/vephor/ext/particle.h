@@ -21,7 +21,7 @@ public:
 	}
 	void setSize(float p_size){size = p_size;}
 	void setColor(const Color& p_color){default_color = p_color.getRGBA();}
-	void setTexture(const string& p_tex, bool p_filter_nearest)
+	void setTexture(const string& p_tex, bool p_filter_nearest = false)
 	{
 		string temp_dir = getTempDir();
 		

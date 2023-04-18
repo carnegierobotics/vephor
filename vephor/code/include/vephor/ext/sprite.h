@@ -8,12 +8,12 @@ namespace vephor
 class Sprite
 {
 public:
-    Sprite(const string& p_tex, bool p_filter_nearest)
+    Sprite(const string& p_tex, bool p_filter_nearest = false)
 	{
 		tex_data.path = p_tex;
 		tex_data.filter_nearest = p_filter_nearest;
 	}
-	Sprite(const Image<uint8_t>& p_tex, bool p_filter_nearest)
+	Sprite(const Image<uint8_t>& p_tex, bool p_filter_nearest = false)
 	{
 		if (p_tex.getChannels() == 1)
 		{
@@ -32,12 +32,12 @@ public:
 		x_flip = p_x_flip;
 		y_flip = p_y_flip;
 	}
-	void setNormalSpriteSheet(const string& p_tex, bool p_filter_nearest)
+	void setNormalSpriteSheet(const string& p_tex, bool p_filter_nearest = false)
 	{
 		normal_tex_data.path = p_tex;
 		normal_tex_data.filter_nearest = p_filter_nearest;
 	}
-	void setNormalSpriteSheet(const Image<uint8_t>& p_tex, bool p_filter_nearest)
+	void setNormalSpriteSheet(const Image<uint8_t>& p_tex, bool p_filter_nearest = false)
 	{
 		normal_tex_data.tex = p_tex;
 		normal_tex_data.filter_nearest = p_filter_nearest;

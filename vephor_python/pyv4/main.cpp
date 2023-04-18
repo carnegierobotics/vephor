@@ -25,14 +25,19 @@ PYBIND11_MODULE(_core, m) {
 		.def(py::init<const Vec3&,const Vec3,float>(),py::arg("t"),py::arg("r")=Vec3(0,0,0),py::arg("scale")=1.0f);
     py::class_<TransformNode, shared_ptr<TransformNode>>(m, "TransformNode");
     py::class_<RenderNode, shared_ptr<RenderNode>>(m, "RenderNode")
-		.def("setParent", static_cast<void (RenderNode::*)(const shared_ptr<RenderNode>&)>(&RenderNode::setParent))
-		.def("setParent", static_cast<void (RenderNode::*)(const shared_ptr<TransformNode>&)>(&RenderNode::setParent))
 		.def("setPos", &RenderNode::setPos)
+		.def("getPos", &RenderNode::getPos)
 		.def("setOrient", &RenderNode::setOrient)
 		.def("setOrient", [](const shared_ptr<RenderNode>& node, const Vec3& r){node->setOrient(Orient3(r));})
+		.def("getOrient", &RenderNode::getOrient)
 		.def("setScale", &RenderNode::setScale)
+		.def("getScale", &RenderNode::getScale)
+		.def("setParent", static_cast<void (RenderNode::*)(const shared_ptr<RenderNode>&)>(&RenderNode::setParent))
+		.def("setParent", static_cast<void (RenderNode::*)(const shared_ptr<TransformNode>&)>(&RenderNode::setParent))
+		.def("setShow", &RenderNode::setShow)
+		.def("getShow", &RenderNode::getShow)
 		.def("setDestroy", &RenderNode::setDestroy)
-		.def("setShow", &RenderNode::setShow);
+		.def("getDestroy", &RenderNode::getDestroy);
 
 	m.def("clamp", &clamp);
 
