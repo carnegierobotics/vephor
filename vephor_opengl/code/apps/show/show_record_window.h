@@ -48,7 +48,12 @@ struct ShowRecordWindow
 
 	void update();
 	void close();
-	void setup(const json& data, WindowID p_window_id, ConnectionID p_conn_id, NetworkManager* p_net_manager, AssetManager& assets);
+	void setup(const json& data, 
+		WindowID p_window_id, 
+		ConnectionID p_conn_id, 
+		NetworkManager* p_net_manager, 
+		AssetManager& assets, 
+		bool hide_windows);
 	void addBoundPoint(const Vec3& pt, const TransformSim3& world_from_body);
 	void addBoundVerts(const MatXRef& verts, const TransformSim3& world_from_body);
 	void addBoundSphere(float rad, const TransformSim3& world_from_body);

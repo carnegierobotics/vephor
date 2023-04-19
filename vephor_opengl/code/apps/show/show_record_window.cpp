@@ -66,7 +66,12 @@ void ShowRecordWindow::close()
 	shutdown = true;
 }
 
-void ShowRecordWindow::setup(const json& data, WindowID p_window_id, ConnectionID p_conn_id, NetworkManager* p_net_manager, AssetManager& assets)
+void ShowRecordWindow::setup(const json& data, 
+	WindowID p_window_id, 
+	ConnectionID p_conn_id, 
+	NetworkManager* p_net_manager, 
+	AssetManager& assets, 
+	bool hide_windows)
 {
 	window_id = p_window_id;
 	conn_id = p_conn_id;
@@ -93,7 +98,7 @@ void ShowRecordWindow::setup(const json& data, WindowID p_window_id, ConnectionI
 			camera->resizeWindow(*this_window);
 	}, opts);
 
-	window->setHideOnClose(true);
+	window->setHideOnClose(hide_windows);
 	
 	text_tex = loadTexture("/assets/Holstein.png", false, assets);
 	
