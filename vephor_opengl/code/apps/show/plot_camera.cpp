@@ -150,6 +150,8 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 {	
 	serialization = data;
 
+	circle_tex = window.loadTexture(assets.getAssetPath("/assets/circle.png"), false);
+
 	box_border = 30.0f * window.getContentScale()[1];
 	box_left_border = 100.0f * window.getContentScale()[1];
 	box_bottom_border = 60.0f * window.getContentScale()[1];
@@ -647,6 +649,58 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 	
 	mouse_pos_text->setText(to_string(pos[0]) + ", " + to_string(pos[1]));
 
+	if (find(control_info.key_down, GLFW_KEY_M))
+	{
+		if (control_info.key_down.at(GLFW_KEY_M))
+			key_m_down = true;
+		else
+		if (key_m_down)
+		{
+			v4print "Marked location:", pos.transpose();
+			
+			MatX points(1, 3);
+			points.setZero();
+
+			auto marked_pos = make_shared<InstancedPoints>(points, MatX(), Vec4(1,0.5,0,1));
+			marked_pos->setTexture(circle_tex);
+			marked_pos->setScreenSpaceMode(true);
+			marked_pos->setSize(0.01);
+			marked_position_nodes.push_back(window.add(marked_pos, Vec3(pos[0], pos[1], 999.99)));
+
+			key_m_down = false;
+		}
+	}
+
+	if (find(control_info.key_down, GLFW_KEY_N))
+	{
+		if (control_info.key_down.at(GLFW_KEY_N))
+			key_n_down = true;
+		else
+		if (key_n_down)
+		{
+			if (!marked_position_nodes.empty())
+			{
+				json marks;
+
+				auto save_dir = getSaveDir();
+
+				v4print "Clearing and saving marks to", save_dir;
+				for (auto& node : marked_position_nodes)
+				{
+					marks.push_back(toJson((Vec2)node->getPos().head<2>()));
+					node->setDestroy();
+				}
+
+				marked_position_nodes.clear();
+				
+				ofstream fout(save_dir+"/marks.json");
+				fout << marks;
+				fout.close();
+			}
+
+			key_n_down = false;
+		}
+	}
 
 	{
 		int tick_index = curr_content_inner_min[0] / tick_res[0];

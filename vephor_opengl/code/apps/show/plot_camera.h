@@ -65,4 +65,8 @@ private:
 	vector<shared_ptr<Text>> horiz_text;
 	vector<shared_ptr<RenderNode>> vert_text_node;
 	vector<shared_ptr<RenderNode>> horiz_text_node;
+	vector<shared_ptr<RenderNode>> marked_position_nodes;
+	bool key_m_down = false;
+	bool key_n_down = false;
+	shared_ptr<Texture> circle_tex;
 };
