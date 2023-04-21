@@ -300,7 +300,7 @@ PYBIND11_MODULE(_core, m) {
             bool, 
             int)>(&Window::add<Lines>),
 			py::arg("object"),
-			py::arg("t"),
+			py::arg("t")=Vec3(0,0,0),
 			py::arg("r")=Vec3(0,0,0),
 			py::arg("scale")=1.0f,
 			py::arg("overlay")=false,
