@@ -136,13 +136,15 @@ inline vector<Vec2> cleanOrderedVerts(const vector<Vec2>& orig_verts, float dist
 	return verts;
 }
 
-inline void formLine(const vector<Vec2>& orig_verts, float rad, MeshData& data)
+inline MeshData formLine(const vector<Vec2>& orig_verts, float rad)
 {
+	MeshData data;
+	
 	auto verts = cleanOrderedVerts(orig_verts);
 
 	if (verts.size() < 2)
 	{
-		return;
+		return data;
 	}
 	
 	data.verts.resize(((verts.size()-1)*2)*3,3);
@@ -232,11 +234,15 @@ inline void formLine(const vector<Vec2>& orig_verts, float rad, MeshData& data)
 			outer_miter_verts[next]
 		);
 	}
+	
+	return data;
 }
 
 // Do not repeat the first vert for this method
-inline void formLineLoop(const vector<Vec2>& verts, float rad, MeshData& data)
+inline MeshData formLineLoop(const vector<Vec2>& verts, float rad)
 {
+	MeshData data;
+	
 	data.verts.resize((verts.size()*2)*3,3);
 	data.norms.resize((verts.size()*2)*3,3);
 	data.uvs.resize((verts.size()*2)*3,2);
@@ -287,6 +293,8 @@ inline void formLineLoop(const vector<Vec2>& verts, float rad, MeshData& data)
 			outer_miter_verts[next]
 		);
 	}
+	
+	return data;
 }
 
 inline float crossProduct(const Vec2& a, const Vec2& b)
@@ -367,8 +375,10 @@ struct Triangle2
 	Vec2 a, b, c;
 };
 
-inline bool formPolygon(vector<Vec2> verts, MeshData& data)
+inline MeshData formPolygon(vector<Vec2> verts)
 {
+	MeshData data;
+	
 	if (!isPolyCCW(verts))
 	{
 		vector<Vec2> new_verts(verts.size());
@@ -399,7 +409,7 @@ inline bool formPolygon(vector<Vec2> verts, MeshData& data)
 		if (!ear_found)
 		{
 			throw std::runtime_error("Could not triangulate polygon.");
-			return false;
+			return data;
 		}
 	}
 	
@@ -427,8 +437,10 @@ inline bool formPolygon(vector<Vec2> verts, MeshData& data)
 	return true;
 }
 
-inline void formCube(MeshData& data)
+inline MeshData formCube()
 {
+	MeshData data;
+	
     data.verts.resize(12*3,3);
     data.verts << 
         -1.0f,-1.0f,-1.0f,
@@ -568,10 +580,14 @@ inline void formCube(MeshData& data)
 		 0.0f, 0.0f, 1.0f,
 		 0.0f, 0.0f, 1.0f,
 		 0.0f, 0.0f, 1.0f;
+		 
+	return data;
 }
 
-inline void formSphere(int slices, int stacks, MeshData& data)
+inline MeshData formSphere(int slices, int stacks)
 {
+	MeshData data;
+	
 	vector<Vec3> verts;
 	vector<Vec3> norms;
 
@@ -622,10 +638,14 @@ inline void formSphere(int slices, int stacks, MeshData& data)
         data.verts.row(i) = verts[i];
         data.norms.row(i) = norms[i];
     }
+	
+	return data;
 }
 
-inline void formCone(float rad, float height, int slices, MeshData& data, bool smooth = true)
+inline MeshData formCone(float rad, float height, int slices, bool smooth = true)
 {
+	MeshData data;
+	
 	//2 * slices faces
 	vector<Vec3> verts;
 	vector<Vec3> norms;
@@ -678,10 +698,14 @@ inline void formCone(float rad, float height, int slices, MeshData& data, bool s
         data.verts.row(i) = verts[i];
         data.norms.row(i) = norms[i];
     }
+	
+	return data;
 }
 
-inline void formCylinder(float rad, float height, int slices, MeshData& data, bool smooth = true)
+inline MeshData formCylinder(float rad, float height, int slices, bool smooth = true)
 {
+	MeshData data;
+	
 	vector<Vec3> verts;
 	vector<Vec3> norms;
 	
@@ -771,10 +795,14 @@ inline void formCylinder(float rad, float height, int slices, MeshData& data, bo
         data.verts.row(i) = verts[i];
         data.norms.row(i) = norms[i];
     }
+	
+	return data;
 }
 
-inline void formPlane(const Vec2& rads, MeshData& data)
+inline MeshData formPlane(const Vec2& rads)
 {
+	MeshData data;
+	
 	data.verts.resize(12, 3);
 	data.uvs.resize(12, 2);
 	data.norms.resize(12, 3);
@@ -820,10 +848,14 @@ inline void formPlane(const Vec2& rads, MeshData& data)
 		0,0,1,
 		0,0,1,
 		0,0,1;
+		
+	return data;
 }
 
-inline void formCircle(float rad, float thickness, int slices, MeshData& data)
+inline MeshData formCircle(float rad, float thickness, int slices)
 {
+	MeshData data;
+	
 	data.verts.resize(4*3*slices, 3);
 	data.norms.resize(4*3*slices, 3);
 	
@@ -873,6 +905,8 @@ inline void formCircle(float rad, float thickness, int slices, MeshData& data)
 		data.norms.row(slice*4*3+9+1) = Vec3(0,0,-1);
 		data.norms.row(slice*4*3+9+2) = Vec3(0,0,-1);
 	}
+	
+	return data;
 }
 
 using HeightMapUVCallback = std::function<void(
@@ -887,8 +921,10 @@ using HeightMapUVCallback = std::function<void(
 	Vec2& uv11
 )>;
 
-inline void formHeightMap(const MatX& heights, float res, MeshData& data, const HeightMapUVCallback& uv_callback = NULL)
+inline MeshData formHeightMap(const MatX& heights, float res, const HeightMapUVCallback& uv_callback = NULL)
 {
+	MeshData data;
+	
     vector<Vec3> verts; 
 	vector<Vec2> uvs; 
     vector<Vec3> norms;
@@ -974,6 +1010,8 @@ inline void formHeightMap(const MatX& heights, float res, MeshData& data, const 
 		data.uvs.row(i) = uvs[i];
         data.norms.row(i) = norms[i];
     }
+	
+	return data;
 }
 
 struct OBJMeshData

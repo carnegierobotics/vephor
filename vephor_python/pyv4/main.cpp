@@ -38,8 +38,78 @@ PYBIND11_MODULE(_core, m) {
 		.def("getShow", &RenderNode::getShow)
 		.def("setDestroy", &RenderNode::setDestroy)
 		.def("getDestroy", &RenderNode::getDestroy);
+	py::class_<MeshData>(m, "MeshData")
+		.def(py::init<>());
+	
+	m.def("formLine", &formLine, py::arg("vert_list"), py::arg("rad"));
+	m.def("formLineLoop", &formLineLoop, py::arg("vert_list"), py::arg("rad"));
+	m.def("formPolygon", &formPolygon, py::arg("vert_list"));
+	m.def("formCube", &formCube);
+	m.def("formSphere", &formSphere, py::arg("slices"), py::arg("stacks"));
+	m.def("formCone", &formCone, py::arg("rad"), py::arg("height"), py::arg("slices"), py::arg("smooth")=true);
+	m.def("formCylinder", &formCylinder, py::arg("rad"), py::arg("height"), py::arg("slices"), py::arg("smooth")=true);
+	m.def("formPlane", &formPlane, py::arg("rads"));
+	m.def("formCircle", &formCircle, py::arg("rad"), py::arg("thickness"), py::arg("slices"));
+	m.def("formHeightMap", &formHeightMap, py::arg("heights"), py::arg("res"), py::arg("uv_callback")=NULL);
 
 	m.def("clamp", &clamp);
+	
+	py::class_<Image<uint8_t>, shared_ptr<Image<uint8_t>>>(m, "Image", pybind11::buffer_protocol())
+		.def_buffer([](Image<uint8_t>& img) -> pybind11::buffer_info {
+			return py::buffer_info(
+				(void*)img.getData().data(),                /* Pointer to buffer */
+				sizeof(uint8_t),                         /* Size of one scalar */
+				py::format_descriptor<uint8_t>::format(), /* Python struct-style format descriptor */
+				3,                                       /* Number of dimensions */
+				{ img.getSize()[0], img.getSize()[1], img.getChannels() },                  /* Buffer dimensions */
+				{ 
+					sizeof(uint8_t) * img.getSize()[1] * img.getChannels(),
+					sizeof(uint8_t) * img.getChannels(),
+					sizeof(uint8_t)
+				}
+														 /* Strides (in bytes) for each index */
+			);
+		});
+		
+	m.def("generateSimpleImage", [](const Vec2i& size, py::buffer color){
+		py::buffer_info info = color.request();
+		if (info.size != 3 && info.size != 4)
+			throw std::runtime_error("Color must be either 3 or 4 elements in size.");
+		if (info.format == py::format_descriptor<uint8_t>::format())
+		{
+			const uint8_t* ptr = reinterpret_cast<const uint8_t*>(info.ptr);
+			
+			if (info.size == 3)
+			{
+				Vec3 rgb(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f);
+				return generateSimpleImage(size, rgb);
+			}
+			else
+			{
+				Vec4 rgba(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f, ptr[3] / 255.0f);
+				return generateSimpleImage(size, rgba);
+			}
+		}
+		else if (info.format == py::format_descriptor<double>::format())
+		{
+			const double* ptr = reinterpret_cast<const double*>(info.ptr);
+			
+			if (info.size == 3)
+			{
+				Vec3 rgb(ptr[0], ptr[1], ptr[2]);
+				return generateSimpleImage(size, rgb);
+			}
+			else
+			{
+				Vec4 rgba(ptr[0], ptr[1], ptr[2], ptr[3]);
+				return generateSimpleImage(size, rgba);
+			}
+		}
+		else
+			throw std::runtime_error("Only supports uint8 or double typed color.");
+		
+		return shared_ptr<Image<uint8_t>>(NULL);
+	}, py::arg("size"), py::arg("color"));
 
 	py::class_<ShowMetadata>(m, "ShowMetadata");
 
@@ -70,6 +140,9 @@ PYBIND11_MODULE(_core, m) {
 
 	py::class_<Grid, shared_ptr<Grid>>(m, "Grid")
         .def(py::init<float,Vec3,Vec3,float>(),py::arg("rad"),py::arg("normal")=Vec3(0,0,1),py::arg("right")=Vec3(1,0,0),py::arg("cell_size")=1.0f);
+
+	py::class_<Mesh, shared_ptr<Mesh>>(m, "Mesh")
+        .def(py::init<MeshData>());
 
 	py::class_<Text, shared_ptr<Text>>(m, "Text")
 		.def(py::init<string>())

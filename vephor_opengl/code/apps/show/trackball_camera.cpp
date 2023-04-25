@@ -12,8 +12,7 @@ void TrackballCamera::setup(const json& data, Window& window, AssetManager& asse
 	auto back = make_shared<Background>(back_tex);
 	window.add(back, Transform3(), false, -1);
 	
-	MeshData orbit_sphere;
-	formSphere(16,16,orbit_sphere);
+	auto orbit_sphere = formSphere(16,16);
 	auto orbit_point = make_shared<Mesh>(orbit_sphere);
 	orbit_point_render = window.add(orbit_point, Transform3());
 	orbit_point_render->setShow(false);

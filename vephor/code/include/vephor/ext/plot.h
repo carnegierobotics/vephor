@@ -280,8 +280,7 @@ public:
 			}
 			else
 			{
-				MeshData data;
-				formLineLoop(verts, thickness / 2.0f, data);
+				auto data = formLineLoop(verts, thickness / 2.0f);
 				auto mesh = make_shared<Mesh>(data);
 				mesh->setColor(color);
 				mesh->setCull(false);
@@ -294,8 +293,7 @@ public:
 			// Negative border width means this is a fill
 
 			// Triangulate an arbitrary polygon
-			MeshData data;
-			formPolygon(verts, data);
+			auto data = formPolygon(verts);
 			auto mesh = make_shared<Mesh>(data);
 			mesh->setColor(color);
 			mesh->setCull(false);
@@ -342,8 +340,7 @@ public:
 	}
 	void line(const vector<Vec2>& verts, const Color& color, float thickness)
 	{
-		MeshData data;
-		formLine(verts, thickness / 2.0f, data);
+		auto data = formLine(verts, thickness / 2.0f);
 		auto mesh = make_shared<Mesh>(data);
 		mesh->setColor(color);
 		mesh->setCull(false);

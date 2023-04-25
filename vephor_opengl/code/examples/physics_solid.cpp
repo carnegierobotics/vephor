@@ -13,11 +13,8 @@ int main()
 
     window.setFrameLock(60.0f);
 
-    MeshData sphere_mesh_data;
-	formSphere(16, 16, sphere_mesh_data);
-	
-	MeshData cube_mesh_data;
-	formCube(cube_mesh_data);
+	auto sphere_mesh_data = formSphere(16, 16);
+	auto cube_mesh_data = formCube();
 	
 	auto cube_solid = createSolidFromTris(cube_mesh_data.verts);
 

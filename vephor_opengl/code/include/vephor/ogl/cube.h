@@ -11,8 +11,7 @@ class Cube
 public:
     Cube(float p_rad = 1.0f)
 	{
-		MeshData data;
-		formCube(data);
+		auto data = formCube();
 		data.verts *= p_rad;
 		mesh = make_shared<Mesh>(data);
 	}

@@ -342,5 +342,20 @@ Here are, as compactly as possible, all the relevant functions this library prov
 	<tr><td></td><td>setLineWidth</td><td>Set line width in screen space portion.</td><td>(line_width)</td></tr>
 	<tr><th>Loose functions</th><td>TODO</td></tr>
 	<tr><th>MeshData</th><td>TODO</td></tr>
+	<tr><td></td><td>formLine</td><td>Make mesh data for a 3d line with some thickness.</td><td>(vert_list, rad)</td></tr>
+	<tr><td></td><td>formLineLoop</td><td>Make mesh data for a 3d line with some thickness.  Same as formLine, but makes the line into a loop by repeating the first vertex.</td><td>(vert_list, rad)</td></tr>
+	<tr><td></td><td>formPolygon</td><td>Make mesh data for an XY plane polygon.</td><td>(vert_list)</td></tr>
+	<tr><td></td><td>formCube</td><td>Make mesh data for a cube.</td></tr>
+	<tr><td></td><td>formSphere</td><td>Make mesh data for a sphere.</td><td>(slices, stacks)</td></tr>
+	<tr><td></td><td>formCone</td><td>Make mesh data for a cone.</td><td>(rad, height, slices, smooth=true)</td></tr>
+	<tr><td></td><td>formCylinder</td><td>Make mesh data for a cylinder.</td><td>(rad, height, slices, smooth=true)</td></tr>
+	<tr><td></td><td>formPlane</td><td>Make mesh data for an XY plane segment.</td><td>(rads)</td></tr>
+	<tr><td></td><td>formCircle</td><td>Make mesh data for an XY plane circle.</td><td>(rad, thickness, slices)</td></tr>
+	<tr><td></td><td>formHeightMap</td><td>Make mesh data for a height map.</td><td>(height, res, uv_callback=none)</td></tr>
 	<tr><th>Image</th><td>TODO</td></tr>
+	<tr><td></td><td>generateSimpleImage
+	<tr><td></td><td>generateGradientImage
+	<tr><td></td><td>generateCheckerboardImage
+	<tr><td></td><td>loadImage
+	<tr><td></td><td>saveImage
 </table>

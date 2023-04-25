@@ -15,15 +15,13 @@ public:
 		float base_length = p_length - arrow_length;
 		
 		{
-			MeshData data;
-			formCone(p_rad, arrow_length, p_slices, data);
+			auto data = formCone(p_rad, arrow_length, p_slices);
 			head = make_shared<Mesh>(data);
 			body_from_arrow_head = Transform3(Vec3(0,0,base_length));
 		}
 		
 		{
-			MeshData data;
-			formCylinder(p_rad*0.25f, base_length, p_slices, data);
+			auto data = formCylinder(p_rad*0.25f, base_length, p_slices);
 			body = make_shared<Mesh>(data);
 			body_from_arrow_body = Transform3(Vec3(0,0,base_length/2));
 		}
@@ -34,15 +32,13 @@ public:
 		float base_length = (end - start).norm() - arrow_length;
 		
 		{
-			MeshData data;
-			formCone(p_rad, arrow_length, p_slices, data);
+			auto data = formCone(p_rad, arrow_length, p_slices);
 			head = make_shared<Mesh>(data);
 			body_from_arrow_head = Transform3(Vec3(0,0,base_length));
 		}
 		
 		{
-			MeshData data;
-			formCylinder(p_rad*0.25f, base_length, p_slices, data);
+			auto data = formCylinder(p_rad*0.25f, base_length, p_slices);
 			body = make_shared<Mesh>(data);
 			body_from_arrow_body = Transform3(Vec3(0,0,base_length/2));
 		}
