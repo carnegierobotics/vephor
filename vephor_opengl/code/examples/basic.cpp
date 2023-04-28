@@ -22,11 +22,8 @@ int main()
 		}
     }
 
-    MeshData cube_mesh_data;
-	formCube(cube_mesh_data);
-
-    MeshData sphere_mesh_data;
-	formSphere(16, 16, sphere_mesh_data);
+	auto cube_mesh_data = formCube();
+	auto sphere_mesh_data = formSphere(16, 16);
 
 	MatX heights(64,64);
 	heights.fill(0);
@@ -59,8 +56,7 @@ int main()
         }
     }
 
-    MeshData hm_mesh_data;
-	formHeightMap(heights, 1.0, hm_mesh_data);
+	auto hm_mesh_data = formHeightMap(heights, 1.0);
 
 	auto hm_mesh = make_shared<Mesh>(
         hm_mesh_data,

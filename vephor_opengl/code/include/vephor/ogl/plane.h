@@ -11,8 +11,7 @@ class Plane
 public:
     Plane(const Vec2& p_size)
 	{
-		MeshData data;
-		formPlane(p_size, data);
+		auto data = formPlane(p_size);
 		mesh = make_shared<Mesh>(data);
 	}
 	void setColor(const Color& p_color)

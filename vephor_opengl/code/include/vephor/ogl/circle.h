@@ -11,8 +11,7 @@ class Circle
 public:
     Circle(float p_rad, float p_thickness, float p_slices = 16)
 	{
-		MeshData data;
-		formCircle(p_rad, p_thickness, p_slices, data);
+		auto data = formCircle(p_rad, p_thickness, p_slices);
 		mesh = make_shared<Mesh>(data);
 	}
 	void setColor(const Vec3& p_color)

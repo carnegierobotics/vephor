@@ -175,8 +175,7 @@ int main()
 	line_obj->setLineStrip(false);
 	window.add(line_obj, Transform3());
 	
-	MeshData sphere_mesh_data;
-	formSphere(16, 16, sphere_mesh_data);
+	auto sphere_mesh_data = formSphere(16, 16);
 	
 	auto point_light = make_shared<PointLight>();
     window.add(point_light, Transform3(Vec3(0,10,-10)));

@@ -60,8 +60,7 @@ int main()
 		Vec3(0.0,0.0,0.0)
 	));
 	
-	MeshData sphere_mesh_data;
-	formSphere(16, 16, sphere_mesh_data);
+	auto sphere_mesh_data = formSphere(16, 16);
 	
 	auto sphere_1 = make_shared<Mesh>(
         sphere_mesh_data,

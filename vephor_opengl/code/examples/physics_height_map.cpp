@@ -13,11 +13,8 @@ int main()
 
     window.setFrameLock(60.0f);
 
-    MeshData cube_mesh_data;
-	formCube(cube_mesh_data);
-
-    MeshData sphere_mesh_data;
-	formSphere(16, 16, sphere_mesh_data);
+	auto cube_mesh_data = formCube();
+	auto sphere_mesh_data = formSphere(16, 16);
 
 #if 1
 	MatX heights(65,65);
@@ -76,9 +73,7 @@ int main()
 	float height_map_res = 64.0f;
 #endif
 
-
-    MeshData hm_mesh_data;
-	formHeightMap(heights, height_map_res, hm_mesh_data);
+	auto hm_mesh_data = formHeightMap(heights, height_map_res);
 
 	auto hm_mesh = make_shared<Mesh>(
         hm_mesh_data,
