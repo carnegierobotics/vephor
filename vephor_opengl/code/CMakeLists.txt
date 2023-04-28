@@ -30,6 +30,7 @@ set(EXAMPLE_APPS
 	physics_constraints
 	physics_height_map
 	physics_solid
+	screenshot_test
 	sprites
 	thick_lines_test
 	two_windows

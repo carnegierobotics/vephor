@@ -354,10 +354,13 @@ PYBIND11_MODULE(_core, m) {
 				opts.label = label;
 				opts.linestyle = linestyle;
 				opts.thickness = thickness;
-				p.plot(x,y,opts);
+				if (y.rows() == 0)
+					p.plot(x,opts);
+				else
+					p.plot(x,y,opts);
 			}, 
 			py::arg("x"), 
-			py::arg("y"), 
+			py::arg("y")=MatX(), 
 			py::arg("color")=Vec3(-1,-1,-1), 
 			py::arg("linestyle") = "",
 			py::arg("thickness") = 0,
@@ -383,10 +386,13 @@ PYBIND11_MODULE(_core, m) {
 					opts.marker = PlotScatterMarker::SQUARE;
 				else
 					throw std::runtime_error("Invalid marker type: " + marker);
-				p.scatter(x,y,opts);
+				if (y.rows() == 0)
+					p.scatter(x,opts);
+				else
+					p.scatter(x,y,opts);
 			}, 
 			py::arg("x"), 
-			py::arg("y"),
+			py::arg("y")=MatX(),
 			py::arg("size")=0.01,
 			py::arg("color")=Vec3(-1,-1,-1),
 			py::arg("marker")="circle",

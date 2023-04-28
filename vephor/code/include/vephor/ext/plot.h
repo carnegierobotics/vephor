@@ -152,6 +152,18 @@ public:
 			opts
 		);
 	}
+	void plot(
+		const MatXRef& y,
+		const PlotLineOptions& opts = PlotLineOptions())
+	{
+		VecX x(y.size());
+		for (size_t i = 0; i < y.size(); i++)
+		{
+			x[i] = i;
+		}
+
+		plot(x,y,opts);
+	}
 	void scatter(
 		const VecXRef& x, 
 		const MatXRef& y, 
@@ -230,6 +242,18 @@ public:
 			MatXMap(y.data(), y.size(), 1),
 			opts
 		);
+	}
+	void scatter(
+		const MatXRef& y,
+		const PlotScatterOptions& opts = PlotScatterOptions())
+	{
+		VecX x(y.size());
+		for (size_t i = 0; i < y.size(); i++)
+		{
+			x[i] = i;
+		}
+
+		scatter(x,y,opts);
 	}
 	void scatter(
 		const vector<Vec2>& xy,

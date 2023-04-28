@@ -75,6 +75,28 @@ public:
 
 		return img;
 	}
+	template <typename S>
+	Image<S> cast(T mult = 1.0f, T bias = 1.0f)
+	{
+		Image<S> img(getSize()[0], getSize()[1], channels);
+
+		auto iter = img.getIter();
+
+		Vec bias_v(channels);
+		for (int c = 0; c < channels; c++)
+		{
+			bias_v[c] = bias;
+		}
+		
+		while(!iter.atEnd())
+		{
+			const auto ind = iter.getIndex();
+			img(ind) = ((*this)(ind) * mult + bias_v).template cast<S>();
+			iter++;
+		}
+
+		return img;
+	}
 	const vector<T>& getData() const {return data.getData();}
 	int getTypeSize() const {return sizeof(T);}
 	void getBuffer(const char*& buf_data, int& buf_size) const

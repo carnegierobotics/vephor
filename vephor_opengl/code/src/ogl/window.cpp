@@ -737,4 +737,22 @@ shared_ptr<Texture> Window::getTextureFromJSON(const json& data, int base_buf_in
 	return NULL;
 }
 
+Image<uint8_t> Window::getScreenImage()
+{
+	glfwMakeContextCurrent(window);
+	Image<uint8_t> image(window_size[0], window_size[1], 4);
+	glReadPixels(0, 0, window_size[0], window_size[1], GL_RGBA, GL_UNSIGNED_BYTE, (uint8_t*)image.getData().data());
+	return image;
+}
+
+Image<uint8_t> Window::getDepthImage()
+{
+	glfwMakeContextCurrent(window);
+	Image<float> image(window_size[0], window_size[1], 1);
+	glReadPixels(0, 0, window_size[0], window_size[1], GL_DEPTH_COMPONENT, GL_FLOAT, (float*)image.getData().data());
+
+	auto final_image = image.cast<uint8_t>(-255.0 / 0.01, 255.0);
+	return final_image;
+}
+
 }

@@ -4,7 +4,7 @@ using namespace vephor;
 
 int main()
 {
-	Window window(-1, -1, "thick_lines");
+	Window window(-1, -1, "background test");
     window.setFrameLock(60.0f);
 	
 	window.setCamFromWorld(makeLookAtTransform(

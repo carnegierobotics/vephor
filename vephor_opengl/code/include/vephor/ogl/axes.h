@@ -10,6 +10,7 @@ class Axes
 {
 public:
     Axes(float p_size = 1.0f)
+	: size(p_size)
 	{
 		axes[0] = make_shared<Cylinder>(0.1f, p_size, 6);
 		axes[0]->setColor(Vec3(1,0,0));
@@ -22,9 +23,9 @@ public:
 	}
 	void renderOGL(Window* window, const TransformSim3& world_from_body)
 	{
-		TransformSim3 axis_0(Vec3(0.5f,0,0), makeFacing(Vec3(1,0,0)));
-		TransformSim3 axis_1(Vec3(0,0.5f,0), makeFacing(Vec3(0,1,0)));
-		TransformSim3 axis_2(Vec3(0,0,0.5f), makeFacing(Vec3(0,0,1)));
+		TransformSim3 axis_0(Vec3(size*0.5f,0,0), makeFacing(Vec3(1,0,0)));
+		TransformSim3 axis_1(Vec3(0,size*0.5f,0), makeFacing(Vec3(0,1,0)));
+		TransformSim3 axis_2(Vec3(0,0,size*0.5f), makeFacing(Vec3(0,0,1)));
 		axis_0 = world_from_body * axis_0;
 		axis_1 = world_from_body * axis_1;
 		axis_2 = world_from_body * axis_2;
@@ -47,6 +48,7 @@ public:
 	}
 private:
 	array<shared_ptr<Cylinder>, 3> axes;
+	float size;
 };
 
 }
