@@ -72,6 +72,8 @@ public:
 	const vector<T>& getData() const {return data;}
 	vector<T>& getData() {return data;}
 	int getTypeSize() const {return sizeof(D);}
+	T min() const {return *std::min_element(data.begin(), data.end());}
+	T max() const {return *std::max_element(data.begin(), data.end());}
 private:
 	TensorIndex<D> sizes;
 	vector<T> data;

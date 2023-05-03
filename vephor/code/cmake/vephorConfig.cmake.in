@@ -1,4 +1,4 @@
 @PACKAGE_INIT@
 
-include("${CMAKE_CURRENT_LIST_DIR}/vephorTargets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/vephor_targets.cmake")
 check_required_components("@PROJECT_NAME@")

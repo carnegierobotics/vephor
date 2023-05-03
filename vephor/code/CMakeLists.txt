@@ -69,14 +69,14 @@ endforeach()
 
 
 install(TARGETS vephor
-    EXPORT vehpor_targets
+    EXPORT vephor_targets
     LIBRARY DESTINATION lib COMPONENT Runtime
     ARCHIVE DESTINATION lib COMPONENT Development
     RUNTIME DESTINATION bin COMPONENT Runtime
     PUBLIC_HEADER DESTINATION include COMPONENT Development
     BUNDLE DESTINATION bin COMPONENT Runtime)
 
-install(EXPORT vehpor_targets DESTINATION lib/cmake/vephor)
+install(EXPORT vephor_targets DESTINATION lib/cmake/vephor)
 install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
               "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
         DESTINATION lib/cmake/vephor)

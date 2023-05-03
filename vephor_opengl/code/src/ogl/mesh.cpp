@@ -199,7 +199,7 @@ Mesh::~Mesh()
 }
 
 void Mesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
-{
+{	
     program_id = buildProgram("mesh", vertexShader, fragmentShader);
 
     // Get the 'pos' variable location inside this program
@@ -314,6 +314,8 @@ void Mesh::onRemoveFromWindow(Window*)
 
 void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
 {
+	//v4print "Mesh render";
+	
     // Use our shader
     glUseProgram(program_id);
 

@@ -32,11 +32,11 @@ int main()
 
     v4print "Saving screenshot...";
     auto screenshot = window.getScreenImage();
-    saveImage("/tmp/screenshot.png", screenshot);
+    saveImage(getTempDir()+"/screenshot.png", screenshot);
 
     v4print "Saving depth screenshot...";
     auto depth_screenshot = window.getDepthImage();
-    saveImage("/tmp/depth_screenshot.png", depth_screenshot);
+    saveImage(getTempDir()+"/depth_screenshot.png", depth_screenshot);
 
     v4print "Exiting...";
 	

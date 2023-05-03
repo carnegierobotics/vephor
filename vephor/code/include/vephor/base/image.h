@@ -97,6 +97,14 @@ public:
 
 		return img;
 	}
+	T min() const
+	{
+		return data.min();
+	}
+	T max() const
+	{
+		return data.max();
+	}
 	const vector<T>& getData() const {return data.getData();}
 	int getTypeSize() const {return sizeof(T);}
 	void getBuffer(const char*& buf_data, int& buf_size) const
