@@ -34,6 +34,7 @@ For Python:
 
 ```
 cd vephor_python
+pip install scikit-build
 python setup.py install
 ```
 
@@ -51,6 +52,7 @@ For Python:
 
 ```
 cd vephor_python
+pip install scikit-build
 python setup.py install -G "MinGW Makefiles"
 ```
 
@@ -111,10 +113,10 @@ int main()
 ```
 #! /usr/bin/env python3
 
-from pyv4 import *
+import vephor as v4
 import numpy as np
 
-w = Window()
+w = v4.Window()
 
 points = []
 for i in range(0,100):
@@ -122,7 +124,7 @@ for i in range(0,100):
         points.append((i,j,0))
 points = np.array(points)
 
-p = Particle(points)
+p = v4.Particle(points)
 p.setScreenSpaceMode()
 p.setSize(0.001)
 w.add(p)
@@ -222,7 +224,7 @@ TODO
 
 import os
 
-from pyv4 import *
+import vephor as v4
 import numpy as np
 
 image = np.zeros((16,16,3))
@@ -230,7 +232,7 @@ image[:8,8:] = np.array((0.5,0.5,0.5))
 image[8:,:8] = np.array((0.75,0.75,0.75))
 image[8:,8:] = np.array((1,1,1))
 
-plt = Plot()
+plt = v4.Plot()
 plt.imshow(image)
 plt.show()
 ```

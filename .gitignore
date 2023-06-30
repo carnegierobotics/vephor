@@ -1,2 +1,5 @@
 build
 .vscode
+dist
+_skbuild
+vephor.egg-info
