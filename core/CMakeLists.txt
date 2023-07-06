@@ -6,3 +6,7 @@ project(vephor)
 
 add_subdirectory(code)
 
+# Allow apps in build dir to find assets
+file(COPY assets DESTINATION ${CMAKE_BINARY_DIR}/share/vephor)
+
+INSTALL(DIRECTORY assets DESTINATION share/vephor)

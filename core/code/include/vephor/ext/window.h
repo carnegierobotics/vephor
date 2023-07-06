@@ -719,7 +719,9 @@ public:
 			{
 				writeCurrentMessages(temp_dir);
 
-				string show_path = "vephor_show";
+				string show_path = getBaseDir()+"/bin/vephor_show";
+				if (!fs::exists(show_path))
+					show_path = "vephor_show"; // Hope it is on PATH
 				v4print "Calling show at path:", show_path;
 				Process proc({show_path, "-i", temp_dir, "-r"});
 				int result = proc.join();

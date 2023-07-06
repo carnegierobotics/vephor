@@ -4,6 +4,8 @@
 #include "json.h"
 #include <filesystem>
 
+#include "thirdparty/gpakosz/whereami/whereami.h"
+
 namespace vephor
 {
 	
@@ -94,9 +96,31 @@ inline string getSaveDir()
 	return temp_dir;
 }
 
+inline string getBaseDir()
+{
+	char buffer[1024];
+	int length = 0;
+	wai_getExecutablePath(buffer, 1024, &length);
+	buffer[length] = '\0';
+
+	string base_dir = fs::path(buffer).parent_path();
+
+	if (!fs::exists(base_dir) + "/share/vephor/assets")
+	{
+		wai_getModulePath(buffer, 1024, &length);
+		buffer[length] = '\0';
+
+		base_dir = fs::path(buffer).parent_path();
+	}
+
+	v4print "Base dir:", base_dir;
+
+	return base_dir;
+}
+
 inline string getBaseAssetDir()
 {
-	return string(VEPHOR_ASSET_INSTALL_PREFIX) + "/vephor";
+	return getBaseDir() + "/share/vephor";
 }
 
 inline json produceVertDataList(const MatX& verts)
