@@ -105,7 +105,7 @@ inline string getBaseDir()
 
 	string base_dir = fs::path(buffer).parent_path();
 
-	if (!fs::exists(base_dir) + "/share/vephor/assets")
+	if (!fs::exists(base_dir + "/share/vephor/assets"))
 	{
 		wai_getModulePath(buffer, 1024, &length);
 		buffer[length] = '\0';

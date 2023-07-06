@@ -7,5 +7,5 @@ setup(
     packages=['vephor'],
     package_dir={'':'python'},
     python_requires=">=3.7",
-    cmake_args=["-DBUILD_PYTHON_BINDINGS:BOOL=ON"],
+    cmake_args=["-DVEPHOR_BUILD_PYTHON_BINDINGS:BOOL=ON"],
 )
