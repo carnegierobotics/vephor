@@ -83,7 +83,7 @@ install(EXPORT vephor_opengl_targets DESTINATION lib/cmake/vephor_opengl)
 install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
               "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
         DESTINATION lib/cmake/vephor_opengl)
-install(DIRECTORY include DESTINATION "${CMAKE_INSTALL_PREFIX}")
+install(DIRECTORY include DESTINATION .)
 
 configure_package_config_file(
   "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
@@ -91,4 +91,4 @@ configure_package_config_file(
   INSTALL_DESTINATION
   ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/cmake)
 
-INSTALL(TARGETS vephor_show DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+INSTALL(TARGETS vephor_show DESTINATION bin)

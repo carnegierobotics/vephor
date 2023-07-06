@@ -85,7 +85,7 @@ install(EXPORT vephor_targets DESTINATION lib/cmake/vephor)
 install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
               "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
         DESTINATION lib/cmake/vephor)
-install(DIRECTORY include DESTINATION "${CMAKE_INSTALL_PREFIX}")
+install(DIRECTORY include DESTINATION .)
 
 configure_package_config_file(
   "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
