@@ -6,4 +6,8 @@ project(vephor_opengl)
 
 add_subdirectory(code)
 
-INSTALL(DIRECTORY assets DESTINATION "${CMAKE_INSTALL_PREFIX}/share/vephor/")
+if (WIN32)
+	INSTALL(DIRECTORY assets DESTINATION "c:/Users/Public/vephor/")
+else()
+	INSTALL(DIRECTORY assets DESTINATION "/opt/vephor/")
+endif()

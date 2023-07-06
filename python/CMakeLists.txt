@@ -13,7 +13,7 @@ add_compile_options(-isystem ${EIGEN3_INCLUDE_DIR})
 add_compile_options(-isystem ${MANIF_INCLUDE_DIR})
 
 pybind11_add_module(_core MODULE vephor/main.cpp)
-target_compile_definitions(_core PRIVATE VEPHOR_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
+target_compile_definitions(_core PRIVATE VEPHOR_ASSET_INSTALL_PREFIX="/opt")
 target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
 if (WIN32)
 	target_link_libraries(_core PRIVATE Ws2_32)

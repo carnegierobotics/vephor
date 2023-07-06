@@ -719,7 +719,7 @@ public:
 			{
 				writeCurrentMessages(temp_dir);
 
-				string show_path = string(VEPHOR_INSTALL_PREFIX)+"/bin/vephor_show";
+				string show_path = "vephor_show";
 				v4print "Calling show at path:", show_path;
 				Process proc({show_path, "-i", temp_dir, "-r"});
 				int result = proc.join();

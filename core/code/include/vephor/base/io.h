@@ -96,7 +96,7 @@ inline string getSaveDir()
 
 inline string getBaseAssetDir()
 {
-	return string(VEPHOR_INSTALL_PREFIX) + "/share/vephor";
+	return string(VEPHOR_ASSET_INSTALL_PREFIX) + "/vephor";
 }
 
 inline json produceVertDataList(const MatX& verts)
