@@ -6,10 +6,10 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "vephor"
 version = "0.1.0"
-description="A minimal example package (with pybind11)"
+description="Vephor, a headless visualization library"
 readme = "README.md"
 authors = [
-  { name = "Steve Landers", email = "ckeen8@gmail.com" },
+  { name = "Steve Landers", email = "slanders@carnegierobotics.com" },
 ]
 requires-python = ">=3.7"
 classifiers = [

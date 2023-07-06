@@ -16,8 +16,9 @@ find_package(manif REQUIRED)
 add_library(vephor INTERFACE)
 target_include_directories(vephor INTERFACE 
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-	${EIGEN3_INCLUDE_DIR} ${MANIF_INCLUDE_DIR})
+    $<INSTALL_INTERFACE:include>)
+
+target_link_libraries(vephor INTERFACE Eigen3::Eigen MANIF::manif)
 
 target_compile_options(
 	vephor
@@ -76,11 +77,11 @@ endforeach()
 
 install(TARGETS vephor
     EXPORT vephor_targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib COMPONENT Runtime
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib COMPONENT Development
-    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin COMPONENT Runtime
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include COMPONENT Development
-    BUNDLE DESTINATION ${CMAKE_INSTALL_PREFIX}/bin COMPONENT Runtime)
+    LIBRARY DESTINATION lib COMPONENT Runtime
+    ARCHIVE DESTINATION lib COMPONENT Development
+    RUNTIME DESTINATION bin COMPONENT Runtime
+    PUBLIC_HEADER DESTINATION include COMPONENT Development
+    BUNDLE DESTINATION bin COMPONENT Runtime)
 
 install(EXPORT vephor_targets DESTINATION lib/cmake/vephor)
 install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
