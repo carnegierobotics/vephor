@@ -422,7 +422,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	if (data.contains("content_max"))
 	{
 		content_max = readVec3(data["content_max"]);
-		content_max[2] = 1000;
+		content_max[2] = 1e6;
 	}
 	if (data.contains("orig_content_min"))
 	{
@@ -432,7 +432,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	if (data.contains("orig_content_max"))
 	{
 		orig_content_max = readVec3(data["orig_content_max"]);
-		orig_content_max[2] = 1000;
+		orig_content_max[2] = 1e6;
 	}
 	
 	if (data.contains("auto_fit"))
@@ -471,7 +471,7 @@ void PlotCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 	}
 	
 	content_min[2] = -1;
-	content_max[2] = 1000;
+	content_max[2] = 1e6;
 	resizeWindow(window);
 	
 	orig_content_min = content_min;
