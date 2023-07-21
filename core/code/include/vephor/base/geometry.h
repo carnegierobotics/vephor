@@ -434,7 +434,7 @@ inline MeshData formPolygon(vector<Vec2> verts)
 		index++;
 	}
 	
-	return true;
+	return data;
 }
 
 inline MeshData formCube()
