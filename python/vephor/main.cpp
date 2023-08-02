@@ -237,11 +237,11 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("height")=-1,
 			py::arg("name")="show")
 		.def("clear", &Window::clear)
-        .def("render", &Window::render, py::arg("wait_close")=true, py::arg("wait_key")=true)
+        .def("render", &Window::render, py::arg("wait_close")=true, py::arg("wait_key")=false)
 		.def_static("setClientMode", &Window::setClientMode, 
 			py::arg("wait")=false, 
 			py::arg("host")="localhost", 
-			py::arg("port")=2001,
+			py::arg("port")=VEPHOR_DEFAULT_PORT,
 			py::arg("record_also")=false,
 			py::arg("record_path")="")
 		.def_static("setClientModeBYOS", &Window::setClientModeBYOS, 
@@ -249,7 +249,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("record_path")="")
 		.def_static("setServerMode", &Window::setServerMode, 
 			py::arg("wait")=false, 
-			py::arg("port")=2001,
+			py::arg("port")=VEPHOR_DEFAULT_PORT,
 			py::arg("record_also")=false,
 			py::arg("record_path")="",
 			py::arg("show_metadata")=ShowMetadata())

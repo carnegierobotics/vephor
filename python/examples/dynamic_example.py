@@ -20,7 +20,7 @@ for i in range(16):
 t = 0
 dt = 0.015
 while 1:
-    w.render()
+    w.render(False, False)
 
     node.setOrient((0,0,t*(2*np.pi)/5.0))
     t += dt
