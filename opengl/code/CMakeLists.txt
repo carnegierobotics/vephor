@@ -16,11 +16,12 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
+find_package(glfw3 REQUIRED)
 
 if (WIN32)
-	set(GRAPHICS_LIBS opengl32 glfw3 glew32 Ws2_32)
+	set(GRAPHICS_LIBS opengl32 glfw glew32 Ws2_32)
 else()
-	set(GRAPHICS_LIBS ${OpenGL_LIBRARIES} GL glfw3 ${GLEW_LIBRARIES} dl X11 pthread)
+	set(GRAPHICS_LIBS ${OpenGL_LIBRARIES} GL glfw ${GLEW_LIBRARIES} dl X11 pthread)
 endif()
 
 include(CMakePackageConfigHelpers)

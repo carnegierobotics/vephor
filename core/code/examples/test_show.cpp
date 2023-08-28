@@ -243,9 +243,12 @@ int main(int argc, char* argv[])
 	{	
 		while (true)
 		{
-			plane_node->setShow(!Window::checkAndConsumeFlag("Toggle"));
+			bool plane_state = !Window::checkAndConsumeFlag("Toggle");
+			bool click = Window::checkAndConsumeFlag("Click");
+
+			plane_node->setShow(plane_state);
 			
-			if (Window::checkAndConsumeFlag("Click"))
+			if (click)
 			{
 				auto cone = make_shared<Cone>();
 				cone->setColor(Vec3(1,0,0));

@@ -644,12 +644,25 @@ public:
 		uint64_t size, payload_count;
         
 		auto size_buf = receive(sizeof(uint64_t));
-		if (size_buf.empty()){return JSONBMessage();}
+		if (size_buf.empty())
+		{
+			return JSONBMessage();
+		}
         size = *reinterpret_cast<int*>(size_buf.data());
+
+		if (size == 0)
+		{
+			return JSONBMessage();
+		}
 		
 		auto payload_count_buf = receive(sizeof(uint64_t));
-		if (payload_count_buf.empty()){return JSONBMessage();}
+		while (payload_count_buf.empty())
+		{
+			payload_count_buf = receive(sizeof(uint64_t));
+		}
         payload_count = *reinterpret_cast<int*>(payload_count_buf.data());
+
+		
 		
 		uint64_t received_size = sizeof(uint64_t) * (1 + payload_count);
 		

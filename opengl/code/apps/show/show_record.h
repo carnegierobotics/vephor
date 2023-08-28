@@ -50,9 +50,12 @@ struct ShowRecord
 		assets.addFolder(getBaseAssetDir());
 		start_time = std::chrono::steady_clock::now();
 	}
-	void setParent(const shared_ptr<RenderNode>& node, int window_id, const string& parent_node, ConnectionID conn_id)
+	void setParent(const shared_ptr<RenderNode>& node, WindowID window_id, const string& parent_node, ConnectionID conn_id)
 	{
-		//v4print "Parent:", parent_node;
+		if (windows[window_id].get() == NULL)
+		{
+			throw std::runtime_error("Null window found in setParent.");
+		}
 		
 		if (parent_node == "window_top_right")
 		{
@@ -500,6 +503,7 @@ struct ShowRecord
 		{
 			auto curr_time = std::chrono::steady_clock::now();
 			auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - flags_record.second.last_update).count();
+			
 			if (diff > 100)
 			{
 				flags_record.second.last_update = curr_time;
@@ -511,15 +515,16 @@ struct ShowRecord
 				{
 					flags_message["flags"][flag.name] = flag.state;
 					
-					//v4print "Send flag:", flag.name, flag.state;
-					
 					if (!flag.toggle)
 						flag.state = false;
 				}
 				
 				try {
 					net_manager.sendJSONBMessage(flags_record.first, flags_message, {});
-				} catch (...) {}
+				} catch (...)
+				{
+					v4print "Flags message could not be sent!";
+				}
 			}
 		}
 	}
