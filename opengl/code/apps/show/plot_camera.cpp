@@ -702,6 +702,8 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 		}
 	}
 
+	const float grid_line_min_offset = 0.1;
+
 	{
 		int tick_index = curr_content_inner_min[0] / tick_res[0];
 		int tick_line_index = 0;
@@ -737,7 +739,7 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 			vert_grid_lines[tick_line_index]->setPos(Vec3(
 				value,
 				(curr_content_min[1] + curr_content_max[1])/2.0f,
-				curr_content_min[2] + 0.01));
+				curr_content_min[2] + grid_line_min_offset));
 			vert_grid_lines[tick_line_index]->setScale(curr_content_max[1] - curr_content_min[1]);
 			vert_grid_lines[tick_line_index]->setShow(true);
 			
@@ -788,7 +790,7 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 			horiz_grid_lines[tick_line_index]->setPos(Vec3(
 				(curr_content_min[0] + curr_content_max[0])/2.0f,
 				value,
-				curr_content_min[2] + 0.01));
+				curr_content_min[2] + grid_line_min_offset));
 			horiz_grid_lines[tick_line_index]->setScale(curr_content_max[0] - curr_content_min[0]);
 			horiz_grid_lines[tick_line_index]->setShow(true);
 			

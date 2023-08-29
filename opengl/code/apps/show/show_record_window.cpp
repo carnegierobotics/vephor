@@ -93,6 +93,7 @@ void ShowRecordWindow::setup(const json& data,
 	
 	WindowOptions opts;
 	opts.show = false;
+	opts.always_on_top = true;
 	window = make_shared<Window>(width, height, title, [&](Window* this_window, const Vec2i& window_size){
 		if (camera)
 			camera->resizeWindow(*this_window);

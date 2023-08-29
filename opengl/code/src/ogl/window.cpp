@@ -242,6 +242,11 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 		glfwTerminate();
 		throw std::runtime_error("Failed to open GLFW window.");
 	}
+
+	if (opts.always_on_top)
+	{
+		glfwSetWindowAttrib(window, GLFW_FLOATING, GLFW_TRUE);
+	}
 	
 	if (first_window == NULL)
 	{

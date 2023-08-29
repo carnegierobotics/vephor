@@ -264,7 +264,14 @@ struct ShowRecord
 						 inner_name = message["name"];
 					if (!inner_name.empty())
 						name = inner_name + " " + name;
-					auto control_window = make_shared<Window>(flag_window_width,flag_window_height,name);
+					WindowOptions control_window_opts;
+					control_window_opts.always_on_top = true;
+					auto control_window = make_shared<Window>(
+						flag_window_width,
+						flag_window_height,
+						name,
+						(WindowResizeCallback)NULL,
+						control_window_opts);
 					control_window->setIgnoreClose(true);
 					
 					text_tex = control_window->loadTexture(assets.getAssetPath("/assets/Holstein.png"));
@@ -273,8 +280,17 @@ struct ShowRecord
 					control_window->setFrameLock(fps);
 					
 					FlagsRecord flags_record;
-					
+
+					vector<json> message_flags;
 					for (const auto& flag : message["flags"])
+					{
+						message_flags.push_back(flag);
+					}
+					std::sort(message_flags.begin(), message_flags.end(), [](const auto& l, const auto& r){
+						return l["name"] < r["name"];
+					});
+					
+					for (const auto& flag : message_flags)
 					{
 						float vpos = -((int)flags_record.flags.size()+1)*flag_offset;
 						
