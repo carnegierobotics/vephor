@@ -610,7 +610,7 @@ public:
 			}
 		}
 
-		return std::move(buf);
+		return buf;
 	}
 	vector<char> receiveMessage()
 	{
