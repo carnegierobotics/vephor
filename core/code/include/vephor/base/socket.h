@@ -582,23 +582,23 @@ public:
 	{
 		sendMessage(buf.data(), buf.size());
 	}
-	vector<char> receiveMessage()
+	vector<char> receive_safe(size_t size, bool exit_on_empty = false)
 	{
-		uint64_t size;
-        auto size_buf = receive(sizeof(uint64_t));
-		
-		if (size_buf.empty())
-		{
-			return vector<char>();
-		}
-		
-        size = *reinterpret_cast<int*>(size_buf.data());
-
 		vector<char> buf;
+
+		bool first = true;
 
 		while(size > 0 && isConnected())
 		{
 			vector<char> new_buf = receive(size);
+
+			if (first)
+			{
+				if (exit_on_empty && new_buf.empty())
+					return buf;
+			}
+
+			first = false;
 
 			size -= new_buf.size();
 
@@ -609,6 +609,22 @@ public:
 				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 		}
+
+		return std::move(buf);
+	}
+	vector<char> receiveMessage()
+	{
+		uint64_t size;
+        auto size_buf = receive_safe(sizeof(uint64_t), true);
+		
+		if (size_buf.empty())
+		{
+			return vector<char>();
+		}
+		
+        size = *reinterpret_cast<int*>(size_buf.data());
+
+		vector<char> buf = receive_safe(size);
 
 		return buf;
 	}
@@ -630,6 +646,7 @@ public:
 		
 		send(reinterpret_cast<char*>(&total_length), sizeof(uint64_t));
 		send(reinterpret_cast<char*>(&payload_count), sizeof(uint64_t));
+
 		sendMessage(header_str.data(), header_str.size());
 		for (const auto& payload : payloads)
 		{
@@ -643,25 +660,15 @@ public:
 		
 		uint64_t size, payload_count;
         
-		auto size_buf = receive(sizeof(uint64_t));
+		auto size_buf = receive_safe(sizeof(uint64_t), true);
 		if (size_buf.empty())
 		{
 			return JSONBMessage();
 		}
         size = *reinterpret_cast<int*>(size_buf.data());
-
-		if (size == 0)
-		{
-			return JSONBMessage();
-		}
 		
-		auto payload_count_buf = receive(sizeof(uint64_t));
-		while (payload_count_buf.empty())
-		{
-			payload_count_buf = receive(sizeof(uint64_t));
-		}
+		auto payload_count_buf = receive_safe(sizeof(uint64_t));
         payload_count = *reinterpret_cast<int*>(payload_count_buf.data());
-
 		
 		
 		uint64_t received_size = sizeof(uint64_t) * (1 + payload_count);
@@ -670,6 +677,7 @@ public:
 
 		vector<char> buf = receiveMessage();
 		received_size += buf.size();
+
 		msg.header = json::parse(buf_to_string(buf));
 
 		for (uint64_t i = 0; i < payload_count; i++)
@@ -959,8 +967,8 @@ private:
 				try {
 					msg = sock->receiveJSONBMessage();
 				} 
-				catch (...) {
-					v4print "Receive JSONB exception caught.";
+				catch (const std::exception & ex) {
+					v4print "Receive JSONB exception caught:", ex.what();
 					break;
 				}
 				if (msg.valid)
