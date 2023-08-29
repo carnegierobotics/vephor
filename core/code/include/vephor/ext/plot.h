@@ -406,6 +406,7 @@ public:
 	void clear()
 	{
 		inner_window.clear();
+		inner_window.getCameraControlInfo()["labels"] = {};
 		color_index = 0;
 		plot_index = 0;
 	}
