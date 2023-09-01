@@ -103,17 +103,22 @@ inline string getBaseDir()
 	wai_getExecutablePath(buffer, 1024, &length);
 	buffer[length] = '\0';
 
-	string base_dir = fs::path(buffer).parent_path();
+	string base_dir = buffer;
 
 	if (!fs::exists(base_dir + "/share/vephor/assets"))
 	{
-		wai_getModulePath(buffer, 1024, &length);
-		buffer[length] = '\0';
-
 		base_dir = fs::path(buffer).parent_path();
+
+		if (!fs::exists(base_dir + "/share/vephor/assets"))
+		{
+			wai_getModulePath(buffer, 1024, &length);
+			buffer[length] = '\0';
+
+			base_dir = fs::path(buffer).parent_path();
+		}
 	}
 
-	v4print "Base dir:", base_dir;
+	v4print "Base dir:", base_dir, "Executable dir:", buffer;
 
 	return base_dir;
 }
