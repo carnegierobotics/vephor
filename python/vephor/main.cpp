@@ -144,6 +144,9 @@ PYBIND11_MODULE(_core, m) {
 	py::class_<Mesh, shared_ptr<Mesh>>(m, "Mesh")
         .def(py::init<MeshData>());
 
+	py::class_<ObjMesh, shared_ptr<ObjMesh>>(m, "ObjMesh")
+        .def(py::init<string>());
+
 	py::class_<Text, shared_ptr<Text>>(m, "Text")
 		.def(py::init<string>())
 		.def("setColor",[](Text& t, 
@@ -399,6 +402,19 @@ PYBIND11_MODULE(_core, m) {
 			float,
             bool, 
             int)>(&Window::add<Sprite>),
+			py::arg("object"),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0)
+		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
+            const shared_ptr<ObjMesh>&,
+            const Vec3&,
+			const Vec3&,
+			float,
+            bool, 
+            int)>(&Window::add<ObjMesh>),
 			py::arg("object"),
 			py::arg("t")=Vec3(0,0,0),
 			py::arg("r")=Vec3(0,0,0),
