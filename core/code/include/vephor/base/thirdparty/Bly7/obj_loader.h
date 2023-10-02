@@ -20,6 +20,27 @@
 // Print progress to console while loading (large models)
 #define OBJL_CONSOLE_OUTPUT
 
+// https://stackoverflow.com/questions/216823/how-to-trim-an-stdstring
+// trim from start (in place)
+static inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }));
+}
+
+// trim from end (in place)
+static inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+// trim from both ends (in place)
+static inline void trim(std::string &s) {
+    rtrim(s);
+    ltrim(s);
+}
+
 // Namespace: OBJL
 //
 // Description: The namespace that holds eveyrthing that
@@ -730,6 +751,8 @@ namespace objl
 			const std::vector<Vector3>& iNormals,
 			std::string icurline)
 		{
+			trim(icurline);
+
 			std::vector<std::string> sface, svert;
 			Vertex vVert;
 			algorithm::split(algorithm::tail(icurline), sface, " ");
@@ -739,6 +762,9 @@ namespace objl
 			// For every given vertex do this
 			for (int i = 0; i < int(sface.size()); i++)
 			{
+				if (sface[i].empty())
+					continue;
+
 				// See What type the vertex is.
 				int vtype;
 

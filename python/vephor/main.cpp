@@ -507,7 +507,10 @@ PYBIND11_MODULE(_core, m) {
 				}
 				v4print info.itemsize, info.size, info.format;
 				
-				Image<uint8_t> image(info.shape[1], info.shape[0], info.shape[2]);
+				int n_channels = 1;
+				if (info.shape.size() > 2)
+					n_channels = info.shape[2];
+				Image<uint8_t> image(info.shape[1], info.shape[0], n_channels);
 				
 				if (info.format == py::format_descriptor<uint8_t>::format())
 					image.copyFromBuffer(reinterpret_cast<const char*>(info.ptr), info.size);
@@ -519,7 +522,7 @@ PYBIND11_MODULE(_core, m) {
 					{
 						for (int j = 0; j < info.shape[1]; j++)
 						{
-							const double* vec_ptr = ptr + i * info.shape[1] * info.shape[2] + j * info.shape[2];
+							const double* vec_ptr = ptr + i * info.shape[1] * n_channels + j * n_channels;
 							image(j,i) = Vec3u(vec_ptr[0]*255, vec_ptr[1]*255, vec_ptr[2]*255);
 						}
 					}
@@ -532,7 +535,7 @@ PYBIND11_MODULE(_core, m) {
 				p.imshow(image, nearest, offset);
 			},
 			py::arg("image"), py::arg("nearest")=false, py::arg("offset")=Vec2::Zero())
-		.def("show", &Plot::show, py::arg("wait_close")=true, py::arg("wait_key")=true)
+		.def("show", &Plot::show, py::arg("wait_close")=true, py::arg("wait_key")=false)
 		.def("clear", &Plot::clear);
 
 

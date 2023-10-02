@@ -7,18 +7,6 @@
 namespace vephor
 {
 
-//https://stackoverflow.com/questions/9358718/similar-function-in-c-to-pythons-strip
-inline std::string strip(const std::string &inpt)
-{
-    auto start_it = inpt.begin();
-    auto end_it = inpt.rbegin();
-    while (std::isspace(*start_it))
-        ++start_it;
-    while (std::isspace(*end_it))
-        ++end_it;
-    return std::string(start_it, end_it.base());
-}
-
 class ObjMesh
 {
 public:
@@ -30,6 +18,8 @@ public:
 	json serialize(vector<vector<char>>*) const
 	{
 		string temp_dir = getTempDir();
+
+		v4print "Looking for materials in obj:", path;
 		
 		// Find any used materials
 		// TODO: copy textures too
@@ -41,11 +31,12 @@ public:
 		string line;
 		while (std::getline(fin, line))
 		{
-			line = strip(line);
+			trim(line);
 			auto index = line.find("mtllib");
 			if (index != string::npos)
 			{
 				string mtl_file = line.substr(index + 7);
+				v4print "\tMaterial file:", mtl_file;
 				string mtl_path = fs::path(path).parent_path().string() + "/" + mtl_file;
 				string final_mtl_path = temp_dir+"/scene_assets/" + mtl_file;
 				if (!fs::exists(final_mtl_path))
