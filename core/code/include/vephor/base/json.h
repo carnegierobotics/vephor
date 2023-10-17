@@ -1,6 +1,10 @@
 #pragma once
 
+#ifdef USE_EXTERNAL_JSON
+#include "nlohmann/json.hpp"
+#else
 #include "thirdparty/nlohmann/json.hpp"
+#endif
 
 namespace vephor{
 

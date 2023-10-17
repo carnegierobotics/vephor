@@ -13,12 +13,21 @@ endif(COMMAND cmake_policy)
 find_package(Eigen3 3.3 REQUIRED)
 find_package(manif REQUIRED)
 
+set(VEPHOR_USE_EXTERNAL_JSON OFF CACHE BOOL "Use an external JSON package")
+
 add_library(vephor INTERFACE)
 target_include_directories(vephor INTERFACE 
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
 target_link_libraries(vephor INTERFACE Eigen3::Eigen MANIF::manif)
+
+if(VEPHOR_USE_EXTERNAL_JSON)
+	message("Vephor using external JSON.")
+    find_package(nlohmann_json REQUIRED)
+	target_link_libraries(vephor INTERFACE nlohmann_json::nlohmann_json)
+	target_compile_definitions(vephor INTERFACE USE_EXTERNAL_JSON)
+endif()
 
 target_compile_options(
 	vephor
