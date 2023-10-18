@@ -1144,7 +1144,6 @@ private:
 				data = obj->serialize(bufs);
 				if (node->getParent())
 				{
-					v4print id, "has parent", node->getParent()->getName();
 					if (!node->getParent()->getName().empty())
 					{
 						data["pose_parent"] = node->getParent()->getName();
