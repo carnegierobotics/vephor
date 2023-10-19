@@ -89,6 +89,7 @@ public:
 		inner_window.getCameraControlInfo()["orig_content_min"] = toJson(Vec3(min_x, min_y, 0));
 		inner_window.getCameraControlInfo()["orig_content_max"] = toJson(Vec3(max_x, max_y, 0));
 	}
+
 	void plot(
 		const VecXRef& x, 
 		const MatXRef& y,
@@ -409,6 +410,11 @@ public:
 		inner_window.getCameraControlInfo()["labels"] = {};
 		color_index = 0;
 		plot_index = 0;
+	}
+	int take_next_plot_index()
+	{
+		plot_index++;
+		return plot_index;
 	}
 private:
 	Window inner_window;
