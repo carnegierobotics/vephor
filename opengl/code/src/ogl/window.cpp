@@ -784,14 +784,14 @@ Image<uint8_t> Window::getDepthImage()
 	Image<float> image(window_size[0], window_size[1], 1);
 	glReadPixels(0, 0, window_size[0], window_size[1], GL_DEPTH_COMPONENT, GL_FLOAT, (float*)image.getData().data());
 	
-	v4print "Depth range:", image.min(), image.max(); 
+	//v4print "Depth range:", image.min(), image.max(); 
 
 	float mult = 255.0 / (image.max() - image.min());
 
 	//auto final_image = image.cast<uint8_t>(-255.0 / (image.max() - image.min()), 255.0);
 	auto final_image = image.cast<uint8_t>(mult, -mult * image.min());
 	
-	v4print "Depth range (uint8):", (int)final_image.min(), (int)final_image.max(); 
+	//v4print "Depth range (uint8):", (int)final_image.min(), (int)final_image.max(); 
 
 	final_image.flipYInPlace();
 	

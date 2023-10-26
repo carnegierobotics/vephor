@@ -117,7 +117,17 @@ PYBIND11_MODULE(_core, m) {
         .def(py::init<float>(),py::arg("size")=1.0f);
 
     py::class_<Sphere, shared_ptr<Sphere>>(m, "Sphere")
-        .def(py::init<float,int,int>(),py::arg("rad")=1.0f,py::arg("slices")=12,py::arg("stacks")=12);
+        .def(py::init<float,int,int>(),py::arg("rad")=1.0f,py::arg("slices")=12,py::arg("stacks")=12)
+		.def("setColor",[](Sphere& s, 
+			const Vec3& rgb){
+				s.setColor(Color(rgb));
+			}, 
+			py::arg("rgb"))
+		.def("setColor",[](Sphere& s, 
+			const Vec4& rgba){
+				s.setColor(Color(rgba));
+			}, 
+			py::arg("rgba"));
 
     py::class_<Cylinder, shared_ptr<Cylinder>>(m, "Cylinder")
         .def(py::init<float,float,int>(),py::arg("rad")=1.0f,py::arg("height")=1.0f,py::arg("slices")=12);
@@ -198,12 +208,13 @@ PYBIND11_MODULE(_core, m) {
 		.def(py::init([](py::buffer buf, bool nearest){
 				py::buffer_info info = buf.request();
 				
-				v4print info.ndim;
+				// Image debug info
+				/*v4print info.ndim;
 				for (int i = 0; i < info.ndim; i++)
 				{
 					v4print "\t", info.shape[i], info.strides[i];
 				}
-				v4print info.itemsize, info.size, info.format;
+				v4print info.itemsize, info.size, info.format;*/
 
 				int channels = 1;
 				if (info.shape.size() > 2)
@@ -241,6 +252,8 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("name")="show")
 		.def("clear", &Window::clear)
         .def("render", &Window::render, py::arg("wait_close")=true, py::arg("wait_key")=false)
+		.def_static("setRecordMode", &Window::setRecordMode, 
+			py::arg("path"))
 		.def_static("setClientMode", &Window::setClientMode, 
 			py::arg("wait")=false, 
 			py::arg("host")="localhost", 
@@ -500,12 +513,13 @@ PYBIND11_MODULE(_core, m) {
 			const Vec2& offset){
 				py::buffer_info info = buf.request();
 				
-				v4print info.ndim;
+				// Image debug info
+				/*v4print info.ndim;
 				for (int i = 0; i < info.ndim; i++)
 				{
 					v4print "\t", info.shape[i], info.strides[i];
 				}
-				v4print info.itemsize, info.size, info.format;
+				v4print info.itemsize, info.size, info.format;*/
 				
 				int n_channels = 1;
 				if (info.shape.size() > 2)

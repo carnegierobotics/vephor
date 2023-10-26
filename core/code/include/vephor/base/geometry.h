@@ -1077,9 +1077,6 @@ inline vector<OBJMeshData> loadOBJMesh(const string& path)
 		}
 		
 		Vec3 diffuse(curMesh.MeshMaterial.Kd.X, curMesh.MeshMaterial.Kd.Y, curMesh.MeshMaterial.Kd.Z);
-		
-		v4print "Diffuse:", i, diffuse.transpose();
-		
 		mesh_parts.push_back({curr_mesh_data, diffuse});
 	}
 	

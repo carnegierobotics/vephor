@@ -41,6 +41,7 @@ struct ShowRecord
 	int message_index = 0;
 	std::chrono::steady_clock::time_point start_time;
 	std::chrono::time_point<std::chrono::high_resolution_clock> path_start_time;
+	float first_message_time = 0;
 	float playback_speed = 1;
 	string input_path;
 	unordered_map<ConnectionID, FlagsRecord> flags_per_conn;
@@ -210,6 +211,11 @@ struct ShowRecord
 		}
 
 		path_start_time = std::chrono::high_resolution_clock::now();
+		if (!message_list.empty() && message_list[0].header.contains("time"))
+		{
+			first_message_time = (float)message_list[0].header["time"];
+			v4print "First message time:", first_message_time;
+		}
 	}
 	void handleIncomingMessages(bool verbose = false)
 	{
@@ -240,7 +246,7 @@ struct ShowRecord
 			}
 			if (message.contains("time"))
 			{
-				if ((float)message["time"] > conn_time * playback_speed)
+				if ((float)message["time"] - first_message_time > conn_time * playback_speed)
 					break;
 			}
 			
