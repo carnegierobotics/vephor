@@ -74,8 +74,17 @@ Lines::Lines(
 {
     colors.resize(4,p_verts.rows());
 	
-    if (p_colors.cols() == 4 && p_colors.rows() > 0)
-        colors.block(0,0,4,p_colors.rows()) = p_colors.transpose();
+    if (p_colors.rows() > 0)
+    {
+        if (p_colors.cols() == 4)
+            colors.block(0,0,4,p_colors.rows()) = p_colors.transpose();
+        else if (p_colors.cols() == 3)
+        {
+            colors.block(0,0,3,p_colors.rows()) = p_colors.transpose();
+            colors.block(3,0,1,p_colors.rows()).fill(1);
+        }
+    }
+
     colors.block(0,p_colors.rows(),4,p_verts.rows()-p_colors.rows()).colwise() = p_default_color.getRGBA();
 }
 

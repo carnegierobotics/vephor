@@ -269,7 +269,7 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 			resizeWindow(window);
 
 			trackball_from = offset + trackball_to;
-			world_from_cam.translation(trackball_from);
+			world_from_cam.setTranslation(trackball_from);
 			window.setCamFromWorld(world_from_cam.inverse());
 		}
 
@@ -284,7 +284,7 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 			orbit_point_render->setPos(trackball_to);
 
 			trackball_from = offset + trackball_to;
-			world_from_cam.translation(trackball_from);
+			world_from_cam.setTranslation(trackball_from);
 			window.setCamFromWorld(world_from_cam.inverse());
 		}
 	}

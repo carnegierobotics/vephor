@@ -331,7 +331,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 		}
 	}
 	
-	if (data.contains("labels"))
+	if (data.contains("labels") && !data["labels"].empty())
 	{
 		v4print "Legend";
 		legend_node = window.add(TransformSim3());

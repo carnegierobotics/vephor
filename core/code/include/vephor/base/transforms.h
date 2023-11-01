@@ -53,14 +53,14 @@ public:
 	}
 	void setPos(const Vec3& pos)
 	{
-		parent_from_node.translation(pos);
+		parent_from_node.setTranslation(pos);
 		updateTree();
 	}
 	Orient3 getOrient() const {return parent_from_node.quat();}
     void setOrient(Orient3 orient)
 	{
 		orient.normalize(); 
-		parent_from_node.quat(orient);
+		parent_from_node.setRotation(orient);
 		updateTree();
 	}
 	TransformSim3 getTransform() const

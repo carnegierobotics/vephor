@@ -66,7 +66,7 @@ public:
 			-size[1] * p_anchor_perc[1]
 		);
 		
-		body_from_anchor.translation(Vec3(anchor_offset[0], anchor_offset[1], 0));
+		body_from_anchor.setTranslation(Vec3(anchor_offset[0], anchor_offset[1], 0));
 	}
 	
 	void setAnchorBottomLeft()

@@ -467,8 +467,10 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("layer")=0);
 
 	py::class_<Plot>(m, "Plot")
-        .def(py::init<string>(),
-			py::arg("title")="plot")
+        .def(py::init<string,int,int>(),
+			py::arg("title")="plot",
+			py::arg("width")=800,
+			py::arg("height")=800)
 		.def("window", &Plot::window, py::return_value_policy::reference)
 		.def("title", &Plot::title)
 		.def("xlabel", &Plot::xlabel)

@@ -179,6 +179,11 @@ public:
 	{
 		return q;
 	}
+	Vec3 rvec() const
+	{
+		Eigen::AngleAxisf aa(q);
+		return aa.angle() * aa.axis();
+	}
 	Orient3 operator* (const Orient3& other) const
 	{
 		return q * other.q;
@@ -222,9 +227,10 @@ public:
 	{
 		return Orient3(transform.quat());
 	}
-	void quat(const Orient3& q)
+	Vec3 rvec() const
 	{
-		transform.quat(q.quat());
+		Eigen::AngleAxisf aa(transform.quat());
+		return aa.angle() * aa.axis();
 	}
 	Transform3 operator* (const Transform3& other) const
 	{
@@ -238,9 +244,17 @@ public:
 	{
 		return transform.translation();
 	}
-	void translation(const Vec3& t)
+	void setTranslation(const Vec3& t)
 	{
 		transform.translation(t);
+	}
+	void setRotation(const Orient3& o)
+	{
+		transform.quat(o.quat());
+	}
+	manif::SE3f manifoldTransform() const
+	{
+		return transform;
 	}
 private:
 	manif::SE3f transform;
@@ -259,14 +273,14 @@ struct TransformSim3
 	TransformSim3 operator* (const TransformSim3& other) const
 	{
 		Transform3 scaled_transform = other.transform;
-		scaled_transform.translation(scaled_transform.translation() * scale);
+		scaled_transform.setTranslation(scaled_transform.translation() * scale);
 		
 		return TransformSim3(transform * scaled_transform, scale * other.scale);
 	}
 	TransformSim3 operator* (const Transform3& other) const
 	{
 		Transform3 scaled_transform = other;
-		scaled_transform.translation(scaled_transform.translation() * scale);
+		scaled_transform.setTranslation(scaled_transform.translation() * scale);
 		
 		return TransformSim3(transform * scaled_transform, scale);
 	}
@@ -278,10 +292,6 @@ struct TransformSim3
 	{
 		return transform.translation();
 	}
-	void translation(const Vec3& t)
-	{
-		transform.translation(t);
-	}
 	Mat3 rotation() const
 	{
 		return transform.rotation();
@@ -290,9 +300,13 @@ struct TransformSim3
 	{
 		return Orient3(transform.quat());
 	}
-	void quat(const Orient3& q)
+	void setTranslation(const Vec3& t)
 	{
-		transform.quat(q.quat());
+		transform.setTranslation(t);
+	}
+	void setRotation(const Orient3& o)
+	{
+		transform.setRotation(o.quat());
 	}
 	Mat4 matrix() const
 	{
