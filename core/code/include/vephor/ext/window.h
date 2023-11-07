@@ -40,7 +40,11 @@ namespace fs = std::filesystem;
 namespace vephor
 {
 	
+// header: void handleKeyPress(int key_code)
 using KeyActionCallback = std::function<void(int)>;
+
+// header: void handleMouseClick(bool left, bool down, const Vec2& pos, const Vec2& window_size)
+using MouseClickActionCallback = std::function<void(bool, bool, const Vec2&, const Vec2&)>;
 	
 // Key codes taken from GLFW
 // TODO: make these into constants
@@ -185,6 +189,28 @@ shared_ptr<WindowPlugin> getWindowPlugin(const shared_ptr<T>& obj)
 	throw std::runtime_error("Could not create window plugin for unsupported object type: "+string(typeid(*obj.get()).name()));
 	return NULL;
 };*/
+
+template <typename T>
+std::string formatDecimal(T d, int decimals)
+{
+    std::stringstream sstr;
+    sstr.precision(decimals);
+    sstr << std::fixed << d;
+    return sstr.str();
+}
+
+// ChatGPT
+std::string formatByteDisplay(double bytes, int unit = 0)
+{
+	std::vector<std::string> units = { "bytes", "KB", "MB", "GB", "TB", "PB" };
+
+	if (bytes < 1024.0 || unit >= units.size() - 1) {
+		return formatDecimal(bytes, 2) + " " + units[unit];
+	}
+	else {
+		return formatByteDisplay(bytes / 1024.0, unit + 1);
+	}
+}
 
 class Window;
 using ObjectID = int;
@@ -453,9 +479,14 @@ public:
 		return camera_control;
 	}
 	
-	void setKeyPressCallback(KeyActionCallback p_key_callback)
+	void setKeyPressCallback(KeyActionCallback p_callback)
     {
-        key_press_callback = p_key_callback;
+        key_press_callback = p_callback;
+    }
+
+	void setMouseClickCallback(MouseClickActionCallback p_callback)
+    {
+        mouse_click_callback = p_callback;
     }
 	
 	shared_ptr<RenderNode> add(
@@ -533,7 +564,11 @@ public:
 	shared_ptr<TransformNode> getWindowTopLeftNode() const {return window_top_left_node;}
 	shared_ptr<TransformNode> getWindowBottomLeftNode() const {return window_bottom_left_node;}
 
+	void setPrintFlagNetworkUse(bool flag = true){print_flag_network_use = flag;}
+
 private:
+	bool print_flag_network_use = false;
+
 	void writeCurrentMessages(const string& path, bool skip_meta = false)
 	{
 		json meta_data = {
@@ -561,6 +596,46 @@ private:
 	}
 
 public:
+	bool processEvents()
+	{
+		bool keep_waiting = true;
+
+		auto msgs = manager.getWindowMessages(id);
+		for (const auto& msg : msgs)
+		{
+			if (msg["type"] == "key_press")
+			{	
+				if (key_press_callback)
+				{
+					key_press_callback(msg["key"]);
+				}
+				
+				if (msg["key"] == KEY_ENTER)
+				{
+					keep_waiting = false;
+				}
+			}
+			else if (msg["type"] == "mouse_click")
+			{
+				if (mouse_click_callback)
+				{
+					mouse_click_callback(
+						msg["button"] == "left", 
+						msg["state"] == "down", 
+						readVec2(msg["pos"]),
+						readVec2(msg["window_size"])
+					);
+				}
+			}
+			else if (msg["type"] == "close")
+			{
+				v4print "Close message received for window:", id;
+				shutdown = true;
+			}
+		}
+
+		return keep_waiting;
+	}
 	bool render(bool wait_close = true, bool wait_key = false)
 	{
 		manager.first_render = true;
@@ -648,6 +723,26 @@ public:
 					{"data", scene_data}
 				};
 
+				if (print_flag_network_use)
+				{
+					auto msg_size = msg.getSize();
+					total_network_use_bytes += msg_size;
+
+					if (!network_use_start_time_set)
+					{
+						network_use_start_time_set = true;
+						network_use_start_time = std::chrono::high_resolution_clock::now();
+					}
+					auto curr_time = std::chrono::high_resolution_clock::now();
+					float network_use_time = std::chrono::duration<float, std::milli>(curr_time-network_use_start_time).count() / 1000.0f;
+					if (network_use_time < 1.0f)
+						network_use_time = 1.0f;
+					v4print "Network use - Connection:", conn_id, 
+						"Time:", formatDecimal(network_use_time, 2),
+						"Data:", formatByteDisplay(msg_size), 
+						"Rate:", formatByteDisplay(total_network_use_bytes / network_use_time), "/ s";
+				}
+
 				manager.net.sendJSONBMessage(conn_id, msg.header, msg.payloads);
 
 				// Record after sending so time doesn't go out in the network message
@@ -693,30 +788,10 @@ public:
 			}
 			while (true)
 			{
-				auto msgs = manager.getWindowMessages(id);
-				for (const auto& msg : msgs)
-				{
-					if (msg["type"] == "key_press")
-					{	
-						if (key_press_callback)
-						{
-							key_press_callback(msg["key"]);
-						}
-						
-						if (wait_key && msg["key"] == KEY_ENTER)
-						{
-							keep_waiting = false;
-						}
-					}
-					else if (msg["type"] == "close")
-					{
-						v4print "Close message received for window:", id;
-						shutdown = true;
-						
-						if (wait_close)
-							keep_waiting = false;
-					}
-				}
+				bool keep_waiting_events = processEvents();
+
+				if (wait_key && !keep_waiting_events)
+					keep_waiting = false;
 				
 				if (!keep_waiting || shutdown)
 					break;
@@ -1206,6 +1281,10 @@ private:
 	json camera_control;
 	unordered_map<ConnectionID, bool> camera_up_to_date;
 	KeyActionCallback key_press_callback = NULL;
+	MouseClickActionCallback mouse_click_callback = NULL;
+	size_t total_network_use_bytes = 0;
+	bool network_use_start_time_set = false;
+	std::chrono::time_point<std::chrono::high_resolution_clock> network_use_start_time;
 	inline static vector<JSONBMessage> messages_to_write;
 	inline static unique_ptr<Process> server_proc;
 	inline static string record_path;

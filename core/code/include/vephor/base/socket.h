@@ -80,6 +80,16 @@ struct JSONBMessage
 	bool valid = false;
 	json header;
 	vector<vector<char>> payloads;
+
+	size_t getSize() const
+	{
+		size_t total = header.dump().size();
+		for (const auto& p : payloads)
+		{
+			total += p.size();
+		}
+		return total;
+	}
 };
 
 inline void writeJSONBMessageToFile(const json& header, const vector<vector<char>>& payloads, const string& msg_dir)

@@ -259,30 +259,82 @@ void ShowRecordWindow::setupCamera(const json& data, AssetManager& assets)
 
 void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 {
-	window->setLeftMouseButtonPressCallback([&](){
+	window->setLeftMouseButtonPressCallback([&, net_manager](){
 		Vec2 pos = window->getMousePos();
 
 		control_info.drag_start_mouse_pos = pos;
 		control_info.drag_cam_from_world = window->getCamFromWorld();
 
 		control_info.left_drag_on = true;
+
+		if (net_manager)
+		{
+			json mouse_click = {
+				{"type", "mouse_click"},
+				{"window", window_id},
+				{"button", "left"},
+				{"state", "down"},
+				{"pos", toJson(window->getMousePos())},
+				{"window_size", toJson(window->getSize())},
+			};
+			net_manager->sendJSONBMessage(conn_id, mouse_click, {});
+		}
 	});
 
-	window->setLeftMouseButtonReleaseCallback([&](){
+	window->setLeftMouseButtonReleaseCallback([&, net_manager](){
 		control_info.left_drag_on = false;
+
+		if (net_manager)
+		{
+			json mouse_click = {
+				{"type", "mouse_click"},
+				{"window", window_id},
+				{"button", "left"},
+				{"state", "up"},
+				{"pos", toJson(window->getMousePos())},
+				{"window_size", toJson(window->getSize())},
+			};
+			net_manager->sendJSONBMessage(conn_id, mouse_click, {});
+		}
 	});
 	
-	window->setRightMouseButtonPressCallback([&](){
+	window->setRightMouseButtonPressCallback([&, net_manager](){
 		Vec2 pos = window->getMousePos();
 
 		control_info.drag_start_mouse_pos = pos;
 		control_info.drag_cam_from_world = window->getCamFromWorld();
 
 		control_info.right_drag_on = true;
+
+		if (net_manager)
+		{
+			json mouse_click = {
+				{"type", "mouse_click"},
+				{"window", window_id},
+				{"button", "right"},
+				{"state", "down"},
+				{"pos", toJson(window->getMousePos())},
+				{"window_size", toJson(window->getSize())},
+			};
+			net_manager->sendJSONBMessage(conn_id, mouse_click, {});
+		}
 	});
 
-	window->setRightMouseButtonReleaseCallback([&](){
+	window->setRightMouseButtonReleaseCallback([&, net_manager](){
 		control_info.right_drag_on = false;
+
+		if (net_manager)
+		{
+			json mouse_click = {
+				{"type", "mouse_click"},
+				{"window", window_id},
+				{"button", "right"},
+				{"state", "up"},
+				{"pos", toJson(window->getMousePos())},
+				{"window_size", toJson(window->getSize())},
+			};
+			net_manager->sendJSONBMessage(conn_id, mouse_click, {});
+		}
 	});
 
 	window->setKeyPressCallback([&](int key){
