@@ -200,7 +200,7 @@ std::string formatDecimal(T d, int decimals)
 }
 
 // ChatGPT
-std::string formatByteDisplay(double bytes, int unit = 0)
+inline std::string formatByteDisplay(double bytes, int unit = 0)
 {
 	std::vector<std::string> units = { "bytes", "KB", "MB", "GB", "TB", "PB" };
 
