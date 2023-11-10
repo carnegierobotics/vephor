@@ -194,6 +194,19 @@ public:
         }
     }
 
+    bool isAlwaysOnTop() const
+    {
+        return on_top;
+    }
+
+    void toggleAlwaysOnTop()
+    {
+        on_top = !on_top;
+        glfwSetWindowAttrib(window, GLFW_FLOATING, on_top ? GLFW_TRUE : GLFW_FALSE);
+
+        v4print "Setting window to always on top:", on_top;
+    }
+
     void setHideOnClose(bool p_hide_on_close)
     {
         hide_on_close = p_hide_on_close;
@@ -595,6 +608,7 @@ private:
     vector<vector<shared_ptr<RenderNode>>> object_layers;
 	vector<vector<shared_ptr<RenderNode>>> overlay_object_layers;
 	vector<shared_ptr<RenderNode>> non_render_objects;
+    bool on_top = false;
 };
 
 }

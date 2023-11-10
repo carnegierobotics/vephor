@@ -277,6 +277,7 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 	if (opts.always_on_top)
 	{
 		glfwSetWindowAttrib(window, GLFW_FLOATING, GLFW_TRUE);
+		on_top = true;
 	}
 	
 	if (first_window == NULL)

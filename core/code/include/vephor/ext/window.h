@@ -455,6 +455,8 @@ public:
 		}
 	}
 
+	void setFrameLock(float p_fps){fps = p_fps;}
+
 	void setTrackballMode(const Vec3& to = Vec3(0,0,0), const Vec3& from = Vec3(-1,0,-1), const Vec3& up = Vec3(0,0,-1), bool use_3d = false)
 	{
 		camera_control = {
@@ -1160,7 +1162,8 @@ private:
 			scene["window"] = {
 				{"width", width},
 				{"height", height},
-				{"title", title}
+				{"title", title},
+				{"fps", fps}
 			};
 			scene["camera"]["control"] = camera_control;
 			camera_up_to_date[conn_id] = true;
@@ -1270,6 +1273,7 @@ private:
 	WindowID id;
 	int width, height;
 	string title;
+	float fps = 30.0f;
 	shared_ptr<TransformNode> window_top_right_node;
 	shared_ptr<TransformNode> window_bottom_right_node;
 	shared_ptr<TransformNode> window_top_left_node;

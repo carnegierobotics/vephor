@@ -112,19 +112,21 @@ void ShowRecordWindow::setup(const json& data,
 	int height = -1;
 	Vec2 size(-1, -1);
 	string title = "show";
+	float fps = 3.0f;
 	
 	if (data.contains("window"))
 	{
 		width = data["window"]["width"];
 		height = data["window"]["height"];
 		title = data["window"]["title"];
+		fps = data["window"]["fps"];
 	}
 	
 	v4print "Window created:", window_id, title;
 	
 	WindowOptions opts;
 	opts.show = false;
-	opts.always_on_top = true;
+	opts.always_on_top = false;
 	window = make_shared<Window>(width, height, title, [&](Window* this_window, const Vec2i& window_size){
 		if (camera)
 			camera->resizeWindow(*this_window);
@@ -134,7 +136,6 @@ void ShowRecordWindow::setup(const json& data,
 	
 	text_tex = loadTexture("/assets/Holstein.png", false, assets);
 	
-	const float fps = 60.0f;
 	window->setFrameLock(fps);
 	dt = 1.0f / fps;
 	
@@ -344,6 +345,10 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 		if (key == GLFW_KEY_V)
 		{
 			save_flag = true;
+		}
+		else if (key == GLFW_KEY_T)
+		{
+			window->toggleAlwaysOnTop();
 		}
 	});
 	window->setKeyReleaseCallback([&, net_manager](int key){
