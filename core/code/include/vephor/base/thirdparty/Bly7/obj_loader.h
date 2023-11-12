@@ -49,7 +49,7 @@
 #include <math.h>
 
 // Print progress to console while loading (large models)
-#define OBJL_CONSOLE_OUTPUT
+//#define OBJL_CONSOLE_OUTPUT
 
 // https://stackoverflow.com/questions/216823/how-to-trim-an-stdstring
 // trim from start (in place)
@@ -181,6 +181,13 @@ namespace objl
 		float Y;
 		float Z;
 	};
+
+
+	inline std::ostream& operator<<(std::ostream& os, const Vector3& v)
+	{
+		os << "(" << v.X << "," << v.Y << "," << v.Z << ")";
+		return os;
+	}
 
 	// Structure: Vertex
 	//
@@ -912,7 +919,20 @@ namespace objl
 			}
 
 			// Create a list of vertices
-			std::vector<Vertex> tVerts = iVerts;
+			struct VertexWithIndex
+			{
+				Vertex Vert;
+				int Index;
+			};
+
+			//std::vector<Vertex> tVerts = iVerts;
+
+			std::vector<VertexWithIndex> tVerts;
+			for (int i = 0; i < iVerts.size(); i++)
+			{
+				const auto& v = iVerts[i];
+				tVerts.push_back({v, i});
+			}
 
 			while (true)
 			{
@@ -920,44 +940,22 @@ namespace objl
 				for (int i = 0; i < int(tVerts.size()); i++)
 				{
 					// pPrev = the previous vertex in the list
-					Vertex pPrev;
-					if (i == 0)
-					{
-						pPrev = tVerts[tVerts.size() - 1];
-					}
-					else
-					{
-						pPrev = tVerts[i - 1];
-					}
+					VertexWithIndex pPrev = tVerts[(i + tVerts.size() - 1) % tVerts.size()];
 
 					// pCur = the current vertex;
-					Vertex pCur = tVerts[i];
+					VertexWithIndex pCur = tVerts[i];
 
 					// pNext = the next vertex in the list
-					Vertex pNext;
-					if (i == tVerts.size() - 1)
-					{
-						pNext = tVerts[0];
-					}
-					else
-					{
-						pNext = tVerts[i + 1];
-					}
+					VertexWithIndex pNext = tVerts[(i + 1) % tVerts.size()];
 
 					// Check to see if there are only 3 verts left
 					// if so this is the last triangle
 					if (tVerts.size() == 3)
 					{
 						// Create a triangle from pCur, pPrev, pNext
-						for (int j = 0; j < int(tVerts.size()); j++)
-						{
-							if (iVerts[j].Position == pCur.Position)
-								oIndices.push_back(j);
-							if (iVerts[j].Position == pPrev.Position)
-								oIndices.push_back(j);
-							if (iVerts[j].Position == pNext.Position)
-								oIndices.push_back(j);
-						}
+						oIndices.push_back(pPrev.Index);
+						oIndices.push_back(pCur.Index);
+						oIndices.push_back(pNext.Index);
 
 						tVerts.clear();
 						break;
@@ -965,45 +963,23 @@ namespace objl
 					if (tVerts.size() == 4)
 					{
 						// Create a triangle from pCur, pPrev, pNext
-						for (int j = 0; j < int(iVerts.size()); j++)
-						{
-							if (iVerts[j].Position == pCur.Position)
-								oIndices.push_back(j);
-							if (iVerts[j].Position == pPrev.Position)
-								oIndices.push_back(j);
-							if (iVerts[j].Position == pNext.Position)
-								oIndices.push_back(j);
-						}
+						oIndices.push_back(pPrev.Index);
+						oIndices.push_back(pCur.Index);
+						oIndices.push_back(pNext.Index);
 
-						Vector3 tempVec;
-						for (int j = 0; j < int(tVerts.size()); j++)
-						{
-							if (tVerts[j].Position != pCur.Position
-								&& tVerts[j].Position != pPrev.Position
-								&& tVerts[j].Position != pNext.Position)
-							{
-								tempVec = tVerts[j].Position;
-								break;
-							}
-						}
+						VertexWithIndex pOther = tVerts[(i + 2) % tVerts.size()];
 
-						// Create a triangle from pCur, pPrev, pNext
-						for (int j = 0; j < int(iVerts.size()); j++)
-						{
-							if (iVerts[j].Position == pPrev.Position)
-								oIndices.push_back(j);
-							if (iVerts[j].Position == pNext.Position)
-								oIndices.push_back(j);
-							if (iVerts[j].Position == tempVec)
-								oIndices.push_back(j);
-						}
+						// Create a triangle from pPrev, pNext, pOther
+						oIndices.push_back(pNext.Index);
+						oIndices.push_back(pOther.Index);
+						oIndices.push_back(pPrev.Index);
 
 						tVerts.clear();
 						break;
 					}
 
 					// If Vertex is not an interior vertex
-					float angle = math::AngleBetweenV3(pPrev.Position - pCur.Position, pNext.Position - pCur.Position) * (180 / 3.14159265359);
+					float angle = math::AngleBetweenV3(pPrev.Vert.Position - pCur.Vert.Position, pNext.Vert.Position - pCur.Vert.Position) * (180 / 3.14159265359);
 					if (angle <= 0 && angle >= 180)
 						continue;
 
@@ -1011,10 +987,10 @@ namespace objl
 					bool inTri = false;
 					for (int j = 0; j < int(iVerts.size()); j++)
 					{
-						if (algorithm::inTriangle(iVerts[j].Position, pPrev.Position, pCur.Position, pNext.Position)
-							&& iVerts[j].Position != pPrev.Position
-							&& iVerts[j].Position != pCur.Position
-							&& iVerts[j].Position != pNext.Position)
+						if (j != pPrev.Index
+							&& j != pCur.Index
+							&& j != pNext.Index &&
+							algorithm::inTriangle(iVerts[j].Position, pPrev.Vert.Position, pCur.Vert.Position, pNext.Vert.Position))
 						{
 							inTri = true;
 							break;
@@ -1024,25 +1000,12 @@ namespace objl
 						continue;
 
 					// Create a triangle from pCur, pPrev, pNext
-					for (int j = 0; j < int(iVerts.size()); j++)
-					{
-						if (iVerts[j].Position == pCur.Position)
-							oIndices.push_back(j);
-						if (iVerts[j].Position == pPrev.Position)
-							oIndices.push_back(j);
-						if (iVerts[j].Position == pNext.Position)
-							oIndices.push_back(j);
-					}
+					oIndices.push_back(pPrev.Index);
+					oIndices.push_back(pCur.Index);
+					oIndices.push_back(pNext.Index);
 
 					// Delete pCur from the list
-					for (int j = 0; j < int(tVerts.size()); j++)
-					{
-						if (tVerts[j].Position == pCur.Position)
-						{
-							tVerts.erase(tVerts.begin() + j);
-							break;
-						}
-					}
+					tVerts.erase(tVerts.begin() + pCur.Index);
 
 					// reset i to the start
 					// -1 since loop will add 1 to it
