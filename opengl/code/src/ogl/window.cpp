@@ -505,7 +505,11 @@ bool Window::render()
 		if (fps > 0)
 		{
 			if (duration_cast<nanoseconds>(high_resolution_clock::now() - last_time).count() >= 1e9 / fps)
+			{
 				break;
+			}
+			else
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 		else
 			break;
