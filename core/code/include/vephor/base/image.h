@@ -54,6 +54,7 @@ public:
 	{
 		data.fill(0);
 	}
+	// all indexing in this class is done (x,y), not (row,column)
 	Eigen::Ref<Vec> operator ()(int x, int y)
 	{
 		T* ptr = &(data({y, x, 0}));

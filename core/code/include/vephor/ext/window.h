@@ -598,11 +598,18 @@ private:
 	}
 
 public:
-	bool processEvents()
+	bool processEvents(bool verbose = false)
 	{
+		if (!manager.network_mode)
+			return false;
+
 		bool keep_waiting = true;
 
 		auto msgs = manager.getWindowMessages(id);
+
+		if (verbose)
+			v4print "Processing window event messages:", msgs.size();
+		
 		for (const auto& msg : msgs)
 		{
 			if (msg["type"] == "key_press")

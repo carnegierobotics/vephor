@@ -911,7 +911,7 @@ public:
 
 		{
 			std::lock_guard<std::mutex> lock(conns[conn_id]->msg_lock);
-			msgs = conns[conn_id]->incoming_messages;
+			msgs = std::move(conns[conn_id]->incoming_messages);
 			conns[conn_id]->incoming_messages.clear();
 		}
 
