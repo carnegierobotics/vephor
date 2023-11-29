@@ -1049,6 +1049,7 @@ struct OBJMeshData
 {
 	MeshData geometry;
 	Vec3 diffuse;
+	std::string diffuse_texture;
 };
 
 inline vector<OBJMeshData> loadOBJMesh(const string& path)
@@ -1071,9 +1072,17 @@ inline vector<OBJMeshData> loadOBJMesh(const string& path)
 		{
 			size_t index = curMesh.Indices[j];
 
-			curr_mesh_data.verts.row(j) = Vec3(curMesh.Vertices[index].Position.X, curMesh.Vertices[index].Position.Y, curMesh.Vertices[index].Position.Z);
-			curr_mesh_data.uvs.row(j) = Vec2(curMesh.Vertices[index].TextureCoordinate.X, curMesh.Vertices[index].TextureCoordinate.Y);
-			curr_mesh_data.norms.row(j) = Vec3(curMesh.Vertices[index].Normal.X, curMesh.Vertices[index].Normal.Y, curMesh.Vertices[index].Normal.Z);
+			curr_mesh_data.verts.row(j) = Vec3(
+				curMesh.Vertices[index].Position.X, 
+				curMesh.Vertices[index].Position.Y, 
+				curMesh.Vertices[index].Position.Z);
+			curr_mesh_data.uvs.row(j) = Vec2(
+				curMesh.Vertices[index].TextureCoordinate.X, 
+				curMesh.Vertices[index].TextureCoordinate.Y);
+			curr_mesh_data.norms.row(j) = Vec3(
+				curMesh.Vertices[index].Normal.X, 
+				curMesh.Vertices[index].Normal.Y, 
+				curMesh.Vertices[index].Normal.Z);
 			
 			if (j % 3 == 2) // Every third vertex
 			{
@@ -1089,12 +1098,13 @@ inline vector<OBJMeshData> loadOBJMesh(const string& path)
 					curr_mesh_data.norms.row(j-1) +
 					curr_mesh_data.norms.row(j-2)
 				);
+
 				if (calc_normal.dot(sum_normal) < 0)
 				{
 					// Wrong vertex order, swap two
 					Vec3r v = curr_mesh_data.verts.row(j-0);
 					curr_mesh_data.verts.row(j-0) = curr_mesh_data.verts.row(j-1);
-					curr_mesh_data.verts.row(j-1) = v.transpose();
+					curr_mesh_data.verts.row(j-1) = v;
 					
 					Vec3r n = curr_mesh_data.norms.row(j-0);
 					curr_mesh_data.norms.row(j-0) = curr_mesh_data.norms.row(j-1);
@@ -1108,7 +1118,7 @@ inline vector<OBJMeshData> loadOBJMesh(const string& path)
 		}
 		
 		Vec3 diffuse(curMesh.MeshMaterial.Kd.X, curMesh.MeshMaterial.Kd.Y, curMesh.MeshMaterial.Kd.Z);
-		mesh_parts.push_back({curr_mesh_data, diffuse});
+		mesh_parts.push_back({curr_mesh_data, diffuse, curMesh.MeshMaterial.map_Kd});
 	}
 	
 	return mesh_parts;

@@ -195,6 +195,8 @@ namespace objl
 	//	a Position, Normal, and Texture Coordinate
 	struct Vertex
 	{
+		int OriginalPositionIndex;
+
 		// Position Vector
 		Vector3 Position;
 
@@ -221,7 +223,7 @@ namespace objl
 		// Ambient Color
 		Vector3 Ka;
 		// Diffuse Color
-		Vector3 Kd;
+		Vector3 Kd = Vector3(1,1,1);
 		// Specular Color
 		Vector3 Ks;
 		// Specular Exponent
@@ -481,6 +483,29 @@ namespace objl
 			LoadedMeshes.clear();
 		}
 
+	private:
+		void SmoothNormals(std::vector<Vertex>& vertices)
+		{
+			std::unordered_map<int, Vector3> smoothed_normals;
+
+			for (const auto& v : vertices)
+			{
+				smoothed_normals[v.OriginalPositionIndex] = smoothed_normals[v.OriginalPositionIndex] + v.Normal;
+			}
+
+			for (auto& item : smoothed_normals)
+			{
+				float mag = item.second.X * item.second.X + item.second.Y * item.second.Y + item.second.Z * item.second.Z;
+				item.second = item.second / mag;
+			}
+
+			for (auto& v : vertices)
+			{
+				v.Normal = smoothed_normals[v.OriginalPositionIndex];
+			}
+		}
+
+	public:
 		// Load a file into the loader
 		//
 		// If file is loaded return true
@@ -489,10 +514,11 @@ namespace objl
 		// or unable to be loaded return false
 		bool LoadFile(std::string Path)
 		{
+			bool recalc_normals = true;
+
 			// If the file is not an .obj file return false
 			if (Path.substr(Path.size() - 4, 4) != ".obj")
 				return false;
-
 
 			std::ifstream file(Path);
 
@@ -563,6 +589,9 @@ namespace objl
 
 						if (!Indices.empty() && !Vertices.empty())
 						{
+							if (recalc_normals)
+								SmoothNormals(Vertices);
+
 							// Create Mesh
 							tempMesh = Mesh(Vertices, Indices);
 							tempMesh.MeshName = meshname;
@@ -637,20 +666,18 @@ namespace objl
 				{
 					// Generate the vertices
 					std::vector<Vertex> vVerts;
-					GenVerticesFromRawOBJ(vVerts, Positions, TCoords, Normals, curline);
+					GenVerticesFromRawOBJ(vVerts, Positions, TCoords, Normals, curline, recalc_normals);
 
 					// Add Vertices
 					for (int i = 0; i < int(vVerts.size()); i++)
 					{
 						Vertices.push_back(vVerts[i]);
-
 						LoadedVertices.push_back(vVerts[i]);
 					}
 
 					std::vector<unsigned int> iIndices;
-
 					VertexTriangluation(iIndices, vVerts);
-
+				
 					// Add Indices
 					for (int i = 0; i < int(iIndices.size()); i++)
 					{
@@ -659,7 +686,6 @@ namespace objl
 
 						indnum = (unsigned int)((LoadedVertices.size()) - vVerts.size()) + iIndices[i];
 						LoadedIndices.push_back(indnum);
-
 					}
 				}
 				// Get Mesh Material Name
@@ -670,6 +696,9 @@ namespace objl
 					// Create new Mesh, if Material changes within a group
 					if (!Indices.empty() && !Vertices.empty())
 					{
+						if (recalc_normals)
+							SmoothNormals(Vertices);
+
 						// Create Mesh
 						tempMesh = Mesh(Vertices, Indices);
 						tempMesh.MeshName = meshname;
@@ -734,6 +763,9 @@ namespace objl
 
 			if (!Indices.empty() && !Vertices.empty())
 			{
+				if (recalc_normals)
+					SmoothNormals(Vertices);
+
 				// Create Mesh
 				tempMesh = Mesh(Vertices, Indices);
 				tempMesh.MeshName = meshname;
@@ -787,7 +819,8 @@ namespace objl
 			const std::vector<Vector3>& iPositions,
 			const std::vector<Vector2>& iTCoords,
 			const std::vector<Vector3>& iNormals,
-			std::string icurline)
+			std::string icurline,
+			bool recalc_normals)
 		{
 			trim(icurline);
 
@@ -838,6 +871,15 @@ namespace objl
 					}
 				}
 
+				{
+					int idx = std::stoi(svert[0]);
+					if (idx < 0)
+						idx = int(iPositions.size()) + idx;
+					else
+						idx--;
+					vVert.OriginalPositionIndex = idx;
+				}
+
 				// Calculate and store the vertex
 				switch (vtype)
 				{
@@ -871,6 +913,7 @@ namespace objl
 					vVert.TextureCoordinate = algorithm::getElement(iTCoords, svert[1]);
 					vVert.Normal = algorithm::getElement(iNormals, svert[2]);
 					oVerts.push_back(vVert);
+
 					break;
 				}
 				default:
@@ -881,14 +924,16 @@ namespace objl
 			}
 
 			// take care of missing normals
-			// these may not be truly acurate but it is the 
+			// these may not be truly accurate but it is the 
 			// best they get for not compiling a mesh with normals	
-			if (noNormal)
+			if (noNormal || recalc_normals)
 			{
-				Vector3 A = oVerts[0].Position - oVerts[1].Position;
-				Vector3 B = oVerts[2].Position - oVerts[1].Position;
+				Vector3 A = oVerts[1].Position - oVerts[0].Position;
+				Vector3 B = oVerts[2].Position - oVerts[0].Position;
 
 				Vector3 normal = math::CrossV3(A, B);
+				float normal_norm = sqrt(normal.X*normal.X + normal.Y*normal.Y + normal.Z*normal.Z);
+				normal = normal / normal_norm;
 
 				for (int i = 0; i < int(oVerts.size()); i++)
 				{
@@ -898,7 +943,7 @@ namespace objl
 		}
 
 		// Triangulate a list of vertices into a face by printing
-		//	inducies corresponding with triangles within it
+		//	indicies corresponding with triangles within it
 		void VertexTriangluation(std::vector<unsigned int>& oIndices,
 			const std::vector<Vertex>& iVerts)
 		{
@@ -924,8 +969,6 @@ namespace objl
 				Vertex Vert;
 				int Index;
 			};
-
-			//std::vector<Vertex> tVerts = iVerts;
 
 			std::vector<VertexWithIndex> tVerts;
 			for (int i = 0; i < iVerts.size(); i++)

@@ -112,14 +112,18 @@ void ShowRecordWindow::setup(const json& data,
 	int height = -1;
 	Vec2 size(-1, -1);
 	string title = "show";
-	float fps = 3.0f;
+	float fps = 30.0f;
 	
 	if (data.contains("window"))
 	{
-		width = data["window"]["width"];
-		height = data["window"]["height"];
-		title = data["window"]["title"];
-		fps = data["window"]["fps"];
+		if (data["window"].contains("width"))
+			width = data["window"]["width"];
+		if (data["window"].contains("height"))
+			height = data["window"]["height"];
+		if (data["window"].contains("title"))
+			title = data["window"]["title"];
+		if (data["window"].contains("fps"))
+			fps = data["window"]["fps"];
 	}
 	
 	v4print "Window created:", window_id, title;
@@ -528,11 +532,17 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 
 		auto node = window->add(world_from_body);
 		
-		for (const auto& part : mesh_parts)
+		for (auto& part : mesh_parts)
 		{
 			auto draw_obj = make_shared<Mesh>(
 				part.geometry,
 				part.diffuse);
+
+			if (!part.diffuse_texture.empty())
+			{
+				std::string tex_path = fs::path(path).remove_filename().generic_string()+part.diffuse_texture;
+				draw_obj->setTexture(window->loadTexture(tex_path, false));
+			}
 			
 			auto sub_node = window->add(draw_obj, TransformSim3(), overlay, layer);
 			sub_node->setParent(node);

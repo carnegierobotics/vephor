@@ -60,6 +60,44 @@ public:
     void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
 	void onRemoveFromWindow(Window* window);
 private:
+    struct MeshSettings
+    {
+        GLuint vao_id = std::numeric_limits<GLuint>::max();
+        GLuint program_id = std::numeric_limits<GLuint>::max();
+
+        GLuint pos_attr_loc = std::numeric_limits<GLuint>::max();
+        GLuint uv_attr_loc = std::numeric_limits<GLuint>::max();
+        GLuint norm_attr_loc = std::numeric_limits<GLuint>::max();
+        GLuint tangent_attr_loc = std::numeric_limits<GLuint>::max();
+        GLuint bitangent_attr_loc = std::numeric_limits<GLuint>::max();
+        
+        GLuint mvp_matrix_id = std::numeric_limits<GLuint>::max();
+        GLuint view_matrix_id = std::numeric_limits<GLuint>::max();
+        GLuint model_matrix_id = std::numeric_limits<GLuint>::max();
+        GLuint modelview_matrix_id = std::numeric_limits<GLuint>::max();
+        GLuint diffuse_id = std::numeric_limits<GLuint>::max();
+        GLuint ambient_id = std::numeric_limits<GLuint>::max();
+        GLuint emissive_id = std::numeric_limits<GLuint>::max();
+        GLuint specular_id = std::numeric_limits<GLuint>::max();
+        GLuint light_ambient_id = std::numeric_limits<GLuint>::max();
+        GLuint light_pos_id = std::numeric_limits<GLuint>::max();
+        GLuint light_dir_id = std::numeric_limits<GLuint>::max();
+        GLuint light_dir_strength_id = std::numeric_limits<GLuint>::max();
+        GLuint light_point_strength_id = std::numeric_limits<GLuint>::max();
+        GLuint opacity_id = std::numeric_limits<GLuint>::max();
+        GLuint tex_sampler_id = std::numeric_limits<GLuint>::max();
+        GLuint normal_sampler_id = std::numeric_limits<GLuint>::max();
+    };
+
+    void fillInCommonProps(MeshSettings& settings);
+    void renderOGLForSettings(Window* window, const TransformSim3& world_from_body, MeshSettings& settings);
+
+    GLuint pos_buffer_id = std::numeric_limits<GLuint>::max();
+    GLuint uv_buffer_id = std::numeric_limits<GLuint>::max();
+    GLuint norm_buffer_id = std::numeric_limits<GLuint>::max();
+    GLuint tangent_buffer_id = std::numeric_limits<GLuint>::max();
+    GLuint bitangent_buffer_id = std::numeric_limits<GLuint>::max();
+
     MatX verts;
     MatX uvs;
     MatX norms;
@@ -75,36 +113,8 @@ private:
 
     bool cull = true;
 	
-    GLuint vao_id;
-    GLuint pos_buffer_id;
-    GLuint uv_buffer_id;
-    GLuint norm_buffer_id;
-	GLuint tangent_buffer_id;
-	GLuint bitangent_buffer_id;
-    GLuint program_id;
-
-    GLuint pos_attr_loc;
-    GLuint uv_attr_loc;
-    GLuint norm_attr_loc;
-	GLuint tangent_attr_loc;
-	GLuint bitangent_attr_loc;
-    
-    GLuint mvp_matrix_id;
-	GLuint view_matrix_id;
-	GLuint model_matrix_id;
-	GLuint modelview_matrix_id;
-    GLuint diffuse_id;
-    GLuint ambient_id;
-	GLuint emissive_id;
-    GLuint specular_id;
-	GLuint light_ambient_id;
-    GLuint light_pos_id;
-    GLuint light_dir_id;
-    GLuint light_dir_strength_id;
-    GLuint light_point_strength_id;
-    GLuint opacity_id;
-	GLuint tex_sampler_id;
-	GLuint normal_sampler_id;
+    MeshSettings standard;
+    MeshSettings no_normal_map;
 };
 
 }
