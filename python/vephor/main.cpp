@@ -34,6 +34,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/functional.h>
+#include <pybind11/operators.h>
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -48,12 +49,22 @@ PYBIND11_MODULE(_core, m) {
 
 	py::class_<Vec3>(m, "Vec3")
 		.def(py::init<float,float,float>());
+	py::class_<Orient3>(m, "Orient3")
+		.def(py::init<>())
+		.def(py::init<const Vec3&>())
+		.def("inverse", &Orient3::inverse)
+		.def("normalize", &Orient3::normalize)
+		.def("rvec", &Orient3::rvec)
+		.def(py::self * py::self)
+		.def(py::self * Vec3());
     py::class_<Transform3>(m, "Transform3")
 		.def(py::init<>())
-		.def(py::init<const Vec3&,const Vec3>(),py::arg("t"),py::arg("r")=Vec3(0,0,0));
+		.def(py::init<const Vec3&,const Vec3>(),py::arg("t"),py::arg("r")=Vec3(0,0,0))
+		.def(py::init<const Vec3&,const Orient3&>());
     py::class_<TransformSim3>(m, "TransformSim3")
 		.def(py::init<>())
-		.def(py::init<const Vec3&,const Vec3,float>(),py::arg("t"),py::arg("r")=Vec3(0,0,0),py::arg("scale")=1.0f);
+		.def(py::init<const Vec3&,const Vec3,float>(),py::arg("t"),py::arg("r")=Vec3(0,0,0),py::arg("scale")=1.0f)
+		.def(py::init<const Transform3&,float>(),py::arg("transform"),py::arg("scale")=1.0f);
     py::class_<TransformNode, shared_ptr<TransformNode>>(m, "TransformNode");
     py::class_<RenderNode, shared_ptr<RenderNode>>(m, "RenderNode")
 		.def("setPos", &RenderNode::setPos)
