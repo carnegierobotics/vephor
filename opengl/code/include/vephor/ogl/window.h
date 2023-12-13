@@ -61,9 +61,35 @@ class Window;
 struct RenderNode
 {
 public:
+    struct RenderNodeProperties
+    {
+        bool show = true;
+	    bool destroy = false;
+        vector<shared_ptr<RenderNodeProperties>> children;
+
+        void setShow(bool p_show)
+        {
+            show = p_show;
+            for (auto& child : children)
+            {
+                child->setShow(show);
+            }
+        }
+        void setDestroy()
+        {
+            destroy = true;
+            for (auto& child : children)
+            {
+                child->setDestroy();
+            }
+        }
+    };
+
 	RenderNode(const shared_ptr<TransformNode>& p_node)
 	: node(p_node)
-	{}
+	{
+        props = std::make_shared<RenderNodeProperties>();
+    }
 	virtual ~RenderNode(){}
 	virtual void render(Window* window) = 0;
 	Vec3 getPos() const
@@ -118,6 +144,7 @@ public:
 		if (node->getParent() != NULL)
 			throw std::runtime_error("RenderNode already has a parent.");
 		parent.node->addChild(node);
+        parent.props->children.push_back(props);
 		return *this;
 	}
 	RenderNode& setParent(const shared_ptr<TransformNode>& parent)
@@ -128,10 +155,10 @@ public:
 	{
 		return setParent(*parent.get());
 	}
-	void setShow(bool p_show){show = p_show;}
-	bool isShow() const {return show;}
-	void setDestroy() {destroy = true;}
-	bool checkDestroy() const {return destroy;}
+	void setShow(bool p_show){props->setShow(p_show);}
+	bool isShow() const {return props->show;}
+	void setDestroy() {props->setDestroy();}
+	bool checkDestroy() const {return props->destroy;}
     virtual json serialize(vector<vector<char>>* bufs) = 0;
     virtual void saveArtifacts(const string& stub) = 0;
     void setName(const string& name){node->setName(name);}
@@ -140,9 +167,10 @@ public:
     virtual void onRemoveFromWindow(Window* window){}
 protected:
 	shared_ptr<TransformNode> node;
+    shared_ptr<RenderNodeProperties> props;
 private:
-	bool show = true;
-	bool destroy = false;
+	//bool show = true;
+	//bool destroy = false;
 	JSONBMessage obj_serialization;
 };
 
@@ -219,9 +247,9 @@ public:
 
     void setFrameLock(float p_fps){fps = p_fps;}
 
-    void setClearColor(const Vec3& color)
+    void setClearColor(const Vec3& color, float alpha = 0.0f)
     {
-        glClearColor(color[0], color[1], color[2], 0.0f);
+        glClearColor(color[0], color[1], color[2], alpha);
     }
 	
     shared_ptr<RenderNode> add(

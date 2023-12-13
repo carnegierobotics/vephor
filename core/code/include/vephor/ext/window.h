@@ -692,6 +692,13 @@ public:
 			for (auto conn_id : manager.net.getConnectionIdList())
 			{
 				manager.updateMetadata();
+
+				int q_size = manager.net.getJSONBOutgoingQueueSize(conn_id);
+				if (q_size > 0)
+				{
+					v4print "Skipping frame due to unsent outgoing messages - Conn:", conn_id, "Queue Size:", q_size;
+					continue;
+				}
 				
 				JSONBMessage msg;
 				json scene_data = produceSceneJSON(conn_id, &msg.payloads);

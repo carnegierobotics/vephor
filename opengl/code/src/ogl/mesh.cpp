@@ -148,7 +148,16 @@ inline MeshShader produceMeshShader(bool with_normal_map)
         uniform float specular = 1.0f;
         uniform vec3 point_light_pos_in_world;
         uniform sampler2D tex_sampler;
-        uniform sampler2D normal_sampler;
+    )";
+
+    if (with_normal_map)
+    {
+        fragmentShader += R"(
+            uniform sampler2D normal_sampler;
+        )";
+    }
+
+    fragmentShader += R"(
         uniform vec3 ambient_light_strength = vec3(0,0,0);
         uniform float dir_light_strength = 0.0f;
         uniform float point_light_strength = 0.0f;
@@ -172,15 +181,12 @@ inline MeshShader produceMeshShader(bool with_normal_map)
 
             // Distance to the light
             float distance = length( point_light_pos_in_world - pos_in_world );
-
-            vec3 map_normal = 2*texture( normal_sampler, uv ).xyz - vec3(1,1,1);
-
-            // Normal of the computed fragment, in camera space
         )";
 
         if (with_normal_map)
         {
             fragmentShader += R"(
+                vec3 map_normal = 2*texture( normal_sampler, uv ).xyz - vec3(1,1,1);
                 vec3 n = normalize( map_normal.x * tangent_in_camera + map_normal.y * bitangent_in_camera + map_normal.z * normal_in_camera );
             )";
         }
@@ -419,7 +425,7 @@ void Mesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
 
     {
         auto mesh_shader = produceMeshShader(false);
-        no_normal_map.program_id = buildProgram("mesh", mesh_shader.vertex, mesh_shader.fragment);
+        no_normal_map.program_id = buildProgram("mesh_no_normal", mesh_shader.vertex, mesh_shader.fragment);
 
         fillInCommonProps(no_normal_map);
     }
@@ -461,20 +467,6 @@ void Mesh::renderOGLForSettings(Window* window, const TransformSim3& world_from_
         glBindTexture(GL_TEXTURE_2D, normal_map->getID());
         glUniform1i(settings.normal_sampler_id, 1);
     }
-
-	/*if (!normal_map)
-	{
-		normal_map = window->getDefaultNormalMap();
-	}*/
-	
-	
-
-    /*if (normal_map)
-    {
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, normal_map->getID());
-        glUniform1i(normal_sampler_id, 1);
-    }*/
 
 
     Mat4 world_from_body_mat = world_from_body.matrix();

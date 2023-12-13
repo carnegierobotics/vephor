@@ -894,13 +894,18 @@ public:
 	{
 		if (!find(conns, conn_id))
 			throw std::runtime_error("Attempt to send using invalid conn id: " + std::to_string(conn_id));
-		try {
-			conns[conn_id]->sock->sendJSONBMessage(header, payloads);
-		} catch (...)
-		{
-			return false;
-		}
+
+		std::lock_guard<std::mutex> lock(conns[conn_id]->out_msg_lock);
+		conns[conn_id]->outgoing_messages.push_back(std::make_shared<JSONBMessage>(JSONBMessage{true, header, payloads}));
+
 		return true;
+	}
+	int getJSONBOutgoingQueueSize(ConnectionID conn_id)
+	{
+		if (!find(conns, conn_id))
+			throw std::runtime_error("Attempt to send using invalid conn id: " + std::to_string(conn_id));
+
+		return conns[conn_id]->outgoing_messages.size();
 	}
 	vector<JSONBMessage> getIncomingJSONBMessages(ConnectionID conn_id)
 	{
@@ -910,7 +915,7 @@ public:
 		vector<JSONBMessage> msgs;
 
 		{
-			std::lock_guard<std::mutex> lock(conns[conn_id]->msg_lock);
+			std::lock_guard<std::mutex> lock(conns[conn_id]->in_msg_lock);
 			msgs = std::move(conns[conn_id]->incoming_messages);
 			conns[conn_id]->incoming_messages.clear();
 		}
@@ -938,7 +943,7 @@ public:
 		
 		for (auto& conn : conns)
 		{
-			std::lock_guard<std::mutex> lock(conn.second->msg_lock);
+			std::lock_guard<std::mutex> lock(conn.second->in_msg_lock);
 			extend(messages, conn.second->incoming_messages);
 			conn.second->incoming_messages.clear();
 		}
@@ -955,9 +960,12 @@ private:
 	struct ConnRecord
 	{
 		shared_ptr<TCPSocket> sock;
-		std::thread msg_thread;
-		std::mutex msg_lock;
+		std::thread in_msg_thread;
+		std::mutex in_msg_lock;
 		vector<JSONBMessage> incoming_messages;
+		std::thread out_msg_thread;
+		std::mutex out_msg_lock;
+		vector<shared_ptr<JSONBMessage>> outgoing_messages;
 		std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
 		
 		ConnRecord()
@@ -987,7 +995,8 @@ private:
 
 
 			sock->disconnect();
-			msg_thread.join();
+			in_msg_thread.join();
+			out_msg_thread.join();
 			
 			v4print "ConnRecord: Shutdown complete.";
 		}
@@ -1000,8 +1009,8 @@ private:
 		
 		auto conn = make_shared<ConnRecord>();
 		conn->sock = sock;
-		conn->msg_thread = std::thread([&,id,conn,sock](){
-			v4print "Starting msg thread:", shutdown, sock->isConnected();
+		conn->in_msg_thread = std::thread([&,id,conn,sock](){
+			v4print "Starting incoming msg thread:", shutdown, sock->isConnected();
 			while(!shutdown && sock->isConnected())
 			{
 				JSONBMessage msg;
@@ -1026,13 +1035,40 @@ private:
 
 					msg.header["conn_id"] = id;
 					
-					std::lock_guard<std::mutex> lock(conn->msg_lock);
+					std::lock_guard<std::mutex> lock(conn->in_msg_lock);
 					conn->incoming_messages.push_back(msg);
 				}
 				else
 					std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			}
-			v4print "Ending connection thread for", id;
+			v4print "Ending incoming connection thread for", id;
+		});
+		conn->out_msg_thread = std::thread([&,id,conn,sock](){
+			v4print "Starting outgoing msg thread:", shutdown, sock->isConnected();
+			while(!shutdown && sock->isConnected())
+			{
+				if (conn->outgoing_messages.empty())
+				{
+					std::this_thread::sleep_for(std::chrono::milliseconds(10));
+					continue;
+				}
+
+				shared_ptr<JSONBMessage> msg;
+				{
+					std::lock_guard<std::mutex> lock(conn->out_msg_lock);
+					msg = *(conn->outgoing_messages.begin());
+					conn->outgoing_messages.erase(conn->outgoing_messages.begin());
+				}
+
+				try {
+					sock->sendJSONBMessage(msg->header, msg->payloads);
+				} catch (const std::exception & ex)
+				{
+					v4print "Send JSONB exception caught:", ex.what();
+					break;
+				}
+			}
+			v4print "Ending outgoing connection thread for", id;
 		});
 		conns[id] = conn;
 		conn_id_list.push_back(id);
