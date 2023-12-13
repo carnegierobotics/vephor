@@ -284,9 +284,28 @@ public:
 		}
 	}
 	bool getShow() const {return show;}
-	void setDestroy() {destroy = true;}
+	void setDestroy() {
+		destroy = true;
+		for (auto& status : net_status)
+		{
+			status.second.destroy_up_to_date = false;
+		}
+	}
 	bool getDestroy() const {return destroy;}	
 	ObjectID getID() const {return id;}
+	bool isNetworkUpToDate() const
+	{
+		// TODO: should this be looking for connections this object hasn't listed?
+		for (auto& status : net_status)
+		{
+			if (!(status.second.obj_up_to_date && 
+				status.second.pose_up_to_date && 
+				status.second.show_up_to_date && 
+				status.second.destroy_up_to_date))
+				return false;
+		}
+		return true;
+	}
 private:
 	ObjectID id = -1;
 	bool on_overlay;
@@ -301,6 +320,7 @@ private:
 		bool obj_up_to_date = false;
 		bool pose_up_to_date = false;
 		bool show_up_to_date = false;
+		bool destroy_up_to_date = false;
 	};
 	
 	unordered_map<ConnectionID, RenderObjectNetworkStatus> net_status;
@@ -456,6 +476,8 @@ public:
 	}
 
 	void setFrameLock(float p_fps){fps = p_fps;}
+
+	void setFrameSkipMessageLimit(int p_frame_skip_message_limit){frame_skip_message_limit = p_frame_skip_message_limit;}
 
 	void setTrackballMode(const Vec3& to = Vec3(0,0,0), const Vec3& from = Vec3(-1,0,-1), const Vec3& up = Vec3(0,0,-1), bool use_3d = false)
 	{
@@ -693,11 +715,14 @@ public:
 			{
 				manager.updateMetadata();
 
-				int q_size = manager.net.getJSONBOutgoingQueueSize(conn_id);
-				if (q_size > 0)
+				if (frame_skip_message_limit >= 0)
 				{
-					v4print "Skipping frame due to unsent outgoing messages - Conn:", conn_id, "Queue Size:", q_size;
-					continue;
+					int q_size = manager.net.getJSONBOutgoingQueueSize(conn_id);
+					if (q_size > frame_skip_message_limit)
+					{
+						v4print "Skipping frame due to unsent outgoing messages - Conn:", conn_id, "Queue Size:", q_size;
+						continue;
+					}
 				}
 				
 				JSONBMessage msg;
@@ -868,7 +893,7 @@ public:
 		while (obj_index < objects.size() - removed_objs)
 		{
 			auto& obj = objects[obj_index];
-			if (obj->destroy)
+			if (obj->destroy && obj->isNetworkUpToDate())
 			{
 				removed_objs++;
 				obj = objects[objects.size() - removed_objs];
@@ -1191,7 +1216,7 @@ private:
 				obj->net_status[conn_id].obj_up_to_date && 
 				obj->net_status[conn_id].pose_up_to_date && 
 				obj->net_status[conn_id].show_up_to_date && 
-				!obj->destroy)
+				obj->net_status[conn_id].destroy_up_to_date)
 				continue;
 			
 			json datum = obj->serialize(conn_id, bufs);
@@ -1202,7 +1227,7 @@ private:
 				datum["show"] = obj->show;
 			}
 			
-			if (obj->destroy)
+			if (!obj->net_status[conn_id].destroy_up_to_date && obj->destroy)
 			{
 				datum["destroy"] = true;
 			}
@@ -1217,6 +1242,7 @@ private:
 			obj->net_status[conn_id].obj_up_to_date = true;
 			obj->net_status[conn_id].pose_up_to_date = true;
 			obj->net_status[conn_id].show_up_to_date = true;
+			obj->net_status[conn_id].destroy_up_to_date = true;
 		}
 
 		return scene;
@@ -1288,6 +1314,7 @@ private:
 	int width, height;
 	string title;
 	float fps = 30.0f;
+	int frame_skip_message_limit = 10;
 	shared_ptr<TransformNode> window_top_right_node;
 	shared_ptr<TransformNode> window_bottom_right_node;
 	shared_ptr<TransformNode> window_top_left_node;
