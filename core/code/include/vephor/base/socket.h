@@ -439,6 +439,13 @@ public:
 			error("Error opening socket");
 			throw std::runtime_error("Error opening socket.");
 		}
+		
+		int enable = 1;
+		if (setsockopt (sock_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+		{
+			throw std::runtime_error("setsockopt failed");
+		}
+
 		server = gethostbyname(host.c_str());
 		if (server == NULL) {
 			error("Error, no such host: " + host);
@@ -471,6 +478,13 @@ public:
 				error("Error opening socket");
 				throw std::runtime_error("Error opening socket.");
 			}
+
+			int enable = 1;
+			if (setsockopt (sock_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+			{
+				throw std::runtime_error("setsockopt failed");
+			}
+
 			bzero((char *) &serv_addr, sizeof(serv_addr));
 			serv_addr.sin_family = AF_INET;
 			serv_addr.sin_addr.s_addr = INADDR_ANY;
