@@ -54,6 +54,14 @@ void ShowRecordWindow::update()
 	if (shutdown)
 		return;
 	shutdown = !window->render();
+
+	if (!video_path.empty())
+	{
+		auto screenshot = window->getScreenImage();
+        saveImage(video_path+"/frame_"+std::to_string(video_frame_count)+".png", screenshot);
+		video_frame_count++;
+	}
+
 	if (shutdown)
 	{
 		v4print "Closing window:", window_id;

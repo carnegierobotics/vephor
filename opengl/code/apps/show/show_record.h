@@ -69,6 +69,7 @@ struct ShowRecord
 	bool had_connection = false;
 	bool client_mode = false;
 	string record_path;
+	string video_path;
 	int message_index = 0;
 	std::chrono::steady_clock::time_point start_time;
 	std::chrono::time_point<std::chrono::high_resolution_clock> path_start_time;
@@ -142,6 +143,14 @@ struct ShowRecord
 		if (network_mode)
 			net_manager_ptr = &net_manager;
 		windows[window_id]->setup(data, base_window_id, conn_id, net_manager_ptr, assets, network_mode);
+
+		if (!video_path.empty())
+		{
+			string window_video_path = video_path+"/window_"+std::to_string(window_id);
+			v4print "Writing frames to", window_video_path;
+			fs::create_directories(window_video_path);
+			windows[window_id]->video_path = window_video_path;
+		}
 	}
 	void connectClient(const string& host, int port)
 	{

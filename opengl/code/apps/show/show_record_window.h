@@ -77,6 +77,9 @@ struct ShowRecordWindow
 	ConnectionID conn_id;
 	NetworkManager* net_manager = NULL;
 
+	string video_path;
+	int video_frame_count = 0;
+
 	void update();
 	void close();
 	void setup(const json& data, 

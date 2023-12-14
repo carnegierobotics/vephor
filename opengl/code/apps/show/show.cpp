@@ -61,6 +61,7 @@ int main(int argc, char* argv[])
 	int port = VEPHOR_DEFAULT_PORT;
 	bool redirect = false;
 	string record_path;
+	string video_path;
 	float playback_speed = 1;
 	bool daemonize = false;
 	
@@ -69,7 +70,7 @@ int main(int argc, char* argv[])
 	while (optind < argc)
 	{
 		v4print "optind:", optind;
-		if((opt = getopt(argc, argv, "dhi:m:o:p:P:rR:")) != -1) 
+		if((opt = getopt(argc, argv, "dhi:m:o:p:P:rR:v:")) != -1) 
 		{
 			switch(opt)
 			{
@@ -100,6 +101,9 @@ int main(int argc, char* argv[])
 				break;
 			case 'R': 
 				record_path = optarg;
+				break;
+			case 'v': 
+				video_path = optarg;
 				break;
 			default:
 				usage(argv);
@@ -158,6 +162,7 @@ int main(int argc, char* argv[])
 
 	ShowRecord show;
 	show.record_path = record_path;
+	show.video_path = video_path;
 	show.playback_speed = playback_speed;
 
     if (use_net)
