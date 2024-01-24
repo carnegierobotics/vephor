@@ -694,15 +694,18 @@ void setTextureSampling(bool nearest)
 }
 
 shared_ptr<Texture> Window::loadTexture(const std::string& path, bool nearest){
-	v4print "Loading texture:", path;
+	//v4print "Loading texture:", path;
 	
 	if (!fs::exists(path))
 		throw std::runtime_error("Texture does not exist at path: " + path);
 
 	glfwMakeContextCurrent(window);
 	
-	int width, height, channels;
-	const uint8_t* img = stbi_load(path.c_str(), &width, &height, &channels, 0);
+	//int width, height, channels;
+	//const uint8_t* img = stbi_load(path.c_str(), &width, &height, &channels, 0);
+
+	std::shared_ptr<Image<uint8_t>> img = loadImage(path);
+	img->flipYInPlace();
 	
 	// Create one OpenGL texture
 	GLuint textureID;
@@ -712,16 +715,18 @@ shared_ptr<Texture> Window::loadTexture(const std::string& path, bool nearest){
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
 	// Give the image to OpenGL
-	if (channels == 3)
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
-	else if (channels == 4)
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
+	if (img->getChannels() == 3)
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img->getSize()[0], img->getSize()[1], 0, 
+			GL_RGB, GL_UNSIGNED_BYTE, &(img->getData()[0]));
+	else if (img->getChannels() == 4)
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->getSize()[0], img->getSize()[1], 0, 
+			GL_RGBA, GL_UNSIGNED_BYTE, &(img->getData()[0]));
 	else
-		throw std::runtime_error("Only supporting loading 3 and 4 channels from buffer");
+		throw std::runtime_error("Only supporting loading 3 and 4 channels from buffer, tried to load: " + std::to_string(img->getChannels()));
 
 	setTextureSampling(nearest);
 
-	return make_shared<Texture>(textureID, Vec2i(width, height));
+	return make_shared<Texture>(textureID, img->getSize());
 }
 
 shared_ptr<Texture> Window::getTextureFromBuffer(const char* buf_data, int channels, const Vec2i& size, bool nearest)

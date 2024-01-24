@@ -165,10 +165,10 @@ void Text::setupText()
 		float uv_x = (character%16)*cell_size_uv;
 		float uv_y = (character/16)*cell_size_uv;
 
-		Vec2 uv_up_left( uv_x+border, uv_y );
-		Vec2 uv_up_right( uv_x+cell_size_uv-border, uv_y );
-		Vec2 uv_down_right( uv_x+cell_size_uv-border, uv_y+cell_size_uv );
-		Vec2 uv_down_left( uv_x+border, uv_y+cell_size_uv );
+		Vec2 uv_up_left( uv_x+border, 1.0-uv_y );
+		Vec2 uv_up_right( uv_x+cell_size_uv-border, 1.0-uv_y );
+		Vec2 uv_down_right( uv_x+cell_size_uv-border, 1.0-(uv_y+cell_size_uv) );
+		Vec2 uv_down_left( uv_x+border, 1.0-(uv_y+cell_size_uv) );
 
 		uvs.col(i*6+0) = uv_up_left;
 		uvs.col(i*6+1) = uv_down_left;

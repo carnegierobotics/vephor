@@ -927,6 +927,7 @@ public:
 
 		if (fs::exists(temp_dir+"/scene_assets"))
 		{
+			v4print "Copying scene assets from", temp_dir+"/scene_assets", "to", path+"/scene_assets";
 			fs::copy(temp_dir+"/scene_assets", path+"/scene_assets");
 		}
 
@@ -1314,7 +1315,7 @@ private:
 	int width, height;
 	string title;
 	float fps = 30.0f;
-	int frame_skip_message_limit = 10;
+	int frame_skip_message_limit = 100;
 	shared_ptr<TransformNode> window_top_right_node;
 	shared_ptr<TransformNode> window_bottom_right_node;
 	shared_ptr<TransformNode> window_top_left_node;
