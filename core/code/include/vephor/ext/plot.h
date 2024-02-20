@@ -33,6 +33,10 @@
 
 #include "window.h"
 
+#include <limits>
+#include <utility>
+#include <variant>
+
 namespace vephor
 {
 
@@ -68,6 +72,9 @@ struct PlotScatterOptions
 	Color color = Color(Vec3(-1,-1,-1));
 	float size = 0.01;
 	PlotScatterMarker marker = PlotScatterMarker::CIRCLE;
+	Color colormap_label_color = Color(Vec3(-1,-1,-1));
+    ColorMap colormap = ColorMap(ColorMap::Style::VIRIDIS);
+    Vec2 colormap_limits{std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN()};
 };
 
 class Plot
@@ -195,7 +202,7 @@ public:
 	void scatter(
 		const VecXRef& x, 
 		const MatXRef& y, 
-		const PlotScatterOptions& opts = PlotScatterOptions())//TODO: color map
+		const PlotScatterOptions& opts = PlotScatterOptions())
 	{
 		if (x.rows() == 0)
 			return;
@@ -302,6 +309,242 @@ public:
 			opts
 		);
 	}
+
+    /*!
+     * Create a scatter plot with per-point assigned colors.
+     *
+     * \todo Find an elegant way to merge this with `Plot::scatter`.
+     *
+     * \param x (N, 1) vector of x-values.
+     * \param y (N, C) matrix of y-values corresponding to `x`.
+     * \param c (N, 3) matrix specifying color for each point.
+     * \param opts Scatter plot options.
+     */
+    void scatter_c(
+            const VecXRef &x,
+            const MatXRef &y,
+            const MatXRef &c,
+            const PlotScatterOptions &opts = PlotScatterOptions()
+    ) {
+        if (x.rows() == 0)
+            return;
+
+        if (x.rows() != y.rows() || x.rows() != c.rows())
+            throw std::runtime_error("X, Y, and C size must match in scatter.");
+        if (c.cols() != 3)
+            throw std::runtime_error("C must have shape (N, 3).");
+
+        MatX pts(x.rows(), 3);
+        pts.setZero();
+
+        for (int col = 0; col < y.cols(); col++) {
+            pts.col(0) = x;
+            pts.col(1) = y.col(col);
+
+            auto particle = make_shared<Particle>(pts, c);
+
+            particle->setSize(opts.size);
+            particle->setScreenSpaceMode(true);
+
+            string marker_name = "square";
+            if (opts.marker == PlotScatterMarker::CIRCLE) {
+                particle->setTexture(base_asset_dir + "/assets/circle.png", false);
+                marker_name = "circle";
+            } else if (opts.marker == PlotScatterMarker::DIAMOND) {
+                particle->setTexture(base_asset_dir + "/assets/diamond.png", false);
+                marker_name = "diamond";
+            } else if (opts.marker == PlotScatterMarker::PLUS) {
+                particle->setTexture(base_asset_dir + "/assets/plus.png", false);
+                marker_name = "plus";
+            }
+            inner_window.add(particle, Vec3(0, 0, plot_index + 1));
+
+            if (!opts.label.empty())
+                // TODO: Figure out how to display a color gradient icon in the legend.
+                inner_window.getCameraControlInfo()["labels"].push_back({
+                                                                                {"text",  opts.label},
+                                                                                {"type",  marker_name},
+                                                                                {"color", toJson(Vec3(1, 1, 1))}
+                                                                        });
+
+            plot_index++;
+        }
+    }
+
+    /*!
+     * \overload
+     */
+    void scatter_c(
+            const vector<float> &x,
+            const vector<float> &y,
+            const vector<Color> &c,
+            const PlotScatterOptions &opts = PlotScatterOptions()) {
+        MatX colors(c.size(), 3);
+        for (auto i = 0; i < c.size(); ++i) {
+            colors.row(i) = c[i].getRGB();
+        }
+
+        scatter_c(
+                VecXMap(x.data(), x.size()),
+                MatXMap(y.data(), y.size(), 1),
+                colors,
+                opts
+        );
+    }
+
+    /*!
+     * \overload
+     */
+    void scatter_c(
+            const vector<Vec2> &xy,
+            const vector<Color> &c,
+            const PlotScatterOptions &opts = PlotScatterOptions()) {
+        vector<float> x(xy.size());
+        vector<float> y(xy.size());
+
+        for (int i = 0; i < xy.size(); i++) {
+            x[i] = xy[i][0];
+            y[i] = xy[i][1];
+        }
+
+        scatter_c(x, y, c, opts);
+    }
+
+    /*!
+     * Create a scatter plot with point colors assigned from a color map with scaling designated by values in `c`.
+     *
+     * \param x (N, 1) vector of x-values.
+     * \param y (N, 1) matrix of y-values corresponding to `x`.
+     * \param c (N, 1) matrix specifying value to use for prompting color map.  Note that limits can be optionally set
+     *          in `opts`.
+     * \param opts Scatter plot options.
+     */
+    void scatter_colormap(
+            const VecXRef &x,
+            const VecXRef &y,
+            const VecXRef &c,
+            const PlotScatterOptions &opts = PlotScatterOptions()
+    ) {
+        auto c_opts = opts;
+        if (std::isnan(c_opts.colormap_limits(0)))
+            c_opts.colormap_limits(0) = c.minCoeff();
+        if (std::isnan(c_opts.colormap_limits(1)))
+            c_opts.colormap_limits(1) = c.maxCoeff();
+
+        MatX colors(y.rows(), 3);
+        for (auto i = 0; i < y.rows(); ++i) {
+            const float c_value = rescale(c(i), c_opts.colormap_limits(0), c_opts.colormap_limits(1), 0.0f, 1.0f);
+            colors.row(i) = c_opts.colormap(c_value).getRGB();
+        }
+
+        scatter_c(x, y, colors, c_opts);
+    }
+
+    /*!
+     * \overload
+     */
+    void scatter_colormap(
+            const vector<float> &x,
+            const vector<float> &y,
+            const vector<float> &c,
+            const PlotScatterOptions &opts = PlotScatterOptions()
+    ) {
+        scatter_colormap(
+                VecXMap(x.data(), x.size()),
+                MatXMap(y.data(), y.size(), 1),
+                VecXMap(c.data(), c.size()),
+                opts
+        );
+    }
+
+    /*!
+     * \overload
+     */
+    void scatter_colormap(
+            const vector<Vec2> &xy,
+            const vector<float> &c,
+            const PlotScatterOptions &opts = PlotScatterOptions()
+    ) {
+        vector<float> x(xy.size());
+        vector<float> y(xy.size());
+
+        for (int i = 0; i < xy.size(); i++) {
+            x[i] = xy[i][0];
+            y[i] = xy[i][1];
+        }
+
+        scatter_colormap(
+                VecXMap(x.data(), x.size()),
+                MatXMap(y.data(), y.size(), 1),
+                VecXMap(c.data(), c.size()),
+                opts
+        );
+    }
+
+    /*!
+     * Create a scatter plot with point colors assigned from a color map with scaling designated by y-value magnitudes.
+     *
+     * \param x (N, 1) vector of x-values.
+     * \param y (N, 1) matrix of y-values corresponding to `x`.
+     * \param opts Scatter plot options.
+     */
+    void scatter_colormap(
+            const VecXRef &x,
+            const VecXRef &y,
+            const PlotScatterOptions &opts = PlotScatterOptions()
+    ) {
+        auto c_opts = opts;
+        if (std::isnan(c_opts.colormap_limits(0)))
+            c_opts.colormap_limits(0) = y.minCoeff();
+        if (std::isnan(c_opts.colormap_limits(1)))
+            c_opts.colormap_limits(1) = y.maxCoeff();
+
+        MatX colors(y.rows(), 3);
+        for (auto i = 0; i < y.rows(); ++i) {
+            const float c_value = rescale(y(i), c_opts.colormap_limits(0), c_opts.colormap_limits(1), 0.0f, 1.0f);
+            colors.row(i) = c_opts.colormap(c_value).getRGB();
+        }
+
+        scatter_c(x, y, colors, c_opts);
+    }
+
+    /*!
+     * \overload
+     */
+    void scatter_colormap(
+            const vector<float> &x,
+            const vector<float> &y,
+            const PlotScatterOptions &opts = PlotScatterOptions()
+    ) {
+        scatter_colormap(
+                VecXMap(x.data(), x.size()),
+                MatXMap(y.data(), y.size(), 1),
+                opts
+        );
+    }
+
+    /*!
+     * \overload
+     */
+    void scatter_colormap(
+            const vector<Vec2> &xy,
+            const PlotScatterOptions &opts = PlotScatterOptions()
+    ) {
+        vector<float> x(xy.size());
+        vector<float> y(xy.size());
+
+        for (int i = 0; i < xy.size(); i++) {
+            x[i] = xy[i][0];
+            y[i] = xy[i][1];
+        }
+
+        scatter_colormap(
+                VecXMap(x.data(), x.size()),
+                MatXMap(y.data(), y.size(), 1),
+                opts
+        );
+    }
+
 	void text(const string& raw_text, float size, const Vec2& offset, const Color& color)
 	{
 		auto text = make_shared<Text>(raw_text);

@@ -33,6 +33,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <cmath>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -1859,6 +1860,30 @@ inline Mat3 rodrigues(const Vec3& v)
     Mat3 skew_axis = skew(axis);
 
     return Mat3::Identity() + sin(angle)*skew_axis + (1-cos(angle))*skew_axis*skew_axis;
+}
+
+/*!
+ * Express a value specified within one range to another one.
+ * \warning This function does not check whether specified values lie within the promised ranges.
+ * \tparam T Scalar type.
+ * \param old_value A value in the old range.
+ * \param old_min The minimum bound of the old range.
+ * \param old_max The maximum bound of the old range.
+ * \param new_min The minimum bound of the desired new range.
+ * \param new_max The maximum bound of the desired new range.
+ * \return `old_value` expressed in the new range.
+ */
+template<typename T>
+inline T rescale(const T &old_value, const T &old_min, const T &old_max, const T &new_min, const T &new_max)
+{
+    const T old_range = old_max - old_min;
+    if (old_range == 0)
+    {
+        return new_min;
+    }
+
+    const T new_range = new_max - new_min;
+    return (((old_value - old_min) * new_range) / old_range) + new_min;
 }
 
 }
