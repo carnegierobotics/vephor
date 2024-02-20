@@ -31,6 +31,8 @@
 
 #include "vephor_ext.h"
 
+#include <random>
+
 using namespace vephor;
 
 int main()
@@ -97,6 +99,74 @@ int main()
 		opts.label = "Scatter";
 		plt.scatter(x,y,opts);
 	}
+
+    {
+        //
+        // Plot a square root function with random colors assigned to each point
+        //
+
+        std::random_device rd;
+        std::mt19937 rng(rd());
+
+        std::uniform_real_distribution<float> y_dist(0, 10000);
+        std::uniform_int_distribution<> c_dist(0, 255);
+
+        vector<float> x;
+        vector<float> y;
+        vector<Color> c;
+
+        for (int i = 0; i < 100; i++)
+        {
+            x.push_back(i);
+            y.push_back(std::sqrt(static_cast<float>(100000 * i)));
+            c.emplace_back(c_dist(rng), c_dist(rng), c_dist(rng));
+        }
+
+        PlotScatterOptions opts;
+        opts.marker = PlotScatterMarker::CIRCLE;
+        opts.label = "Scatter with Random Colors";
+        plt.scatter_c(x, y, c, opts);
+    }
+
+    {
+        //
+        // Plot a square function with colors assigned via a y-value color map
+        //
+
+        vector<float> x;
+        vector<float> y;
+        for (int i = 0; i < 100; i++)
+        {
+            x.push_back(i);
+            y.push_back(i * i);
+        }
+        PlotScatterOptions opts;
+        opts.marker = PlotScatterMarker::DIAMOND;
+        opts.colormap = ColorMap(ColorMap::Style::VIRIDIS);
+        opts.label = "Scatter Colored by y-Value";
+        plt.scatter_colormap(x, y, opts);
+    }
+
+    {
+        //
+        // Plot a square function with colors assigned via an x-value color map
+        //
+
+        vector<float> x;
+        vector<float> y;
+        vector<float> c;
+        for (int i = 0; i < 100; i++)
+        {
+            x.push_back(i);
+            y.push_back(5000.0f * std::sin(M_PI * i / 180.0f * 4.0f) + 5000.0f);
+            c.push_back(i);
+        }
+        PlotScatterOptions opts;
+        opts.marker = PlotScatterMarker::SQUARE;
+        opts.colormap = ColorMap(ColorMap::Style::JET);
+        opts.label = "Scatter Colored by x-Value";
+        plt.scatter_colormap(x, y, c, opts);
+    }
 
 	plt.show();
 	
