@@ -362,6 +362,16 @@ void Mesh::fillInCommonProps(MeshSettings& settings)
 
 void Mesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
 {	
+    curr_window_count++;
+
+    if (curr_window == window)
+        return;
+
+    if (curr_window != NULL)
+        throw std::runtime_error("A single drawing object can't be added to multiple windows.");
+
+    curr_window = window;
+
     glGenBuffers(1, &pos_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, pos_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(GLfloat), verts.data(), GL_STATIC_DRAW);
@@ -433,13 +443,23 @@ void Mesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
 
 void Mesh::onRemoveFromWindow(Window*)
 {
-    glDeleteBuffers(1, &pos_buffer_id);
-    glDeleteBuffers(1, &uv_buffer_id);
-    glDeleteBuffers(1, &norm_buffer_id);
-	glDeleteBuffers(1, &tangent_buffer_id);
-	glDeleteBuffers(1, &bitangent_buffer_id);
-    glDeleteVertexArrays(1, &standard.vao_id);
-    glDeleteVertexArrays(1, &no_normal_map.vao_id);
+    if (curr_window_count == 0)
+        return;
+
+    curr_window_count--;
+
+    if (curr_window_count == 0)
+    {
+        glDeleteBuffers(1, &pos_buffer_id);
+        glDeleteBuffers(1, &uv_buffer_id);
+        glDeleteBuffers(1, &norm_buffer_id);
+        glDeleteBuffers(1, &tangent_buffer_id);
+        glDeleteBuffers(1, &bitangent_buffer_id);
+        glDeleteVertexArrays(1, &standard.vao_id);
+        glDeleteVertexArrays(1, &no_normal_map.vao_id);
+
+        curr_window = NULL;
+    }
 }
 
 void Mesh::renderOGLForSettings(Window* window, const TransformSim3& world_from_body, MeshSettings& settings)
@@ -524,6 +544,38 @@ void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
         renderOGLForSettings(window, world_from_body, standard);
     else
         renderOGLForSettings(window, world_from_body, no_normal_map);
+}
+
+WrappedMesh::WrappedMesh(
+    const shared_ptr<Mesh>& p_mesh,
+    const Color& p_color,
+    float p_diffuse_strength,
+    float p_ambient_strength,
+    float p_emissive_strength
+)
+: mesh(p_mesh), color(p_color),
+    diffuse_strength(p_diffuse_strength),
+    ambient_strength(p_ambient_strength),
+    emissive_strength(p_emissive_strength)
+{
+}
+
+void WrappedMesh::renderOGL(Window* window, const TransformSim3& world_from_body)
+{
+    mesh->setDiffuse(Color((Vec3)(color.getRGB() * diffuse_strength)));
+    mesh->setAmbient(Color((Vec3)(color.getRGB() * ambient_strength)));
+    mesh->setEmissive(Color((Vec3)(color.getRGB() * emissive_strength)));
+    mesh->renderOGL(window, world_from_body);
+}
+
+void WrappedMesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
+{
+    mesh->onAddToWindow(window, node);
+}
+
+void WrappedMesh::onRemoveFromWindow(Window* window)
+{
+    mesh->onRemoveFromWindow(window);
 }
 
 }

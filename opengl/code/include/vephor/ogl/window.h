@@ -266,6 +266,19 @@ public:
 		return inner_obj;
     }
 	
+    // The object T is a "drawing object", and must:
+    //  Implement onAddToWindow, a method which is expected to allocate memory/structures specific to drawing on that window
+    //  Implement onRemoveFromWindow, a method which is expected to undo what onAddToWindow did
+    //  Implement renderOGL, a method which is expected to cause the object to be drawn to the window
+    // Note that to save memory, we allow for objects to be added to a window more than once with different poses, but we do not 
+    // require that this be allowed.
+    // One example where this is allowed is with mesh objects - meshes involve a considerable memory burden, and so we
+    // want to avoid allocating GPU memory for them multiple times if they are being drawn several times in one scene.  Any
+    // object that can be added more than once needs to not bind to the pose it is added to the window with.
+    // On the other hand, a positional light object binds itself to its pose by nature of the way it is implemented here, and so this
+    // object must not allow itself to be added to a window multiple times.  Each object must track its own window addition conditions
+    // and throw errors when these conditions are violated.
+    // We also allow objects to support multiple windows at once if desired, but no current object supports this explicitly.
 	template <class T>
     shared_ptr<RenderNode> add(
 		const shared_ptr<T>& obj,
@@ -314,6 +327,10 @@ public:
 		
         point_lights[light_id].pos = pos;
         point_lights[light_id].strength = strength;
+    }
+    void removePointLight(int light_id)
+    {
+        point_lights.erase(light_id);
     }
 
     void setDirLight(const Vec3& dir, float strength)
@@ -515,8 +532,7 @@ private:
     KeyActionCallback key_press_callback = NULL;
     KeyActionCallback key_release_callback = NULL;
 	ScrollCallback scroll_callback = NULL;
-    bool last_left_mouse_state = false;
-    bool last_right_mouse_state = false;
+    bool escape_pressed = false;
 
     bool overlay_phase = false;
 

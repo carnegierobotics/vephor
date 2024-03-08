@@ -64,6 +64,9 @@ public:
     PointLight(float strength = 50.0f);
     void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
     {
+        if (curr_window != NULL)
+            throw std::runtime_error("Point lights can't be added to a window multiple times.");
+
         curr_window = window;
         light_id = curr_window->addPointLight(node->getPos(), strength);
 		node->addTransformCallback([this](const TransformSim3& world_from_node)
@@ -73,7 +76,11 @@ public:
 		});
     }
     void renderOGL(Window* window, const TransformSim3& world_from_body){}
-    void onRemoveFromWindow(Window* window){}
+    void onRemoveFromWindow(Window* window)
+    {
+        window->removePointLight(light_id);
+        curr_window = NULL;
+    }
 private:
     Window* curr_window = NULL;
     int light_id;

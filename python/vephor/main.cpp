@@ -82,6 +82,12 @@ PYBIND11_MODULE(_core, m) {
 		.def("getDestroy", &RenderNode::getDestroy);
 	py::class_<MeshData>(m, "MeshData")
 		.def(py::init<>());
+	py::class_<Color>(m, "Color")
+		.def(py::init<float,float,float,float>(),py::arg("r"),py::arg("g"),py::arg("b"),py::arg("a")=1.0)
+		.def(py::init<const Vec3&>())
+		.def(py::init<const Vec3u&>())
+		.def(py::init<const Vec4&>())
+		.def(py::init<const Vec4u&>());
 	
 	m.def("formLine", &formLine, py::arg("vert_list"), py::arg("rad"));
 	m.def("formLineLoop", &formLineLoop, py::arg("vert_list"), py::arg("rad"));
@@ -513,7 +519,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("thickness") = 0,
 			py::arg("label") = "")
 		.def("scatter", [](Plot& p, 
-				const VecX& x, 
+				const MatX& x, 
 				const MatX& y,
 				float size, 
 				const Vec3& color, 
@@ -534,7 +540,16 @@ PYBIND11_MODULE(_core, m) {
 				else
 					throw std::runtime_error("Invalid marker type: " + marker);
 				if (y.rows() == 0)
-					p.scatter(x,opts);
+				{
+					if (x.cols() == 1)
+					{
+						p.scatter(x.col(0),opts);
+					}
+					else
+					{
+						p.scatter(x.col(0),x.col(1),opts);
+					}
+				}
 				else
 					p.scatter(x,y,opts);
 			}, 
@@ -547,8 +562,33 @@ PYBIND11_MODULE(_core, m) {
 		.def("text", [](Plot& p, const string& text, float size, const Vec2& offset, const Vec3& color){
 			p.text(text, size, offset, color);
 		})
-		// TODO: polygon
-		.def("circle", &Plot::circle)
+		.def("polygon", [](Plot& p,
+				const MatX& verts,
+				const Vec3& color,
+				float thickness
+			){
+				if (verts.cols() != 2)
+				{
+					throw std::runtime_error("Polygon verts matrix must have 2 columns.");
+				}
+
+				vector<Vec2> inner_verts;
+				for (int r = 0; r < verts.rows(); r++)
+					inner_verts.push_back(verts.row(r));
+
+				p.polygon(inner_verts, color, thickness);
+			},
+			py::arg("verts"),
+			py::arg("color"),
+			py::arg("thickness")=0
+		)
+		.def("circle", &Plot::circle, 
+			py::arg("center"),
+			py::arg("rad"),
+			py::arg("color"),
+			py::arg("thickness")=0,
+			py::arg("slices")=16
+		)
 		.def("rect", &Plot::rect)
 		// TODO: line
 		.def("imshow", [](Plot& p,

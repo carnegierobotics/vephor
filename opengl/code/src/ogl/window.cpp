@@ -132,6 +132,11 @@ void global_mouse_handler(GLFWwindow* gl_window, int button, int action, int mod
 void global_key_handler(GLFWwindow* gl_window, int key, int scancode, int action, int mods){
 	auto window_ptr = v4_window_from_gl_window[gl_window];
 	
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+	{
+		window_ptr->escape_pressed = true;
+	}
+
 	if (window_ptr->key_press_callback && action == GLFW_PRESS)
 		window_ptr->key_press_callback(key);
 	
@@ -297,10 +302,6 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 		glfwTerminate();
 		throw std::runtime_error("Failed to initialize GLEW");
 	}
-
-	// Ensure we can capture the escape key being pressed below
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GL_TRUE);
 
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
@@ -482,26 +483,6 @@ bool Window::render()
 	while (true) {
 		glfwPollEvents();
 
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-		{
-			last_left_mouse_state = true;
-		}
-
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
-		{
-			last_left_mouse_state = false;
-		}
-
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
-		{
-			last_right_mouse_state = true;
-		}
-
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
-		{
-			last_right_mouse_state = false;
-		}
-
 		if (fps > 0)
 		{
 			if (duration_cast<nanoseconds>(high_resolution_clock::now() - last_time).count() >= 1e9 / fps)
@@ -518,7 +499,8 @@ bool Window::render()
 
 	last_time = high_resolution_clock::now();
 	
-	bool close = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS || glfwWindowShouldClose(window);
+	bool close = escape_pressed || glfwWindowShouldClose(window);
+	escape_pressed = false;
 	
 	if (close)
 	{

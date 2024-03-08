@@ -53,6 +53,8 @@ public:
 	Color getDiffuse() const {return diffuse;}
 	void setAmbient(const Color& p_color){ambient = p_color.getRGB();}
 	Color getAmbient() const {return ambient;}
+    void setEmissive(const Color& p_color){emissive = p_color.getRGB();}
+	Color getEmissive() const {return emissive;}
 	void setOpacity(const float& p_opacity){opacity = p_opacity;}
 	void setCull(bool p_cull){cull = p_cull;}
     void setSpecular(bool p_specular){specular = p_specular;}
@@ -92,6 +94,9 @@ private:
     void fillInCommonProps(MeshSettings& settings);
     void renderOGLForSettings(Window* window, const TransformSim3& world_from_body, MeshSettings& settings);
 
+    Window* curr_window = NULL;
+    size_t curr_window_count = 0;
+
     GLuint pos_buffer_id = std::numeric_limits<GLuint>::max();
     GLuint uv_buffer_id = std::numeric_limits<GLuint>::max();
     GLuint norm_buffer_id = std::numeric_limits<GLuint>::max();
@@ -115,6 +120,28 @@ private:
 	
     MeshSettings standard;
     MeshSettings no_normal_map;
+};
+
+// Allows render parameters of a mesh to be changed without needing to store the memory of the mesh multiple times
+class WrappedMesh
+{
+public:
+    WrappedMesh(
+        const shared_ptr<Mesh>& mesh,
+        const Color& color = Color(1,1,1),
+        float diffuse_strength = 1.0,
+        float ambient_strength = 1.0,
+		float emissive_strength = 0.0
+    );
+    void renderOGL(Window* window, const TransformSim3& world_from_body);
+    void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
+	void onRemoveFromWindow(Window* window);
+private:
+    shared_ptr<Mesh> mesh;
+    Color color;
+    float diffuse_strength;
+    float ambient_strength;
+    float emissive_strength;
 };
 
 }

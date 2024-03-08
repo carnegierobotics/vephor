@@ -56,6 +56,11 @@ inline json toJson(const Vec3& v)
 	return {v[0], v[1], v[2]};
 }
 
+inline json toJson(const Vec3u& v)
+{
+	return {v[0], v[1], v[2]};
+}
+
 inline json toJson(const Vec4& v)
 {
 	return {v[0], v[1], v[2], v[3]};
