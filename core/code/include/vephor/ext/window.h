@@ -227,69 +227,79 @@ public:
 	{
 		return node->getPos();
 	}
-	void setPos(const Vec3& pos)
+	RenderNode* setPos(const Vec3& pos)
 	{
 		node->setPos(pos);
+		return this;
 	}
 	Orient3 getOrient() const
 	{
 		return node->getOrient();
 	}
-	void setOrient(const Orient3& orient)
+	RenderNode* setOrient(const Orient3& orient)
 	{
 		node->setOrient(orient);
+		return this;
 	}
 	TransformSim3 getTransform() const
 	{
 		return node->getTransform();
 	}
-	void setTransform(const TransformSim3& t)
+	RenderNode* setTransform(const TransformSim3& t)
 	{
 		node->setTransform(t);
+		return this;
 	}
 	float getScale() const
 	{
 		return node->getScale();
 	}
-	void setScale(float scale)
+	RenderNode* setScale(float scale)
 	{
 		node->setScale(scale);
+		return this;
 	}
-	void setParent(TransformNode& parent)
+	RenderNode* setParent(TransformNode& parent)
 	{
 		if (node->getParent() != NULL)
 			throw std::runtime_error("RenderNode already has a parent.");
 		parent.addChild(node);
+		return this;
 	}
-	void setParent(RenderNode& parent)
+	RenderNode* setParent(RenderNode& parent)
 	{
 		if (node->getParent() != NULL)
 			throw std::runtime_error("RenderNode already has a parent.");
 		parent.node->addChild(node);
+		return this;
 	}
-	void setParent(const shared_ptr<TransformNode>& parent)
+	RenderNode* setParent(const shared_ptr<TransformNode>& parent)
 	{
 		setParent(*parent.get());
+		return this;
 	}
-	void setParent(const shared_ptr<RenderNode>& parent)
+	RenderNode* setParent(const shared_ptr<RenderNode>& parent)
 	{
 		setParent(*parent.get());
+		return this;
 	}
-	void setShow(bool p_show)
+	RenderNode* setShow(bool p_show)
 	{
 		show = p_show;
 		for (auto& status : net_status)
 		{
 			status.second.show_up_to_date = false;
 		}
+		return this;
 	}
 	bool getShow() const {return show;}
-	void setDestroy() {
+	RenderNode* setDestroy() {
 		destroy = true;
 		for (auto& status : net_status)
 		{
 			status.second.destroy_up_to_date = false;
 		}
+		return this;
 	}
 	bool getDestroy() const {return destroy;}	
 	ObjectID getID() const {return id;}
