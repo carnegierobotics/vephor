@@ -297,8 +297,8 @@ struct ShowRecord
 					v4print "Setting up viz control window.";
 
 					const int flag_window_width = 450;
-					const int flag_offset = 75;
-					const int flag_size = 50;
+					const int flag_offset = 65;
+					const int flag_size = 40;
 					const int flag_width = 400;
 					const int flag_x = 25;
 
