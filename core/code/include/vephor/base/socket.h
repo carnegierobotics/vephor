@@ -667,10 +667,10 @@ public:
 
 		return buf;
 	}
-	vector<char> receiveMessage()
+	vector<char> receiveMessage(bool safe = true)
 	{
 		uint64_t size;
-        auto size_buf = receive_safe(sizeof(uint64_t), true);
+        auto size_buf = receive_safe(sizeof(uint64_t), !safe);
 		
 		if (size_buf.empty())
 		{
