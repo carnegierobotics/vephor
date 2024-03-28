@@ -61,7 +61,7 @@ public:
 
 		if (!fs::exists(p_tex))
 		{
-			v4print "Error: Can't find particle texture", p_tex, "skipping";
+			v4print "Error: Can't find particle texture", p_tex, "- skipping";
 			return;
 		}
 		
