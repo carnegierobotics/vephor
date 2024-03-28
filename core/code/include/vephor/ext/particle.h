@@ -58,6 +58,12 @@ public:
 		
 		if (!fs::exists(temp_dir+"/scene_assets"))
 			fs::create_directory(temp_dir+"/scene_assets");
+
+		if (!fs::exists(p_tex))
+		{
+			v4print "Error: Can't find particle texture", p_tex, "skipping";
+			return;
+		}
 		
 		string final_path = temp_dir+"/scene_assets/"+fs::path(p_tex).filename().string();
 		if (!fs::exists(final_path))
