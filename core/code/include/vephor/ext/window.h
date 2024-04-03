@@ -359,7 +359,8 @@ struct ShowMetadata
 		{
 			data["flags"].push_back({
 				{"name",flag.first},
-				{"toggle",flag.second.toggle}
+				{"toggle",flag.second.toggle},
+				{"state",flag.second.state}
 			});
 		}
 		return data;

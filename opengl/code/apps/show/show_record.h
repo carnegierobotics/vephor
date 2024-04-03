@@ -296,13 +296,14 @@ struct ShowRecord
 				{
 					v4print "Setting up viz control window.";
 
-					const int flag_window_width = 450;
 					const int flag_offset = 65;
 					const int flag_size = 40;
 					const int flag_width = 400;
 					const int flag_x = 25;
+					const int flags_per_col = 10;
 
-					int flag_window_height = flag_offset*message["flags"].size() + 25;
+					int flag_window_width = (flag_width + 25) * ceil(message["flags"].size()/flags_per_col) + 25;
+					int flag_window_height = flag_offset*std::min((int)message["flags"].size(),flags_per_col) + 25;
 
 					string name = "Viz Control";
 					string inner_name;
@@ -338,22 +339,23 @@ struct ShowRecord
 					
 					for (const auto& flag : message_flags)
 					{
-						float vpos = -((int)flags_record.flags.size()+1)*flag_offset;
+						float hpos = (int)(flags_record.flags.size()/flags_per_col)*(flag_width + 25)+flag_x;
+						float vpos = -((int)(flags_record.flags.size()%flags_per_col)+1)*flag_offset;
 						
 						MeshData mesh_data(6);
 						mesh_data.addQuad2D(Vec2(0,0), Vec2(flag_width,flag_size), Vec2(0,0), Vec2(1,1));
 						auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.5,0.5,0.5));
 						mesh->setCull(false);
-						auto mesh_node = control_window->add(mesh, Vec3(flag_x, vpos, 0), true);
+						auto mesh_node = control_window->add(mesh, Vec3(hpos, vpos, 0), true);
 						mesh_node->setParent(control_window->getWindowTopLeftNode());
 						
 						auto text = make_shared<Text>(flag["name"], text_tex);
 						text->setColor(Vec3(1,1,1));
-						auto text_node = control_window->add(text, Vec3(flag_x, vpos, 0), true, 1);
+						auto text_node = control_window->add(text, Vec3(hpos, vpos, 0), true, 1);
 						text_node->setScale(flag_size);
 						text_node->setParent(control_window->getWindowTopLeftNode());
 						
-						flags_record.flags.push_back({flag["name"], flag["toggle"], false});
+						flags_record.flags.push_back({flag["name"], flag["toggle"], flag["state"]});
 					}
 					flags_per_conn[conn_id] = flags_record;
 					
@@ -366,9 +368,11 @@ struct ShowRecord
 						
 						for (int i = 0; i < flags_record.flags.size(); i++)
 						{
-							Vec2 corner_rel_pos = control_window_ptr->getMousePos() - Vec2(flag_x, control_window_ptr->getSize()[1]);
-							float v_pos = -(i+1)*flag_offset;
-							corner_rel_pos[1] -= v_pos;
+							Vec2 corner_rel_pos = control_window_ptr->getMousePos() - Vec2(0, control_window_ptr->getSize()[1]);
+							float hpos = (int)(i/flags_per_col)*(flag_width + 25)+flag_x;
+							float vpos = -(i%flags_per_col+1)*flag_offset;
+							corner_rel_pos[0] -= hpos;
+							corner_rel_pos[1] -= vpos;
 							
 							if (corner_rel_pos[0] >= 0 && corner_rel_pos[1] >= 0 &&
 								corner_rel_pos[0] <= flag_width && corner_rel_pos[1] <= flag_size)
