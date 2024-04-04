@@ -302,7 +302,7 @@ struct ShowRecord
 					const int flag_x = 25;
 					const int flags_per_col = 10;
 
-					int flag_window_width = (flag_width + 25) * ceil(message["flags"].size()/flags_per_col) + 25;
+					int flag_window_width = (flag_width + 25) * ceil((float)message["flags"].size()/flags_per_col) + 25;
 					int flag_window_height = flag_offset*std::min((int)message["flags"].size(),flags_per_col) + 25;
 
 					string name = "Viz Control";
