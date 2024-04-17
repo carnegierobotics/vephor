@@ -776,6 +776,36 @@ shared_ptr<Texture> Window::getTextureFromJSON(const json& data, int base_buf_in
 		
 		return getTextureFromBuffer(buf.data(), data["channels"], readVec2i(data["size"]), filter_nearest);
 	}
+	else if (data["type"] == "jpg")
+	{
+		size_t buf_id = data["buf"];
+		buf_id += base_buf_index;
+		const auto& buf = bufs[buf_id];
+		
+		if (serial_header && serial_bufs)
+		{
+			(*serial_header)["buf"] = serial_bufs->size();
+			serial_bufs->push_back(buf);
+		}
+
+		int width, height, numChannels;
+		unsigned char *image_data = stbi_load_from_memory(
+			reinterpret_cast<stbi_uc*>(const_cast<char*>(buf.data())), 
+			buf.size(), &width, &height, &numChannels, 0);
+
+		//v4print "Uncompressing image:", buf.size(), width*height*numChannels;
+
+		if (image_data == NULL) {
+			throw std::runtime_error("Error loading compressed image data from buffer.");
+			return NULL;
+		}
+		
+		auto tex = getTextureFromBuffer(reinterpret_cast<char*>(image_data), data["channels"], readVec2i(data["size"]), filter_nearest);
+
+		stbi_image_free(image_data);
+
+		return tex;
+	}
 	else if (data["type"] == "base64")
 	{
 		vector<uint8_t> bytes;

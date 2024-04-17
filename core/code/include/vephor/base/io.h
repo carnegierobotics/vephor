@@ -255,15 +255,40 @@ struct TextureDataRecord
 	bool filter_nearest = false;
 };
 
+inline void stbiWriteCallback(void* context, void* data, int size) {
+	vector<char>* cmp_buf_data = reinterpret_cast<vector<char>*>(context);
+
+	char* charData = (char*)data;
+	cmp_buf_data->insert(cmp_buf_data->end(), charData, charData + size);
+}
+
+const int DEFAULT_COMPRESSION_QUALITY = 80;
+
+struct TextureCompressionSettings
+{
+	bool compress = true;
+	int quality = DEFAULT_COMPRESSION_QUALITY;
+};
+
+inline TextureCompressionSettings& getTextureCompressionSettings() {
+    static TextureCompressionSettings s;
+    return s;
+}
+
+inline void setTextureCompression(bool compress, int quality = DEFAULT_COMPRESSION_QUALITY)
+{
+	auto& s = getTextureCompressionSettings();
+	s.compress = compress;
+	s.quality = quality;
+}
+
 inline json produceTextureData(const TextureDataRecord& tex_data, vector<vector<char>>* bufs)
 {
 	json data;
 	data["filter_nearest"] = tex_data.filter_nearest;
 	if (tex_data.tex.getSize()[0] > 0)
 	{
-		const char* buf_data;
-		int buf_size;
-		tex_data.tex.getBuffer(buf_data, buf_size);
+		const auto& compress_settings = getTextureCompressionSettings();
 
 		data["size"] = toJson(tex_data.tex.getSize());
 		data["channels"] = tex_data.tex.getChannels();
@@ -271,14 +296,41 @@ inline json produceTextureData(const TextureDataRecord& tex_data, vector<vector<
 		if (bufs)
 		{
 			int buf_id = bufs->size();
-			vector<char> buf;
-			buf.assign(buf_data, buf_data + buf_size);
-			bufs->push_back(buf);
-			data["type"] = "raw";
+			
+			if (compress_settings.compress)
+			{
+				vector<char> cmp_buf_data;
+
+				stbi_write_jpg_to_func(stbiWriteCallback, &cmp_buf_data, 
+					tex_data.tex.getSize()[0], tex_data.tex.getSize()[1], 
+					tex_data.tex.getChannels(), 
+					tex_data.tex.getData().data(), compress_settings.quality);
+
+				bufs->push_back(cmp_buf_data);
+
+				data["type"] = "jpg";
+			}
+			else
+			{
+				const char* buf_data;
+				int buf_size;
+				tex_data.tex.getBuffer(buf_data, buf_size);
+
+				vector<char> buf;
+				buf.assign(buf_data, buf_data + buf_size);
+				bufs->push_back(buf);
+
+				data["type"] = "raw";
+			}
+			
 			data["buf"] = buf_id;
 		}
 		else
 		{
+			const char* buf_data;
+			int buf_size;
+			tex_data.tex.getBuffer(buf_data, buf_size);
+
 			string tex_string = macaron::Base64::Encode(reinterpret_cast<const uint8_t*>(buf_data), buf_size);
 			data["type"] = "base64";
 			data["data"] = tex_string;

@@ -134,6 +134,8 @@ int main(int argc, char* argv[])
 	{
 		input_dir = fs::absolute(input_dir).string();
 	}
+	else if (mode.empty())
+		mode = "client";
 	
 	if (!record_path.empty())
 	{
