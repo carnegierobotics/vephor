@@ -103,51 +103,52 @@ using MatXMap = Eigen::Map<const MatX>;
 class Color
 {
 public:
-    constexpr Color() : r_(0.0f), g_(0.0f), b_(0.0f), a_(1.0f)
+    constexpr Color() : r(0.0f), g(0.0f), b(0.0f), a(1.0f)
     {
     }
 
-    constexpr Color(const float r, const float g, const float b, const float a = 1.0f) : r_(r), g_(g), b_(b), a_(a)
+    constexpr Color(const float p_r, const float p_g, const float p_b, const float p_a = 1.0f)
+        : r(p_r), g(p_g), b(p_b), a(p_a)
     {
     }
 
-    constexpr Color(const Vec3 &vec) : r_(vec(0)), g_(vec(1)), b_(vec(2)), a_(1.0f)
+    constexpr Color(const Vec3 &vec) : r(vec(0)), g(vec(1)), b(vec(2)), a(1.0f)
     {
     }
 
     constexpr Color(const Vec3u &vec)
-        : r_(static_cast<float>(vec(0)) / 255.0f), g_(static_cast<float>(vec(1)) / 255.0f),
-          b_(static_cast<float>(vec(2)) / 255.0f), a_(1.0f)
+        : r(static_cast<float>(vec(0)) / 255.0f), g(static_cast<float>(vec(1)) / 255.0f),
+          b(static_cast<float>(vec(2)) / 255.0f), a(1.0f)
     {
     }
 
-    constexpr Color(const Vec4 &vec) : r_(vec(0)), g_(vec(1)), b_(vec(2)), a_(vec(3))
+    constexpr Color(const Vec4 &vec) : r(vec(0)), g(vec(1)), b(vec(2)), a(vec(3))
     {
     }
 
     constexpr Color(const Vec4u &vec)
-        : r_(static_cast<float>(vec(0)) / 255.0f), g_(static_cast<float>(vec(1)) / 255.0f),
-          b_(static_cast<float>(vec(2)) / 255.0f), a_(static_cast<float>(vec(3)) / 255.0f)
+        : r(static_cast<float>(vec(0)) / 255.0f), g(static_cast<float>(vec(1)) / 255.0f),
+          b(static_cast<float>(vec(2)) / 255.0f), a(static_cast<float>(vec(3)) / 255.0f)
     {
     }
 
     const Vec3 getRGB() const
     {
-        return {r_, g_, b_};
+        return {r, g, b};
     }
 
     const Vec4 getRGBA() const
     {
-        return {r_, g_, b_, a_};
+        return {r, g, b, a};
     }
 
     float getAlpha() const
     {
-        return a_;
+        return a;
     }
 
 private:
-    float r_, g_, b_, a_;
+    float r, g, b, a;
 };
 
 class Orient3
