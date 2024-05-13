@@ -112,21 +112,21 @@ public:
     {
     }
 
-    constexpr Color(const Vec3 &vec) : r(vec(0)), g(vec(1)), b(vec(2)), a(1.0f)
+    Color(const Vec3 &vec) : r(vec(0)), g(vec(1)), b(vec(2)), a(1.0f)
     {
     }
 
-    constexpr Color(const Vec3u &vec)
+    Color(const Vec3u &vec)
         : r(static_cast<float>(vec(0)) / 255.0f), g(static_cast<float>(vec(1)) / 255.0f),
           b(static_cast<float>(vec(2)) / 255.0f), a(1.0f)
     {
     }
 
-    constexpr Color(const Vec4 &vec) : r(vec(0)), g(vec(1)), b(vec(2)), a(vec(3))
+    Color(const Vec4 &vec) : r(vec(0)), g(vec(1)), b(vec(2)), a(vec(3))
     {
     }
 
-    constexpr Color(const Vec4u &vec)
+    Color(const Vec4u &vec)
         : r(static_cast<float>(vec(0)) / 255.0f), g(static_cast<float>(vec(1)) / 255.0f),
           b(static_cast<float>(vec(2)) / 255.0f), a(static_cast<float>(vec(3)) / 255.0f)
     {
