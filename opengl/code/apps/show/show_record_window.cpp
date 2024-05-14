@@ -468,7 +468,6 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		if (obj.contains("colors"))
 			readVertexData(obj["colors"], base_buf_index, bufs, colors_record, &serialization.header["colors"], &serialization.payloads);
 
-
 		auto draw_obj = make_shared<ThickLines>(
 			verts_record.map.transpose(),
 			colors_record.map.transpose(),

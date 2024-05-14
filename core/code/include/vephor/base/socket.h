@@ -897,6 +897,7 @@ public:
 			}
 			else
 			{
+				v4print "Conn", conn.first, "disconnected, removing...";
 				conn.second->shutdown();
 			}
 		}
