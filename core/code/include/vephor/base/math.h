@@ -103,42 +103,52 @@ using MatXMap = Eigen::Map<const MatX>;
 class Color
 {
 public:
-	Color()
-	: inner(0,0,0,1)
-	{}
-	Color(float r, float g, float b, float a=1.0f)
-	: inner(r,g,b,a)
-	{}
-	Color(const Vec3& vec)
-	{
-		inner.head<3>() = vec;
-		inner[3] = 1;
-	}
-	Color(const Vec3u& vec)
-	{
-		inner.head<3>() = vec.cast<float>() / 255.0f;
-		inner[3] = 1;
-	}
-	Color(const Vec4& vec)
-	: inner(vec)
-	{}
-	Color(const Vec4u& vec)
-	: inner(vec.cast<float>() / 255.0f)
-	{}
-	const Vec3 getRGB() const
-	{
-		return inner.head<3>();
-	}
-	const Vec4& getRGBA() const
-	{
-		return inner;
-	}
-	float getAlpha() const
-	{
-		return inner[3];
-	}
+    constexpr Color() : r(0.0f), g(0.0f), b(0.0f), a(1.0f)
+    {
+    }
+
+    constexpr Color(const float p_r, const float p_g, const float p_b, const float p_a = 1.0f)
+        : r(p_r), g(p_g), b(p_b), a(p_a)
+    {
+    }
+
+    Color(const Vec3 &vec) : r(vec(0)), g(vec(1)), b(vec(2)), a(1.0f)
+    {
+    }
+
+    Color(const Vec3u &vec)
+        : r(static_cast<float>(vec(0)) / 255.0f), g(static_cast<float>(vec(1)) / 255.0f),
+          b(static_cast<float>(vec(2)) / 255.0f), a(1.0f)
+    {
+    }
+
+    Color(const Vec4 &vec) : r(vec(0)), g(vec(1)), b(vec(2)), a(vec(3))
+    {
+    }
+
+    Color(const Vec4u &vec)
+        : r(static_cast<float>(vec(0)) / 255.0f), g(static_cast<float>(vec(1)) / 255.0f),
+          b(static_cast<float>(vec(2)) / 255.0f), a(static_cast<float>(vec(3)) / 255.0f)
+    {
+    }
+
+    const Vec3 getRGB() const
+    {
+        return {r, g, b};
+    }
+
+    const Vec4 getRGBA() const
+    {
+        return {r, g, b, a};
+    }
+
+    float getAlpha() const
+    {
+        return a;
+    }
+
 private:
-	Vec4 inner;
+    float r, g, b, a;
 };
 
 class Orient3
