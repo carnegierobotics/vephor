@@ -55,6 +55,8 @@ struct ShowRecord
 	bool wait_flag = false;
 	unordered_map<ConnectionID, shared_ptr<Window>> control_window_per_conn;
 	shared_ptr<Texture> text_tex;
+	int exit_counter = 0;
+	bool keep_windows_hidden = false;
 	
 	// Object management
 	unordered_map<ObjectID, shared_ptr<RenderNode>> objects_by_id;
@@ -131,7 +133,8 @@ struct ShowRecord
 		
 		if (find(windows, window_id))
 		{
-			windows[window_id]->window->show();
+			if (!keep_windows_hidden)
+				windows[window_id]->window->show();
 			return;
 		}
 		
@@ -536,7 +539,8 @@ struct ShowRecord
 				if (window_added)
 				{
 					windows[window_id]->positionCameraFromObjectBounds();
-					windows[window_id]->window->show();
+					if (!keep_windows_hidden)
+						windows[window_id]->window->show();
 				}
 			}
 			else if (message["type"] == "wait")
@@ -677,6 +681,14 @@ struct ShowRecord
 		fout << meta_data;
 		fout.close();
 	}
+	void saveScreenshots(const string& output_folder)
+	{
+		for (const auto& window : windows)
+		{
+			auto screenshot = window.second->window->getScreenImage();
+            saveImage(output_folder + "/window_" + std::to_string(window.second->window_id) + ".png", screenshot);
+		}
+	}
 	void spin(bool daemon)
 	{
 		v4print "Daemon:", daemon;
@@ -758,6 +770,13 @@ struct ShowRecord
 					wait_flag = false;
 					v4print "Wait flag cleared.";
 				}
+			}
+
+			if (exit_counter > 0)
+			{
+				exit_counter--;
+				if (exit_counter == 0)
+					break;
 			}
 		}
 		

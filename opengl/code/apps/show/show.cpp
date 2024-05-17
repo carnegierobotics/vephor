@@ -64,13 +64,14 @@ int main(int argc, char* argv[])
 	string video_path;
 	float playback_speed = 1;
 	bool daemonize = false;
+	string screenshot_path;
 	
 	int opt;
 	int pos_arg_ind = 0;
 	while (optind < argc)
 	{
 		v4print "optind:", optind;
-		if((opt = getopt(argc, argv, "dhi:m:o:p:P:rR:v:")) != -1) 
+		if((opt = getopt(argc, argv, "dhi:m:o:p:P:rR:S:v:")) != -1) 
 		{
 			switch(opt)
 			{
@@ -101,6 +102,9 @@ int main(int argc, char* argv[])
 				break;
 			case 'R': 
 				record_path = optarg;
+				break;
+			case 'S': 
+				screenshot_path = optarg;
 				break;
 			case 'v': 
 				video_path = optarg;
@@ -167,6 +171,12 @@ int main(int argc, char* argv[])
 	show.video_path = video_path;
 	show.playback_speed = playback_speed;
 
+	if (!screenshot_path.empty())
+	{
+		show.exit_counter = 2;
+		show.keep_windows_hidden = true;
+	}
+
     if (use_net)
     {
 		if (use_client)
@@ -186,6 +196,12 @@ int main(int argc, char* argv[])
     }
     
 	show.spin(use_server || daemonize);
+
+	if (!screenshot_path.empty())
+	{
+		std::filesystem::create_directory(screenshot_path);
+		show.saveScreenshots(screenshot_path);
+	}
 
 	v4print "Show: Exiting successfully.";
 	

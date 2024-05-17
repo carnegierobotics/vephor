@@ -606,7 +606,7 @@ json Window::produceSceneJSON(vector<vector<char>>* bufs)
 				datum["destroy"] = true;
 			}
 			datum["overlay"] = false;
-			datum["layer"] = layer;
+			datum["layer"] = layer - num_layers / 2;
 			scene["objects"].push_back(datum);
 		}
 	}
@@ -625,7 +625,7 @@ json Window::produceSceneJSON(vector<vector<char>>* bufs)
 				datum["destroy"] = true;
 			}
 			datum["overlay"] = true;
-			datum["layer"] = layer;
+			datum["layer"] = layer - num_layers / 2;
 			scene["objects"].push_back(datum);
 		}
 	}
@@ -823,8 +823,8 @@ shared_ptr<Texture> Window::getTextureFromJSON(const json& data, int base_buf_in
 Image<uint8_t> Window::getScreenImage()
 {
 	glfwMakeContextCurrent(window);
-	Image<uint8_t> image(window_size[0], window_size[1], 4);
-	glReadPixels(0, 0, window_size[0], window_size[1], GL_RGBA, GL_UNSIGNED_BYTE, (uint8_t*)image.getData().data());
+	Image<uint8_t> image(window_size[0], window_size[1], 3);
+	glReadPixels(0, 0, window_size[0], window_size[1], GL_RGB, GL_UNSIGNED_BYTE, (uint8_t*)image.getData().data());
 
 	image.flipYInPlace();
 
