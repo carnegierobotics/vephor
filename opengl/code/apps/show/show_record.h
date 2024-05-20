@@ -217,6 +217,12 @@ struct ShowRecord
 			std::sort(msg_ids.begin(), msg_ids.end());
 		}
 
+		if (msg_ids.empty())
+		{
+			v4print "Selected directory does not appear to contain a vephor scene.  Exiting.";
+			std::exit(1);
+		}
+
         for (json msg_id : msg_ids)
 		{
 			string msg_dir = path + "/" + std::to_string((int)msg_id);

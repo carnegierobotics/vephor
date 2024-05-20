@@ -457,13 +457,16 @@ public:
 			(char *)&serv_addr.sin_addr.s_addr,
 			server->h_length);
 		serv_addr.sin_port = htons(port);
-		if (::connect(sock_fd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+		/*if (::connect(sock_fd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
 		{
 			error("Error connecting");
 			throw std::runtime_error("Error connecting.");
-		}
+		}*/
 
-		//enableTimeout();
+		while (::connect(sock_fd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
 	}
 	void bind_and_listen(int port)
 	{
