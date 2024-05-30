@@ -506,10 +506,14 @@ bool Window::render()
 	{
 		if (hide_on_close || ignore_close)
 		{
+			v4print "Close button hit, but close is ignored.";
 			close = false;
 			glfwSetWindowShouldClose(window, false);
 			if (hide_on_close)
+			{
+				v4print "Hiding window instead.";
 				hide();
+			}
 		}
 		else
 		{

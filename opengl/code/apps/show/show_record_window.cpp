@@ -53,6 +53,9 @@ void ShowRecordWindow::update()
 {
 	if (shutdown)
 		return;
+	if (!window->isShow())
+		return;
+
 	shutdown = !window->render();
 
 	if (!video_path.empty())
@@ -79,6 +82,24 @@ void ShowRecordWindow::update()
 		
 		return;
 	}
+	else if (!window->isShow()) // Window was just hidden
+	{
+		v4print "Hiding window:", window_id;
+		
+		if (net_manager)
+		{
+			json msg = {
+				{"type", "hide"},
+				{"window", window_id}
+			};
+			try {
+				net_manager->sendJSONBMessage(conn_id, msg, {});
+			} catch (...) {}
+		}
+
+		return;
+	}
+
 	camera->update(*window.get(), dt, control_info);
 	control_info.total_scroll_amount = 0.0f;
 }

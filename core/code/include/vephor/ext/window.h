@@ -631,12 +631,13 @@ private:
 	}
 
 public:
-	bool processEvents(bool verbose = false)
+	void processEvents(bool& key_event, bool& hide_event, bool verbose = false)
 	{
-		if (!manager.network_mode)
-			return false;
+		key_event = false;
+		hide_event = false;
 
-		bool keep_waiting = true;
+		if (!manager.network_mode)
+			return;
 
 		auto msgs = manager.getWindowMessages(id);
 
@@ -654,7 +655,8 @@ public:
 				
 				if (msg["key"] == KEY_ENTER)
 				{
-					keep_waiting = false;
+					key_event = true;
+					v4print "Continue key event received for window:", id;
 				}
 			}
 			else if (msg["type"] == "mouse_click")
@@ -673,10 +675,13 @@ public:
 			{
 				v4print "Close message received for window:", id;
 				shutdown = true;
+			}\
+			else if (msg["type"] == "hide")
+			{
+				v4print "Hide message received for window:", id;
+				hide_event = true;
 			}
 		}
-
-		return keep_waiting;
 	}
 	bool render(bool wait_close = true, bool wait_key = false)
 	{
@@ -840,9 +845,14 @@ public:
 			}
 			while (true)
 			{
-				bool keep_waiting_events = processEvents();
+				bool key_event = false;
+				bool hide_event = false;
+				processEvents(key_event, hide_event);
 
-				if (wait_key && !keep_waiting_events)
+				if (wait_key && key_event)
+					keep_waiting = false;
+
+				if (wait_close && hide_event)
 					keep_waiting = false;
 				
 				if (!keep_waiting || shutdown)

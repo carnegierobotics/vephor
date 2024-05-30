@@ -221,6 +221,7 @@ public:
             showing = false;
         }
     }
+    bool isShow() const {return showing;}
 
     bool isAlwaysOnTop() const
     {
