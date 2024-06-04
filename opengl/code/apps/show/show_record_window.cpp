@@ -687,6 +687,14 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		serialization.valid = true;
 		
 		auto draw_obj = make_shared<Axes>(obj["size"]);
+		if (obj.contains("x_rgb") && obj.contains("y_rgb") && obj.contains("z_rgb"))
+		{
+			draw_obj->setColors(
+				convert_from<Vec3, json>(obj["x_rgb"]),
+				convert_from<Vec3, json>(obj["y_rgb"]),
+				convert_from<Vec3, json>(obj["z_rgb"])
+			);
+		}
 		
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);

@@ -31,6 +31,16 @@ public:
 		axes[2] = make_shared<Cylinder>(0.1f, p_size, 6);
 		axes[2]->setColor(Vec3(0,0,1));
 	}
+	void setColors(
+		const Vec3& p_x_color,
+		const Vec3& p_y_color,
+		const Vec3& p_z_color
+	)
+	{
+		axes[0]->setColor(p_x_color);
+		axes[1]->setColor(p_y_color);
+		axes[2]->setColor(p_z_color);
+	}
 	void renderOGL(Window* window, const TransformSim3& world_from_body)
 	{
 		TransformSim3 axis_0(Vec3(size*0.5f,0,0), makeFacing(Vec3(1,0,0)));

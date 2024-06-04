@@ -141,7 +141,19 @@ PYBIND11_MODULE(_core, m) {
 	py::class_<ShowMetadata>(m, "ShowMetadata");
 
 	py::class_<Axes, shared_ptr<Axes>>(m, "Axes")
-        .def(py::init<float>(),py::arg("size")=1.0f);
+        .def(py::init<float>(),py::arg("size")=1.0f)
+		.def("setColors",[](Axes& a, 
+			const Vec3& x_rgb,
+			const Vec3& y_rgb,
+			const Vec3& z_rgb){
+				a.setColors(
+					Color(x_rgb),
+					Color(y_rgb),
+					Color(z_rgb)
+				);
+			}, 
+			py::arg("x_rgb"),py::arg("y_rgb"),py::arg("z_rgb"))
+		.def("setColorsCMY", &Axes::setColorsCMY);
 
     py::class_<Sphere, shared_ptr<Sphere>>(m, "Sphere")
         .def(py::init<float,int,int>(),py::arg("rad")=1.0f,py::arg("slices")=12,py::arg("stacks")=12)
