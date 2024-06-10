@@ -73,6 +73,7 @@ write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
 set(EXAMPLE_APPS
 	test_show
 	mini_test_show
+	mini_test_show_transparent
 	mini_test_server
 	test_plot
 	test_imshow

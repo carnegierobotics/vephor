@@ -428,6 +428,8 @@ public:
     Window(int p_width=-1, int p_height=-1, string p_title="show")
 	: width(p_width), height(p_height), title(p_title)
 	{
+		opacity = default_opacity;
+		
 		id = manager.next_window_id;
 		manager.next_window_id++;
 		
@@ -466,6 +468,8 @@ public:
 	}
 
 	void setFrameLock(float p_fps){fps = p_fps;}
+
+	void setOpacity(float p_opacity){opacity = p_opacity;}
 
 	void setFrameSkipMessageLimit(int p_frame_skip_message_limit){frame_skip_message_limit = p_frame_skip_message_limit;}
 
@@ -941,6 +945,11 @@ public:
 
 		fs::remove_all(temp_dir);
 	}
+
+	static void setGlobalDefaultOpacity(float p_opacity)
+	{
+		default_opacity = p_opacity;
+	}
 	
 	static bool checkAndConsumeFlag(const string& flag)
 	{
@@ -1209,7 +1218,8 @@ private:
 				{"width", width},
 				{"height", height},
 				{"title", title},
-				{"fps", fps}
+				{"fps", fps},
+				{"opacity", opacity}
 			};
 			scene["camera"]["control"] = camera_control;
 			camera_up_to_date[conn_id] = true;
@@ -1321,6 +1331,7 @@ private:
 	int width, height;
 	string title;
 	float fps = 30.0f;
+	float opacity;
 	int frame_messages_waiting = 0;
 	int frame_skip_message_limit = 3;
 	int frame_message_skips = 0;
@@ -1339,6 +1350,7 @@ private:
 	size_t total_network_use_bytes = 0;
 	bool network_use_start_time_set = false;
 	std::chrono::time_point<std::chrono::high_resolution_clock> network_use_start_time;
+	inline static float default_opacity = 1.0f;
 	inline static vector<JSONBMessage> messages_to_write;
 	inline static unique_ptr<Process> server_proc;
 	inline static string record_path;

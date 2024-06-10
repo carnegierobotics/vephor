@@ -121,6 +121,7 @@ void ShowRecordWindow::setup(const json& data,
 	Vec2 size(-1, -1);
 	string title = "show";
 	float fps = 30.0f;
+	float opacity = 1.0f;
 	
 	if (data.contains("window"))
 	{
@@ -132,6 +133,8 @@ void ShowRecordWindow::setup(const json& data,
 			title = data["window"]["title"];
 		if (data["window"].contains("fps"))
 			fps = data["window"]["fps"];
+		if (data["window"].contains("opacity"))
+			opacity = data["window"]["opacity"];
 	}
 	
 	v4print "Window created:", window_id, title;
@@ -145,6 +148,7 @@ void ShowRecordWindow::setup(const json& data,
 	}, opts);
 
 	window->setHideOnClose(hide_windows);
+	window->setOpacity(opacity);
 	
 	text_tex = loadTexture("/assets/Holstein.png", false, assets);
 	

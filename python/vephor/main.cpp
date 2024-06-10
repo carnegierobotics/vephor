@@ -322,6 +322,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("use_3d")=false)
 		.def("setKeyPressCallback", &Window::setKeyPressCallback)
 		.def("setPlotMode", &Window::setPlotMode, py::arg("equal")=false)
+		.def("setOpacity", &Window::setOpacity)
 		.def("save", &Window::save)
         .def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
             const Vec3&,

@@ -231,6 +231,11 @@ public:
     {
         glClearColor(color[0], color[1], color[2], alpha);
     }
+
+    void setOpacity(float opacity)
+    {
+        glfwSetWindowOpacity(window, opacity);
+    }
 	
     shared_ptr<RenderNode> add(
 		const TransformSim3& parent_from_node = TransformSim3()
