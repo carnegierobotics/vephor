@@ -710,12 +710,15 @@ public:
 			{
 				manager.updateMetadata();
 
+
 				if (frame_skip_message_limit >= 0)
 				{
 					int q_size = manager.net.getJSONBOutgoingQueueSize(conn_id);
-					if (q_size > frame_skip_message_limit)
+					if (frame_messages_waiting > frame_skip_message_limit)
 					{
-						v4print "Skipping frame due to unsent outgoing messages - Conn:", conn_id, "Queue Size:", q_size;
+						if (frame_message_skips % 100 == 0)
+							v4print "Skipping frame due to unsent outgoing messages - Conn:", conn_id, "Queue Size:", q_size, "Frame Messages Waiting:", frame_messages_waiting;
+						frame_message_skips++;
 						continue;
 					}
 				}
@@ -779,7 +782,10 @@ public:
 						"Rate:", formatByteDisplay(total_network_use_bytes / network_use_time), "/ s";
 				}
 
-				manager.net.sendJSONBMessage(conn_id, msg.header, msg.payloads);
+				frame_messages_waiting++;
+				manager.net.sendJSONBMessage(conn_id, msg.header, msg.payloads, [&](const shared_ptr<JSONBMessage>& /*msg*/){
+					frame_messages_waiting--;
+				});
 
 				// Record after sending so time doesn't go out in the network message
 				if (!record_path.empty())
@@ -1315,7 +1321,9 @@ private:
 	int width, height;
 	string title;
 	float fps = 30.0f;
-	int frame_skip_message_limit = 100;
+	int frame_messages_waiting = 0;
+	int frame_skip_message_limit = 3;
+	int frame_message_skips = 0;
 	shared_ptr<TransformNode> window_top_right_node;
 	shared_ptr<TransformNode> window_bottom_right_node;
 	shared_ptr<TransformNode> window_top_left_node;

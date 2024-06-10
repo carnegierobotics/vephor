@@ -887,13 +887,20 @@ public:
 		conns = active_conns;
 		conn_id_list = active_conn_id_list;
 	}
-	bool sendJSONBMessage(ConnectionID conn_id, const json& header, const vector<vector<char>>& payloads)
+	bool sendJSONBMessage(
+		ConnectionID conn_id, 
+		const json& header, 
+		const vector<vector<char>>& payloads,
+		const std::function<void(const shared_ptr<JSONBMessage>&)>& callback = NULL)
 	{
 		if (!find(conns, conn_id))
 			throw std::runtime_error("Attempt to send using invalid conn id: " + std::to_string(conn_id));
 
 		std::lock_guard<std::mutex> lock(conns[conn_id]->out_msg_lock);
-		conns[conn_id]->outgoing_messages.push_back(std::make_shared<JSONBMessage>(JSONBMessage{true, header, payloads}));
+		conns[conn_id]->outgoing_messages.push_back({
+			std::make_shared<JSONBMessage>(JSONBMessage{true, header, payloads}),
+			callback
+		});
 
 		return true;
 	}
@@ -954,6 +961,12 @@ public:
 		return conns.at(conn_id)->getTime();
 	}
 private:
+	struct OutgoingMessage
+	{
+		shared_ptr<JSONBMessage> msg;
+		std::function<void(const shared_ptr<JSONBMessage>&)> callback;
+	};
+
 	struct ConnRecord
 	{
 		shared_ptr<TCPSocket> sock;
@@ -962,7 +975,7 @@ private:
 		vector<JSONBMessage> incoming_messages;
 		std::thread out_msg_thread;
 		std::mutex out_msg_lock;
-		vector<shared_ptr<JSONBMessage>> outgoing_messages;
+		vector<OutgoingMessage> outgoing_messages;
 		std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
 		
 		ConnRecord()
@@ -1050,7 +1063,7 @@ private:
 					continue;
 				}
 
-				shared_ptr<JSONBMessage> msg;
+				OutgoingMessage msg;
 				{
 					std::lock_guard<std::mutex> lock(conn->out_msg_lock);
 					msg = *(conn->outgoing_messages.begin());
@@ -1058,11 +1071,16 @@ private:
 				}
 
 				try {
-					sock->sendJSONBMessage(msg->header, msg->payloads);
+					sock->sendJSONBMessage(msg.msg->header, msg.msg->payloads);
 				} catch (const std::exception & ex)
 				{
 					v4print "Send JSONB exception caught:", ex.what();
 					break;
+				}
+
+				if (msg.callback)
+				{
+					msg.callback(msg.msg);
 				}
 			}
 			v4print "Ending outgoing connection thread for", id;
