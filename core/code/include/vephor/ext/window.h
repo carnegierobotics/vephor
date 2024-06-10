@@ -721,7 +721,7 @@ public:
 					if (frame_messages_waiting > frame_skip_message_limit)
 					{
 						if (frame_message_skips % 100 == 0)
-							v4print "Skipping frame due to unsent outgoing messages - Conn:", conn_id, "Queue Size:", q_size, "Frame Messages Waiting:", frame_messages_waiting;
+							v4print "Skipping frame due to unsent outgoing messages - Window:", id, "Title:", title, "Conn:", conn_id, "Queue Size:", q_size, "Frame Messages Waiting:", frame_messages_waiting;
 						frame_message_skips++;
 						continue;
 					}
