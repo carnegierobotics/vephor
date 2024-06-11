@@ -284,14 +284,15 @@ struct ShowRecord
 				{
 					v4print "Setting up viz control window.";
 
-					const int flag_offset = 65;
-					const int flag_size = 40;
-					const int flag_width = 400;
-					const int flag_x = 25;
-					const int flags_per_col = 10;
+					const float flag_scale = 1.25f;
+					const int flag_offset = 32.5 * flag_scale;
+					const int flag_size = 20 * flag_scale;
+					const int flag_width = 200 * flag_scale;
+					const int flag_gap = 12.5 * flag_scale;
+					const int flags_per_col = 15;
 
-					int flag_window_width = (flag_width + 25) * ceil((float)message["flags"].size()/flags_per_col) + 25;
-					int flag_window_height = flag_offset*std::min((int)message["flags"].size(),flags_per_col) + 25;
+					int flag_window_width = (flag_width + flag_gap) * ceil((float)message["flags"].size()/flags_per_col) + flag_gap;
+					int flag_window_height = flag_offset*std::min((int)message["flags"].size(),flags_per_col) + flag_gap;
 
 					string name = "Viz Control";
 					string inner_name;
@@ -327,7 +328,7 @@ struct ShowRecord
 					
 					for (const auto& flag : message_flags)
 					{
-						float hpos = (int)(flags_record.flags.size()/flags_per_col)*(flag_width + 25)+flag_x;
+						float hpos = (int)(flags_record.flags.size()/flags_per_col)*(flag_width+flag_gap)+flag_gap;
 						float vpos = -((int)(flags_record.flags.size()%flags_per_col)+1)*flag_offset;
 						
 						MeshData mesh_data(6);
@@ -349,7 +350,7 @@ struct ShowRecord
 					
 					auto control_window_ptr = control_window.get();
 					
-					control_window->setLeftMouseButtonReleaseCallback([this, control_window_ptr, conn_id, flag_x, flag_width, flag_offset, flag_size](){
+					control_window->setLeftMouseButtonReleaseCallback([this, control_window_ptr, conn_id, flag_gap, flag_width, flag_offset, flag_size](){
 						v4print "(Control window) Left click @", control_window_ptr->getMousePos().transpose();
 						
 						auto& flags_record = flags_per_conn[conn_id];
@@ -357,7 +358,7 @@ struct ShowRecord
 						for (int i = 0; i < flags_record.flags.size(); i++)
 						{
 							Vec2 corner_rel_pos = control_window_ptr->getMousePos() - Vec2(0, control_window_ptr->getSize()[1]);
-							float hpos = (int)(i/flags_per_col)*(flag_width + 25)+flag_x;
+							float hpos = (int)(i/flags_per_col)*(flag_width+flag_gap)+flag_gap;
 							float vpos = -(i%flags_per_col+1)*flag_offset;
 							corner_rel_pos[0] -= hpos;
 							corner_rel_pos[1] -= vpos;

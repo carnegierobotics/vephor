@@ -369,22 +369,36 @@ public:
 
 		polygon(verts, color, thickness);
 	}
-	void line(const vector<Vec2>& verts, const Color& color, float thickness)
+	void line(const vector<Vec2>& verts, const Color& color, float thickness = 0)
 	{
-		auto data = formLine(verts, thickness / 2.0f);
-		auto mesh = make_shared<Mesh>(data);
-		mesh->setColor(color);
-		mesh->setCull(false);
-		mesh->setSpecular(0.0f);
-		inner_window.add(mesh, Vec3(0,0,plot_index + 1));
+		if (thickness == 0) // A thin line
+		{
+			MatX pts(2, 3);
+
+			pts.row(0) = Vec3(verts[0][0], verts[0][1], 0);
+			pts.row(1) = Vec3(verts[1][0], verts[1][1], 0);
+
+			auto lines = make_shared<Lines>(pts);
+			lines->setColor(color);
+			inner_window.add(lines, Vec3(0,0,plot_index + 1));
+		}
+		else
+		{
+			auto data = formLine(verts, thickness / 2.0f);
+			auto mesh = make_shared<Mesh>(data);
+			mesh->setColor(color);
+			mesh->setCull(false);
+			mesh->setSpecular(0.0f);
+			inner_window.add(mesh, Vec3(0,0,plot_index + 1));
+		}
 
 		plot_index++;
 	}
-	void line(const Vec2& start, const Vec2& end, const Color& color, float thickness)
+	void line(const Vec2& start, const Vec2& end, const Color& color, float thickness = 0)
 	{
 		line({start, end}, color, thickness);
 	}
-	void line_d(const Vec2d& start, const Vec2d& end, const Color& color, float thickness)
+	void line_d(const Vec2d& start, const Vec2d& end, const Color& color, float thickness = 0)
 	{
 		line({start.cast<float>(), end.cast<float>()}, color, thickness);
 	}
