@@ -163,11 +163,12 @@ void ShowRecordWindow::setup(const json& data,
 	auto dir_light = make_shared<DirLight>(light_dir, 0.4f);
 	window->add(dir_light, Transform3());
 
+	const int on_top_indicator_size = 25;
 	MeshData mesh_data(6);
-	mesh_data.addQuad2D(Vec2(0,-10), Vec2(10,0), Vec2(0,0), Vec2(1,1));
+	mesh_data.addQuad2D(Vec2(0,-on_top_indicator_size), Vec2(on_top_indicator_size,0), Vec2(0,0), Vec2(1,1));
 	auto mesh = make_shared<Mesh>(mesh_data, Vec3(1,1,0));
 	mesh->setCull(false);
-	on_top_indicator_node = window->add(mesh, Vec3(0, 0, 0), true);
+	on_top_indicator_node = window->add(mesh, Vec3(0, 0, 0), true, Window::NUM_LAYERS / 2);
 	on_top_indicator_node->setParent(window->getWindowTopLeftNode());
 	on_top_indicator_node->setShow(false);
 

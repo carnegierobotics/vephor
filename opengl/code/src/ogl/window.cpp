@@ -322,8 +322,8 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 	glfwSetScrollCallback(window, global_scroll_callback);
 	glfwSetFramebufferSizeCallback(window, global_framebuffer_size_callback);
 
-	object_layers.resize(num_layers);
-	overlay_object_layers.resize(num_layers);
+	object_layers.resize(NUM_LAYERS);
+	overlay_object_layers.resize(NUM_LAYERS);
 
 	ambient_light_strength = Vec3(0.1f,0.1f,0.1f);
 
@@ -589,7 +589,7 @@ json Window::produceSceneJSON(vector<vector<char>>* bufs)
 				datum["destroy"] = true;
 			}
 			datum["overlay"] = false;
-			datum["layer"] = layer - num_layers / 2;
+			datum["layer"] = layer - NUM_LAYERS / 2;
 			scene["objects"].push_back(datum);
 		}
 	}
@@ -608,7 +608,7 @@ json Window::produceSceneJSON(vector<vector<char>>* bufs)
 				datum["destroy"] = true;
 			}
 			datum["overlay"] = true;
-			datum["layer"] = layer - num_layers / 2;
+			datum["layer"] = layer - NUM_LAYERS / 2;
 			scene["objects"].push_back(datum);
 		}
 	}

@@ -168,7 +168,7 @@ public:
     friend void global_key_handler(GLFWwindow* window, int key, int scancode, int action, int mods);
 	friend void global_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-    static const size_t num_layers = 20;
+    static const size_t NUM_LAYERS = 20;
 
     struct LightInfo
     {
@@ -277,12 +277,12 @@ public:
 
         glfwMakeContextCurrent(window);
 		
-		layer += num_layers / 2;
+		layer += NUM_LAYERS / 2;
 
 		if (layer < 0)
 			layer = 0;
-        else if (layer >= num_layers)
-            layer = num_layers - 1;
+        else if (layer >= NUM_LAYERS)
+            layer = NUM_LAYERS - 1;
 
 		auto node = make_shared<TransformNode>(parent_from_node);
 
