@@ -29,6 +29,7 @@ void waitForMessages(NetworkManager* net_manager, std::deque<JSONBMessage>* mess
 struct ShowRecordWindow
 {
 	shared_ptr<Window> window;
+	shared_ptr<RenderNode> on_top_indicator_node;
 	bool shutdown = false;
 	float dt;
 	shared_ptr<Texture> text_tex;

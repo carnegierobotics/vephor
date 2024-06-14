@@ -17,6 +17,8 @@ struct FlagRecord
 	string name;
 	bool toggle;
 	bool state = false;
+	shared_ptr<RenderNode> on_back;
+	shared_ptr<RenderNode> off_back;
 };
 
 struct FlagsRecord
@@ -330,13 +332,43 @@ struct ShowRecord
 					{
 						float hpos = (int)(flags_record.flags.size()/flags_per_col)*(flag_width+flag_gap)+flag_gap;
 						float vpos = -((int)(flags_record.flags.size()%flags_per_col)+1)*flag_offset;
+
+						bool toggle = flag["toggle"];
 						
-						MeshData mesh_data(6);
-						mesh_data.addQuad2D(Vec2(0,0), Vec2(flag_width,flag_size), Vec2(0,0), Vec2(1,1));
-						auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.5,0.5,0.5));
-						mesh->setCull(false);
-						auto mesh_node = control_window->add(mesh, Vec3(hpos, vpos, 0), true);
-						mesh_node->setParent(control_window->getWindowTopLeftNode());
+						shared_ptr<RenderNode> on_back;
+						shared_ptr<RenderNode> off_back;
+
+						if (toggle)
+						{
+							{
+								MeshData mesh_data(6);
+								mesh_data.addQuad2D(Vec2(0,0), Vec2(flag_width,flag_size), Vec2(0,0), Vec2(1,1));
+								auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.2,0.5,0.2));
+								mesh->setCull(false);
+								on_back = control_window->add(mesh, Vec3(hpos, vpos, 0), true);
+								on_back->setParent(control_window->getWindowTopLeftNode());
+								on_back->setShow(false);
+							}
+
+							{
+								MeshData mesh_data(6);
+								mesh_data.addQuad2D(Vec2(0,0), Vec2(flag_width,flag_size), Vec2(0,0), Vec2(1,1));
+								auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.5,0.2,0.2));
+								mesh->setCull(false);
+								off_back = control_window->add(mesh, Vec3(hpos, vpos, 0), true);
+								off_back->setParent(control_window->getWindowTopLeftNode());
+							}
+						}
+						else
+						{
+							MeshData mesh_data(6);
+							mesh_data.addQuad2D(Vec2(0,0), Vec2(flag_width,flag_size), Vec2(0,0), Vec2(1,1));
+							auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.5,0.5,0.5));
+							mesh->setCull(false);
+							on_back = control_window->add(mesh, Vec3(hpos, vpos, 0), true);
+							on_back->setParent(control_window->getWindowTopLeftNode());
+						}
+
 						
 						auto text = make_shared<Text>(flag["name"], text_tex);
 						text->setColor(Vec3(1,1,1));
@@ -344,7 +376,7 @@ struct ShowRecord
 						text_node->setScale(flag_size);
 						text_node->setParent(control_window->getWindowTopLeftNode());
 						
-						flags_record.flags.push_back({flag["name"], flag["toggle"], flag["state"]});
+						flags_record.flags.push_back({flag["name"], toggle, flag["state"], on_back, off_back});
 					}
 					flags_per_conn[conn_id] = flags_record;
 					
@@ -368,7 +400,20 @@ struct ShowRecord
 							{
 								v4print "Clicked", flags_record.flags[i].name;
 								if (flags_record.flags[i].toggle)
+								{
 									flags_record.flags[i].state = !flags_record.flags[i].state;
+
+									if (flags_record.flags[i].state)
+									{
+										flags_record.flags[i].on_back->setShow(true);
+										flags_record.flags[i].off_back->setShow(false);
+									}
+									else
+									{
+										flags_record.flags[i].on_back->setShow(false);
+										flags_record.flags[i].off_back->setShow(true);
+									}
+								}
 								else
 									flags_record.flags[i].state = true;
 							}
