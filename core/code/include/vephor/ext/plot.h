@@ -105,6 +105,9 @@ public:
 		const MatXRef& y,
 		const PlotLineOptions& opts = PlotLineOptions())//cmap
 	{
+		if (x.rows() == 0)
+			return;
+
 		if (x.rows() != y.rows())
 			throw std::runtime_error("X and Y size must match in plot.");
 		
@@ -170,6 +173,25 @@ public:
 		}
 
 		plot(x,y,opts);
+	}
+	void plot(
+		const vector<Vec2>& xy,
+		const PlotLineOptions& opts = PlotLineOptions())
+	{
+		vector<float> x(xy.size());
+		vector<float> y(xy.size());
+
+		for (int i = 0; i < xy.size(); i++)
+		{
+			x[i] = xy[i][0];
+			y[i] = xy[i][1];
+		}
+
+		plot(
+			VecXMap(x.data(), x.size()),
+			MatXMap(y.data(), y.size(), 1),
+			opts
+		);
 	}
 	void scatter(
 		const VecXRef& x, 
@@ -292,6 +314,9 @@ public:
 	}
 	void polygon(const vector<Vec2>& verts, const Color& color, float thickness = 0)
 	{
+		if (verts.empty())
+			return;
+
 		// Non-negative border widths indicate border should be drawn
 		if (thickness >= 0)
 		{
@@ -371,6 +396,9 @@ public:
 	}
 	void line(const vector<Vec2>& verts, const Color& color, float thickness = 0)
 	{
+		if (verts.empty())
+			return;
+
 		if (thickness == 0) // A thin line
 		{
 			MatX pts(2, 3);

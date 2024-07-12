@@ -626,7 +626,8 @@ PYBIND11_MODULE(_core, m) {
 			},
 			py::arg("image"), py::arg("nearest")=false, py::arg("offset")=Vec2::Zero())
 		.def("show", &Plot::show, py::arg("wait_close")=true, py::arg("wait_key")=false)
-		.def("clear", &Plot::clear);
+		.def("clear", &Plot::clear)
+		.def("save", &Plot::save);
 
 
 #ifdef VERSION_INFO
