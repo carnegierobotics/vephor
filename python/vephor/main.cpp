@@ -60,7 +60,8 @@ PYBIND11_MODULE(_core, m) {
 		.def("setDestroy", &RenderNode::setDestroy)
 		.def("getDestroy", &RenderNode::getDestroy);
 	py::class_<MeshData>(m, "MeshData")
-		.def(py::init<>());
+		.def(py::init<>())
+		.def(py::init<const MatX&, const MatX&, const MatX&>());
 	py::class_<Color>(m, "Color")
 		.def(py::init<float,float,float,float>(),py::arg("r"),py::arg("g"),py::arg("b"),py::arg("a")=1.0)
 		.def(py::init<const Vec3&>())
@@ -78,6 +79,46 @@ PYBIND11_MODULE(_core, m) {
 	m.def("formPlane", &formPlane, py::arg("rads"));
 	m.def("formCircle", &formCircle, py::arg("rad"), py::arg("thickness"), py::arg("slices"));
 	m.def("formHeightMap", &formHeightMap, py::arg("heights"), py::arg("res"), py::arg("uv_callback")=NULL);
+
+	m.def("calcSurfaces", [](
+			py::buffer occupancy,
+			float thresh, 
+			float cell_size
+		){
+			py::buffer_info info = occupancy.request();
+
+			if (info.format != py::format_descriptor<double>::format())
+				throw std::runtime_error("Only double occupancy data supported.");
+
+			if (info.shape.size() != 3)
+				throw std::runtime_error("Only 3d occupancy data supported.");
+				
+			// Debug info
+			v4print info.ndim;
+			for (int i = 0; i < info.ndim; i++)
+			{
+				v4print "\t", info.shape[i], info.strides[i];
+			}
+			v4print info.itemsize, info.size, info.format;
+
+			Tensor<3, float> occupancy_t({(int)info.shape[0],(int)info.shape[1],(int)info.shape[2]});
+
+			const double *ptr = static_cast<const double *>(info.ptr);
+			for (int i = 0; i < info.shape[0]; i++)
+			for (int j = 0; j < info.shape[1]; j++)
+			for (int k = 0; k < info.shape[2]; k++)
+			{
+				occupancy_t({i,j,k}) = *ptr;
+				ptr++;
+			}
+
+			MeshData data;
+			mcubes::calcSurfaces(occupancy_t, thresh, cell_size, data);
+			return data;
+		}, 
+		py::arg("occupancy"), 
+		py::arg("thresh"),
+		py::arg("cell_size"));
 
 	m.def("clamp", &clamp);
 	
@@ -207,7 +248,16 @@ PYBIND11_MODULE(_core, m) {
 			const Vec4& rgba){
 				t.setColor(Color(rgba));
 			}, 
-			py::arg("rgba"));
+			py::arg("rgba"))
+		.def("setAnchorBottomLeft", &Text::setAnchorBottomLeft)
+		.def("setAnchorLeft", &Text::setAnchorLeft)
+		.def("setAnchorTopLeft", &Text::setAnchorTopLeft)
+		.def("setAnchorBottom", &Text::setAnchorBottom)
+		.def("setAnchorCentered", &Text::setAnchorCentered)
+		.def("setAnchorTop", &Text::setAnchorTop)
+		.def("setAnchorBottomRight", &Text::setAnchorBottomRight)
+		.def("setAnchorRight", &Text::setAnchorRight)
+		.def("setAnchorTopRight", &Text::setAnchorTopRight);
 
 	py::class_<Lines, shared_ptr<Lines>>(m, "Lines")
 		.def(py::init([](const MatX& verts, const MatX& colors){
@@ -455,6 +505,19 @@ PYBIND11_MODULE(_core, m) {
 			float,
             bool, 
             int)>(&Window::add<Sprite>),
+			py::arg("object"),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0)
+		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
+            const shared_ptr<Mesh>&,
+            const Vec3&,
+			const Vec3&,
+			float,
+            bool, 
+            int)>(&Window::add<Mesh>),
 			py::arg("object"),
 			py::arg("t")=Vec3(0,0,0),
 			py::arg("r")=Vec3(0,0,0),

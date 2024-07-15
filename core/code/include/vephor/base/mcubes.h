@@ -8,17 +8,19 @@
  * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
 **/
 
-#include "vephor/mcubes.h"
-#include "vephor/base/union_find.h"
-#include <algorithm>
+#pragma once
+
+#include "tensor.h"
+#include "geometry.h"
+#include "union_find.h"
 
 namespace vephor
 {
 
 namespace mcubes
 {
-	
-bool initialized = false;
+
+inline bool initialized = false;
 
 enum class EdgeIndex : uint16_t
 {
@@ -44,7 +46,7 @@ struct EdgeInfo
 	Vec3 center_vert;
 };
 
-const array<EdgeInfo, 12> edge_infos = {
+inline const array<EdgeInfo, 12> edge_infos = {
 	EdgeInfo{   1,0,{ 0, 1}, { 0,-1,-1}},
 	EdgeInfo{   2,0,{ 2, 3}, { 0, 1,-1}},
 	EdgeInfo{   4,0,{ 4, 5}, { 0,-1, 1}},
@@ -59,7 +61,7 @@ const array<EdgeInfo, 12> edge_infos = {
 	EdgeInfo{2048,2,{ 3, 7}, { 1, 1, 0}}
 };
 
-const array<Vec3i, 8> corner_offsets = {
+inline const array<Vec3i, 8> corner_offsets = {
 	Vec3i(0,0,0),
 	Vec3i(1,0,0),
 	Vec3i(0,1,0),
@@ -76,9 +78,9 @@ struct TriInfo
     vector<Vec3i> indices;
 };
 
-std::vector<TriInfo> tri_per_case;
+inline std::vector<TriInfo> tri_per_case;
 
-void addTriangle(TriInfo& tri_info, uint8_t edge_index_1, uint8_t edge_index_2, uint8_t edge_index_3, const Vec3& normal_sum)
+inline void addTriangle(TriInfo& tri_info, uint8_t edge_index_1, uint8_t edge_index_2, uint8_t edge_index_3, const Vec3& normal_sum)
 {
 	const Vec3& v1 = edge_infos[edge_index_1].center_vert;
 	const Vec3& v2 = edge_infos[edge_index_2].center_vert;
@@ -96,7 +98,7 @@ void addTriangle(TriInfo& tri_info, uint8_t edge_index_1, uint8_t edge_index_2, 
 	}
 }
 
-vector<size_t> formTravelingSalesmanLoopBruteForce(const vector<Vec3>& pts)
+inline vector<size_t> formTravelingSalesmanLoopBruteForce(const vector<Vec3>& pts)
 {
 	MatX dists(pts.size(), pts.size());
 	dists.fill(0.0f);
@@ -133,7 +135,7 @@ vector<size_t> formTravelingSalesmanLoopBruteForce(const vector<Vec3>& pts)
 	return best_perm;
 }
 
-void init()
+inline void init()
 {
 	// Form a list of triangles for each case, with references to which edge each vertex comes from
 	v4print "Marching cubes init...";
@@ -291,7 +293,7 @@ void init()
 	v4print "Marching cubes init complete.";
 }
 	
-void calcCellSurfaces(const array<float, 8>& cell_occ, float thresh, 
+inline void calcCellSurfaces(const array<float, 8>& cell_occ, float thresh, 
 	float cell_size, const Vec3& corner, 
 	vector<Vec3>& verts, vector<Vec3>& normals)
 {
@@ -373,7 +375,7 @@ void calcCellSurfaces(const array<float, 8>& cell_occ, float thresh,
 	}
 }
 
-void calcSurfaces(const Tensor<3, float>& occupancy, float thresh, float cell_size, MeshData& data)
+inline void calcSurfaces(const Tensor<3, float>& occupancy, float thresh, float cell_size, MeshData& data)
 {
 	if (!initialized)
 		init();

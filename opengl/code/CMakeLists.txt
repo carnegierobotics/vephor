@@ -88,7 +88,6 @@ add_library(vephor_opengl SHARED
 	src/ogl/points.cpp
 	src/ogl/instanced_points.cpp
 	src/ogl/background.cpp
-	src/mcubes.cpp
 	src/verlet.cpp
 )
 target_link_libraries(vephor_opengl ${GRAPHICS_LIBS} vephor)

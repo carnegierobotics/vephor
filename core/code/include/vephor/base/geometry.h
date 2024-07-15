@@ -25,6 +25,13 @@ struct MeshData
 	int curr_index = 0;
 	
 	MeshData(){}
+	MeshData(
+		const MatX& p_verts,
+		const MatX& p_uvs,
+		const MatX& p_norms
+	)
+	: verts(p_verts), uvs(p_uvs), norms(p_norms)
+	{}
 	MeshData(int n_verts)
 	{
 		verts.resize(n_verts, 3);

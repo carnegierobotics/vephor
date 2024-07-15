@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
 
 	if (!screenshot_path.empty())
 	{
-		show.exit_counter = 2;
+		show.exit_counter = 1;
 		show.keep_windows_hidden = true;
 	}
 

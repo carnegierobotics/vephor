@@ -32,8 +32,8 @@ void ShowRecordWindow::update()
 {
 	if (shutdown)
 		return;
-	if (!window->isShow())
-		return;
+	//if (!window->isShow())
+	//	return;
 
 	shutdown = !window->render();
 
