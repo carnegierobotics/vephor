@@ -129,6 +129,7 @@ public:
 		
 		return lists;
 	}
+    const std::unordered_map<VecDi<D>, vector<T>>& getHash() const{return hash;}
 private:
     float res;
     std::unordered_map<VecDi<D>, vector<T>> hash;
