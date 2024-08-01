@@ -131,7 +131,12 @@ struct MeshData
 	}
 };
 
-inline vector<Vec2> cleanOrderedVerts(const vector<Vec2>& orig_verts, float dist_min = 1e-3)
+const float DEFAULT_ORDERED_VERTS_DIST_MIN = 1e-3;
+
+inline vector<Vec2> cleanOrderedVerts(
+	const vector<Vec2>& orig_verts, 
+	float dist_min = DEFAULT_ORDERED_VERTS_DIST_MIN, 
+	bool loop = false)
 {
 	vector<Vec2> verts;
 
@@ -148,6 +153,14 @@ inline vector<Vec2> cleanOrderedVerts(const vector<Vec2>& orig_verts, float dist
 		float dist = diff.norm();
 		if (dist > dist_min)
 			verts.push_back(orig_verts[i]);
+	}
+
+	if (loop)
+	{
+		Vec2 diff = *verts.begin() - *verts.rbegin();
+		float dist = diff.norm();
+		if (dist <= dist_min)
+			verts.pop_back();
 	}
 
 	return verts;
@@ -256,8 +269,10 @@ inline MeshData formLine(const vector<Vec2>& orig_verts, float rad)
 }
 
 // Do not repeat the first vert for this method
-inline MeshData formLineLoop(const vector<Vec2>& verts, float rad)
+inline MeshData formLineLoop(vector<Vec2> verts, float rad)
 {
+	verts = cleanOrderedVerts(verts, DEFAULT_ORDERED_VERTS_DIST_MIN, true);
+
 	MeshData data;
 	
 	data.verts.resize((verts.size()*2)*3,3);
@@ -395,6 +410,8 @@ struct Triangle2
 inline MeshData formPolygon(vector<Vec2> verts)
 {
 	MeshData data;
+
+	verts = cleanOrderedVerts(verts, DEFAULT_ORDERED_VERTS_DIST_MIN, true);
 	
 	if (!isPolyCCW(verts))
 	{
