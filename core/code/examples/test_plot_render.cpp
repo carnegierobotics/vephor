@@ -48,7 +48,25 @@ int main()
 		Vec3(0.5,0.2,0.8),
 		5
 	);
-	
+
+    plt.arrow(/* start */ {-100, -100},
+              /* end */ {100, 100},
+              /* color */ {1.0F, 0.0F, 0.0F, 0.5F},
+              /* radius */ 10);
+
+    plt.arrowhead(/* center */ {0, 100},
+                  /* heading */ M_PI_2,
+                  /* color */ {0.0F, 1.0F, 0.0F},
+                  /* radius */ 10);
+    plt.arrowhead(/* center */ {-10, 100},
+                  /* heading */ 5 * M_PI / 4,
+                  /* color */ {0.0F, 0.0F, 1.0F},
+                  /* radius */ 2);
+    plt.arrowhead(/* center */ {10, 100},
+                  /* heading */ 7 * M_PI / 4,
+                  /* color */ {0.0F, 0.0F, 1.0F},
+                  /* radius */ 2);
+
 	vector<Vec2> verts_2 = {
         Vec2(0,0),
 		Vec2(-32,-32),

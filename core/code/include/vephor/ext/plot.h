@@ -430,6 +430,28 @@ public:
 	{
 		line({start.cast<float>(), end.cast<float>()}, color, thickness);
 	}
+    void arrow(const Vec2 &start, const Vec2 &end, const Color &color, const float radius = 1.0F)
+    {
+        Vec3 start_3d, end_3d;
+        start_3d << start, 0;
+        end_3d << end, 0;
+
+        auto arrow = std::make_shared<Arrow>(/* start */ start_3d,
+                /* end */ end_3d,
+                /* radius */ radius,
+                /* slices */ 4);
+        arrow->setColor(color);
+        inner_window.add(/* obj */ arrow, /* parent_from_node_t */ Vec3{0, 0, static_cast<float>(plot_index + 1)});
+
+        plot_index++;
+    }
+    void arrowhead(const Vec2 &center, const float heading, const Color &color, const float radius = 1.0F)
+    {
+        arrow(/* start */ center - Vec2{radius * std::cos(heading), radius * std::sin(heading)},
+              /* end */ center,
+              /* color */ color,
+              /* radius */ radius);
+    }
 	void imshow(const Image<uint8_t>& p_image, bool p_filter_nearest = false, const Vec2& offset = Vec2(0,0))
 	{
 		shared_ptr<Sprite> sprite;
