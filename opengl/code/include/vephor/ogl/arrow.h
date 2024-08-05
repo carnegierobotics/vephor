@@ -57,12 +57,22 @@ public:
 		body_from_arrow_head = new_body_from_body * body_from_arrow_head;
 		body_from_arrow_body = new_body_from_body * body_from_arrow_body;
 	}
-	void setColor(const Vec3& p_color)
+	void setColor(const Color& p_color)
 	{
 		head->setDiffuse(p_color);
 		head->setAmbient(p_color);
+		head->setOpacity(p_color.getAlpha());
 		body->setDiffuse(p_color);
 		body->setAmbient(p_color);
+		body->setOpacity(p_color.getAlpha());
+	}
+	void setColor(const Vec4& p_color)
+	{
+        setColor(Color(p_color));
+	}
+	void setColor(const Vec3& p_color)
+	{
+        setColor(Color(p_color));
 	}
 	void renderOGL(Window* window, const TransformSim3& world_from_body)
 	{

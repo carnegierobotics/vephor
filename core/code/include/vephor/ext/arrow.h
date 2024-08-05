@@ -25,7 +25,8 @@ public:
 	Arrow(const Vec3& p_start, const Vec3& p_end, float p_rad = 1.0f, int p_slices = 16)
 	: start(p_start), end(p_end), rad(p_rad), slices(p_slices)
 	{}
-	void setColor(const Vec3& p_color){color = p_color;}
+    void setColor(const Vec3 &p_color) { color << p_color, 1.0F; }
+    void setColor(const Color &p_color) { color = p_color.getRGBA(); }
 	json serialize(vector<vector<char>>*)
 	{
 		return {
@@ -34,7 +35,7 @@ public:
 			{"end", toJson(end)},
 			{"rad", rad},
 			{"slices", slices},
-			{"color_rgb", toJson(color)}
+			{"color_rgba", toJson(color)}
 		};
 	}
 private:
@@ -42,7 +43,7 @@ private:
 	Vec3 end;
 	float rad;
 	float slices;
-	Vec3 color = Vec3(1,1,1);
+	Vec4 color{1.0F, 1.0F, 1.0F, 1.0F};
 };
 
 }

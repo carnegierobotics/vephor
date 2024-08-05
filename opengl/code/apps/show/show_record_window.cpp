@@ -685,8 +685,8 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 			rad,
 			obj["slices"]
 		);
-		draw_obj->setColor(readDefault(obj, "color_rgb", Vec3(1,1,1)));
-		
+		draw_obj->setColor(readDefault(obj, "color_rgba", Vec4{1.0F, 1.0F, 1.0F, 1.0F}));
+
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
