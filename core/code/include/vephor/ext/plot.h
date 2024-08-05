@@ -437,9 +437,9 @@ public:
         end_3d << end, 0;
 
         auto arrow = std::make_shared<Arrow>(/* start */ start_3d,
-                /* end */ end_3d,
-                /* radius */ radius,
-                /* slices */ 4);
+                                             /* end */ end_3d,
+                                             /* radius */ radius,
+                                             /* slices */ 4);
         arrow->setColor(color);
         inner_window.add(/* obj */ arrow, /* parent_from_node_t */ Vec3{0, 0, static_cast<float>(plot_index + 1)});
 
@@ -447,8 +447,10 @@ public:
     }
     void arrowhead(const Vec2 &center, const float heading, const Color &color, const float radius = 1.0F)
     {
-        arrow(/* start */ center - Vec2{radius * std::cos(heading), radius * std::sin(heading)},
-              /* end */ center,
+        const auto offset = radius / 2;
+        const Vec2 unit{std::cos(heading), std::sin(heading)};
+        arrow(/* start */ center - offset * unit,
+              /* end */ center + offset * unit,
               /* color */ color,
               /* radius */ radius);
     }
