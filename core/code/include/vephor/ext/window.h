@@ -465,11 +465,16 @@ public:
 		{
 			camera_control["title"] = title;
 		}
+		invalidateCameraControlInfo();
 	}
 
 	void setFrameLock(float p_fps){fps = p_fps;}
 
-	void setOpacity(float p_opacity){opacity = p_opacity;}
+	void setOpacity(float p_opacity)
+	{
+		opacity = p_opacity;
+		invalidateCameraControlInfo();
+	}
 
 	void setFrameSkipMessageLimit(int p_frame_skip_message_limit){frame_skip_message_limit = p_frame_skip_message_limit;}
 
