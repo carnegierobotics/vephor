@@ -1204,6 +1204,12 @@ public:
 			obj->setDestroy();
 		}
 	}
+
+	void invalidateCameraControlInfo()
+	{
+		for (auto& up_to_date : camera_up_to_date)
+			up_to_date.second = false;
+	}
 private:
 	json produceSceneJSON(ConnectionID conn_id = std::numeric_limits<ConnectionID>::max(), vector<vector<char>>* bufs = NULL)
 	{

@@ -309,6 +309,7 @@ public:
 			{"type",marker},
 			{"color",toJson(color.getRGB())}
 		});
+		inner_window.invalidateCameraControlInfo();
 	}
 	void text(const string& raw_text, float size, const Vec2& offset, const Color& color)
 	{
@@ -491,6 +492,7 @@ public:
 	{
 		inner_window.clear();
 		inner_window.getCameraControlInfo()["labels"] = {};
+		inner_window.invalidateCameraControlInfo();
 		color_index = 0;
 		plot_index = 0;
 	}
