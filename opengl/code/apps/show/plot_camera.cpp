@@ -469,9 +469,8 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 
 void PlotCamera::update(const json& data, Window& window, AssetManager& assets)
 {
-	v4print "Plot update:", data;
-
-	setupTitle(data["title"], window);
+	if (data.contains("title"))
+		setupTitle(data["title"], window);
 
 	if (data.contains("labels") && !data["labels"].empty())
 	{

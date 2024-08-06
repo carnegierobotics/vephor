@@ -181,7 +181,6 @@ void ShowRecordWindow::update(const json& data, AssetManager& assets)
 {
 	if (data.contains("window"))
 	{
-		v4print "Window:", data["window"];
 		if (data["window"].contains("title"))
 		{
 			string title = data["window"]["title"];
@@ -196,8 +195,6 @@ void ShowRecordWindow::update(const json& data, AssetManager& assets)
 
 	if (data.contains("camera"))
 	{
-		v4print "Camera:", data["camera"];
-
 		if (data["camera"].contains("control"))
 			camera->update(data["camera"]["control"], *window, assets);
 	}
