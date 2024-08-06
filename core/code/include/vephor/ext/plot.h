@@ -149,7 +149,6 @@ public:
 
 			plot_index++;
 		}
-		
 	}
 	void plot(
 		const vector<float>& x, 
@@ -302,6 +301,14 @@ public:
 			MatXMap(y.data(), y.size(), 1),
 			opts
 		);
+	}
+	void label(const string& label, const Color& color, const string& marker = "circle")
+	{
+		inner_window.getCameraControlInfo()["labels"].push_back({
+			{"text",label},
+			{"type",marker},
+			{"color",toJson(color.getRGB())}
+		});
 	}
 	void text(const string& raw_text, float size, const Vec2& offset, const Color& color)
 	{
