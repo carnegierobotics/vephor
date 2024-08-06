@@ -35,6 +35,7 @@ public:
 		window.setProjectionMatrix(proj);
 	}
 	virtual void setup(const json& data, Window& window, AssetManager& assets) = 0;
+	virtual void update(const json& data, Window& window, AssetManager& assets){}
 	virtual void autoFitPoints(Window& window, const vector<Vec3>& pts){}
 	virtual void update(Window& window, float dt, const ControlInfo& control_info){}
 	virtual json serialize() = 0;

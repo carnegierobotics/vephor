@@ -68,6 +68,7 @@ struct ShowRecordWindow
 		NetworkManager* p_net_manager, 
 		AssetManager& assets, 
 		bool hide_windows);
+	void update(const json& data, AssetManager& assets);
 	void addBoundPoint(const Vec3& pt, const TransformSim3& world_from_body);
 	void addBoundVerts(const MatXRef& verts, const TransformSim3& world_from_body);
 	void addBoundSphere(float rad, const TransformSim3& world_from_body);

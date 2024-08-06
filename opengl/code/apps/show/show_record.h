@@ -116,6 +116,7 @@ struct ShowRecord
 		{
 			if (!keep_windows_hidden)
 				windows[window_id]->window->show();
+			windows[window_id]->update(data, assets);
 			return;
 		}
 		

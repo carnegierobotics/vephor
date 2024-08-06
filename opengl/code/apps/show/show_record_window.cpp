@@ -177,6 +177,32 @@ void ShowRecordWindow::setup(const json& data,
 	setupInputHandlers(net_manager);
 }
 
+void ShowRecordWindow::update(const json& data, AssetManager& assets)
+{
+	if (data.contains("window"))
+	{
+		v4print "Window:", data["window"];
+		if (data["window"].contains("title"))
+		{
+			string title = data["window"]["title"];
+			window->setTitle(title);
+		}
+		if (data["window"].contains("opacity"))
+		{
+			float opacity = data["window"]["opacity"];
+			window->setOpacity(opacity);
+		}
+	}
+
+	if (data.contains("camera"))
+	{
+		v4print "Camera:", data["camera"];
+
+		if (data["camera"].contains("control"))
+			camera->update(data["camera"]["control"], *window, assets);
+	}
+}
+
 void ShowRecordWindow::addBoundPoint(const Vec3& pt, const TransformSim3& world_from_body)
 {
 	auto world_pt = world_from_body * pt;

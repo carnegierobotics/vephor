@@ -156,6 +156,139 @@ void PlotCamera::resizeWindow(Window& window)
 	}
 }
 
+void PlotCamera::setupTitle(const string& title, Window& window)
+{
+	if (plot_title)
+		plot_title->setDestroy();
+
+	title_text = make_shared<Text>(title, text_tex, Vec3(0,0,0));
+	title_text->setAnchorCentered();
+	
+	plot_title = window.add(
+		title_text, 
+		TransformSim3(), 
+		true,
+		1);
+	plot_title->setScale(text_scale);
+}
+
+void PlotCamera::setupLegend(const json& label_data, Window& window, AssetManager& assets)
+{
+	if (legend_node)
+		legend_node->setDestroy();
+
+	v4print "Legend";
+	legend_node = window.add(TransformSim3());
+	
+	vector<shared_ptr<RenderNode>> legend_text_nodes;
+	
+	float x_max = 0.0f;
+	float y_shift = 0.0f;
+	for (const auto& label : label_data)
+	{
+		v4print "Label:", label["text"];
+		auto text = make_shared<Text>(label["text"], text_tex, Vec3(0,0,0));
+		text->setAnchorTopLeft();
+		auto node = window.add(text, Vec3(0, y_shift, 0), true, 2);
+		node->setScale(text_scale);
+		node->setParent(legend_node);
+		legend_text_nodes.push_back(node);
+		
+		Vec2 text_size = text->getSize() * text_scale;
+		if (text_size[0] > x_max)
+			x_max = text_size[0];
+		y_shift -= text_size[1];
+	}
+	
+	for (auto& node : legend_text_nodes)
+	{
+		Vec3 pos = node->getPos();
+		pos[0] = -x_max;
+		node->setPos(pos);
+	}
+	
+	// Make room for icons
+	x_max += text_scale * 2;
+	
+	for (size_t i = 0; i < label_data.size(); i++)
+	{
+		const auto& label = label_data[i];
+		if (label["type"] == "line")
+		{
+			MatX verts(2,3);
+			verts << -text_scale*0.75,0,0,text_scale*0.75,0,0;
+			Vec4 color;
+			color.head<3>() = readVec3(label["color"]);
+			color[3] = 1.0f;
+			auto node = window.add(
+				make_shared<Lines>(verts, MatX(), color),
+				TransformSim3(Vec3(-x_max + text_scale,legend_text_nodes[i]->getPos()[1]-text_scale/2.0f,0)),
+				true,
+				2
+			);
+			node->setParent(legend_node);
+		}
+		else
+		{
+			shared_ptr<Texture> marker_tex; 
+			
+			if (label["type"] == "circle")
+				marker_tex = window.loadTexture(assets.getAssetPath("/assets/circle.png"));
+			else if (label["type"] == "diamond")
+				marker_tex = window.loadTexture(assets.getAssetPath("/assets/diamond.png"));
+			else if (label["type"] == "plus")
+				marker_tex = window.loadTexture(assets.getAssetPath("/assets/plus.png"));
+			else if (label["type"] == "square")
+				marker_tex = window.getTextureFromImage(*generateSimpleImage(Vec2i(8,8), Vec3(1,1,1)));
+			else
+				throw std::runtime_error("Invalid marker type: " + string(label["type"]));
+			
+			auto marker_sprite = make_shared<Sprite>(marker_tex);
+			marker_sprite->setDiffuse(Vec3::Zero());
+			marker_sprite->setAmbient(Vec3::Zero());
+			marker_sprite->setEmissive(readVec3(label["color"]));
+			
+			auto node = window.add(
+				marker_sprite,
+				TransformSim3(Vec3(-x_max + text_scale,legend_text_nodes[i]->getPos()[1]-text_scale/2.0f,0)),
+				true,
+				2
+			);
+			node->setScale(text_scale*0.5f);
+			node->setParent(legend_node);
+		}
+	}
+	
+	MatX legend_box_verts(5,3);
+	legend_box_verts <<
+		0,0,0,
+		-x_max,0,0,
+		-x_max,y_shift,0,
+		0,y_shift,0,
+		0,0,0;
+	auto legend_box = make_shared<Lines>(legend_box_verts,MatX(),Vec4(0,0,0,1));
+	window.add(legend_box, TransformSim3(), true, 1)->setParent(legend_node);
+	
+	MeshData legend_fill_verts;
+	legend_fill_verts.verts.resize(2*3,3);
+	legend_fill_verts.norms.resize(2*3,3);
+	legend_fill_verts.uvs.resize(2*3,2);
+	legend_fill_verts.addQuad2D(
+		Vec2(-x_max,y_shift), 
+		Vec2(0,0),
+		Vec2(0,0),
+		Vec2(1,1)
+	);
+	auto legend_fill = make_shared<Mesh>(legend_fill_verts, Vec3(1,1,1), 0, 0, 1);
+	window.add(legend_fill, TransformSim3(), true, 1)->setParent(legend_node);
+	
+	Vec3 pos;
+	pos.head<2>() = Vec2(-box_border - text_scale, -box_border - text_scale);
+	pos[2] = 0;
+	legend_node->setPos(pos);
+	legend_node->setParent(window.getWindowTopRightNode());
+}
+
 void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 {	
 	serialization = data;
@@ -198,15 +331,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	
 	if (!title.empty())
 	{
-		title_text = make_shared<Text>(title, text_tex, Vec3(0,0,0));
-		title_text->setAnchorCentered();
-		
-		plot_title = window.add(
-			title_text, 
-			TransformSim3(), 
-			true,
-			1);
-		plot_title->setScale(text_scale);
+		setupTitle(title, window);
 	}
 
 	if (!x_axis.empty())
@@ -312,116 +437,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	
 	if (data.contains("labels") && !data["labels"].empty())
 	{
-		v4print "Legend";
-		legend_node = window.add(TransformSim3());
-		
-		vector<shared_ptr<RenderNode>> legend_text_nodes;
-		
-		float x_max = 0.0f;
-		float y_shift = 0.0f;
-		for (const auto& label : data["labels"])
-		{
-			v4print "Label:", label["text"];
-			auto text = make_shared<Text>(label["text"], text_tex, Vec3(0,0,0));
-			text->setAnchorTopLeft();
-			auto node = window.add(text, Vec3(0, y_shift, 0), true, 2);
-			node->setScale(text_scale);
-			node->setParent(legend_node);
-			legend_text_nodes.push_back(node);
-			
-			Vec2 text_size = text->getSize() * text_scale;
-			if (text_size[0] > x_max)
-				x_max = text_size[0];
-			y_shift -= text_size[1];
-		}
-		
-		for (auto& node : legend_text_nodes)
-		{
-			Vec3 pos = node->getPos();
-			pos[0] = -x_max;
-			node->setPos(pos);
-		}
-		
-		// Make room for icons
-		x_max += text_scale * 2;
-		
-		for (size_t i = 0; i < data["labels"].size(); i++)
-		{
-			const auto& label = data["labels"][i];
-			if (label["type"] == "line")
-			{
-				MatX verts(2,3);
-				verts << -text_scale*0.75,0,0,text_scale*0.75,0,0;
-				Vec4 color;
-				color.head<3>() = readVec3(label["color"]);
-				color[3] = 1.0f;
-				auto node = window.add(
-					make_shared<Lines>(verts, MatX(), color),
-					TransformSim3(Vec3(-x_max + text_scale,legend_text_nodes[i]->getPos()[1]-text_scale/2.0f,0)),
-					true,
-					2
-				);
-				node->setParent(legend_node);
-			}
-			else
-			{
-				shared_ptr<Texture> marker_tex; 
-				
-				if (label["type"] == "circle")
-					marker_tex = window.loadTexture(assets.getAssetPath("/assets/circle.png"));
-				else if (label["type"] == "diamond")
-					marker_tex = window.loadTexture(assets.getAssetPath("/assets/diamond.png"));
-				else if (label["type"] == "plus")
-					marker_tex = window.loadTexture(assets.getAssetPath("/assets/plus.png"));
-				else if (label["type"] == "square")
-					marker_tex = window.getTextureFromImage(*generateSimpleImage(Vec2i(8,8), Vec3(1,1,1)));
-				else
-					throw std::runtime_error("Invalid marker type: " + string(label["type"]));
-				
-				auto marker_sprite = make_shared<Sprite>(marker_tex);
-				marker_sprite->setDiffuse(Vec3::Zero());
-				marker_sprite->setAmbient(Vec3::Zero());
-				marker_sprite->setEmissive(readVec3(label["color"]));
-				
-				auto node = window.add(
-					marker_sprite,
-					TransformSim3(Vec3(-x_max + text_scale,legend_text_nodes[i]->getPos()[1]-text_scale/2.0f,0)),
-					true,
-					2
-				);
-				node->setScale(text_scale*0.5f);
-				node->setParent(legend_node);
-			}
-		}
-		
-		MatX legend_box_verts(5,3);
-		legend_box_verts <<
-			0,0,0,
-			-x_max,0,0,
-			-x_max,y_shift,0,
-			0,y_shift,0,
-			0,0,0;
-		auto legend_box = make_shared<Lines>(legend_box_verts,MatX(),Vec4(0,0,0,1));
-		window.add(legend_box, TransformSim3(), true, 1)->setParent(legend_node);
-		
-		MeshData legend_fill_verts;
-		legend_fill_verts.verts.resize(2*3,3);
-		legend_fill_verts.norms.resize(2*3,3);
-		legend_fill_verts.uvs.resize(2*3,2);
-		legend_fill_verts.addQuad2D(
-			Vec2(-x_max,y_shift), 
-			Vec2(0,0),
-			Vec2(0,0),
-			Vec2(1,1)
-		);
-		auto legend_fill = make_shared<Mesh>(legend_fill_verts, Vec3(1,1,1), 0, 0, 1);
-		window.add(legend_fill, TransformSim3(), true, 1)->setParent(legend_node);
-		
-		Vec3 pos;
-		pos.head<2>() = Vec2(-box_border - text_scale, -box_border - text_scale);
-		pos[2] = 0;
-		legend_node->setPos(pos);
-		legend_node->setParent(window.getWindowTopRightNode());
+		setupLegend(data["labels"], window, assets);
 	}
 	
 	if (data.contains("content_min"))
@@ -448,6 +464,20 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	if (data.contains("auto_fit"))
 		auto_fit = data["auto_fit"];
 	
+	resizeWindow(window);
+}
+
+void PlotCamera::update(const json& data, Window& window, AssetManager& assets)
+{
+	v4print "Plot update:", data;
+
+	setupTitle(data["title"], window);
+
+	if (data.contains("labels") && !data["labels"].empty())
+	{
+		setupLegend(data["labels"], window, assets);
+	}
+
 	resizeWindow(window);
 }
 

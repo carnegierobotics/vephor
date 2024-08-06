@@ -202,6 +202,12 @@ public:
     }
     bool isShow() const {return showing;}
 
+    void setTitle(const string& p_title)
+    {
+        title = p_title;
+        glfwSetWindowTitle(window, title.c_str());
+    }
+
     bool isAlwaysOnTop() const
     {
         return on_top;

@@ -23,6 +23,7 @@ public:
 		Vec3& curr_content_max);
 	virtual void resizeWindow(Window& window) override;
 	virtual void setup(const json& data, Window& window, AssetManager& assets) override;
+	virtual void update(const json& data, Window& window, AssetManager& assets) override;
 	virtual void autoFitPoints(Window& window, const vector<Vec3>& pts) override;
 	float findBestTickRes(float span, float window_span);
 	virtual void update(Window& window, float dt, const ControlInfo& control_info) override;
@@ -36,6 +37,9 @@ public:
 		return serialization;
 	}
 private:
+	void setupTitle(const string& title, Window& window);
+	void setupLegend(const json& label_data, Window& window, AssetManager& assets);
+
 	json serialization;
 	bool auto_fit = true;
 	string title;
