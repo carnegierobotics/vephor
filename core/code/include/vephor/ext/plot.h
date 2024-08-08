@@ -349,6 +349,9 @@ public:
 				mesh->setColor(color);
 				mesh->setCull(false);
 				mesh->setSpecular(0.0f);
+				mesh->setDiffuseStrength(0.0f);
+				mesh->setAmbientStrength(0.0f);
+				mesh->setEmissiveStrength(1.0f);
 				inner_window.add(mesh, Vec3(0,0,plot_index + 1));
 			}
 		}
@@ -362,6 +365,9 @@ public:
 			mesh->setColor(color);
 			mesh->setCull(false);
 			mesh->setSpecular(0.0f);
+			mesh->setDiffuseStrength(0.0f);
+			mesh->setAmbientStrength(0.0f);
+			mesh->setEmissiveStrength(1.0f);
 			inner_window.add(mesh, Vec3(0,0,plot_index + 1));
 		}
 

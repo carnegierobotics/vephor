@@ -538,7 +538,10 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		
 		auto draw_obj = make_shared<Mesh>(
 			data,
-			readDefault(obj, "color_rgba", Vec4(1,1,1,1)));
+			readDefault(obj, "color_rgba", Vec4(1,1,1,1)),
+			readDefault(obj, "diffuse", 1.0f),
+			readDefault(obj, "ambient", 1.0f),
+			readDefault(obj, "emissive", 0.0f));
 			
 		draw_obj->setCull(readDefault(obj, "cull", true));
 		draw_obj->setSpecular(readDefault(obj, "specular", 1.0f));

@@ -35,6 +35,9 @@ public:
 	void setColor(const Color& p_color){color = p_color.getRGBA();}
 	void setSpecular(bool p_specular){specular = p_specular;}
 	void setCull(bool p_cull){cull = p_cull;}
+	void setDiffuseStrength(float strength){diffuse_strength = strength;}
+	void setAmbientStrength(float strength){ambient_strength = strength;}
+	void setEmissiveStrength(float strength){emissive_strength = strength;}
 	json serialize(vector<vector<char>>* bufs)
 	{
 		return {
@@ -43,6 +46,9 @@ public:
 			{"norms", toJson(data.norms)},
 			{"uvs", toJson(data.uvs)},
 			{"color_rgba", toJson(color)},
+			{"diffuse", diffuse_strength},
+			{"ambient", ambient_strength},
+			{"emissive", emissive_strength},
 			{"tex", produceTextureData(tex_data, bufs)},
 			{"specular", specular},
 			{"cull", cull}
@@ -52,6 +58,9 @@ private:
 	MeshData data;
 	TextureDataRecord tex_data;
 	Vec4 color = Vec4(1,1,1,1);
+	float diffuse_strength = 1.0f;
+	float ambient_strength = 1.0f;
+	float emissive_strength = 0.0f;
 	float specular = 1.0f;
 	bool cull = true;
 };
