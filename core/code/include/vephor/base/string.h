@@ -18,7 +18,7 @@
 namespace vephor
 {
 
-std::string to_lower(std::string_view string)
+inline std::string to_lower(std::string_view string)
 {
     std::string out;
     std::transform(
@@ -28,7 +28,7 @@ std::string to_lower(std::string_view string)
     return out;
 }
 
-std::string to_upper(std::string_view string)
+inline std::string to_upper(std::string_view string)
 {
     std::string out;
     std::transform(
