@@ -12,6 +12,9 @@
 
 #include "window.h"
 
+#include "vephor/base/string.h"
+#include "vephor/base/thirdparty/Neargye/magic_enum/magic_enum.hpp"
+
 namespace vephor
 {
 
@@ -35,10 +38,26 @@ struct PlotLineOptions
 
 enum PlotScatterMarker
 {
+	POINT,
 	CIRCLE,
+	TRIANGLE_DOWN,
+	TRIANGLE_UP,
+	TRIANGLE_LEFT,
+	TRIANGLE_RIGHT,
+	SQUARE,
 	DIAMOND,
+	PENTAGON,
+	HEXAGON,
+	OCTAGON,
+	STAR,
 	PLUS,
-	SQUARE
+	PLUS_THIN,
+	CROSS,
+	CROSS_THIN,
+	LINE_VERTICAL,
+	LINE_HORIZONTAL,
+	SLASH_FORWARD,
+	SLASH_BACKWARD
 };
 
 struct PlotScatterOptions
@@ -232,23 +251,10 @@ public:
 			particle->setScreenSpaceMode(true);
 			particle->setColor(curr_color);
 			
-			string marker_name = "square";			
-			if (opts.marker == PlotScatterMarker::CIRCLE)
-			{
-				particle->setTexture(base_asset_dir+"/assets/circle.png", false);
-				marker_name = "circle";
-			}
-			else if (opts.marker == PlotScatterMarker::DIAMOND)
-			{
-				particle->setTexture(base_asset_dir+"/assets/diamond.png", false);
-				marker_name = "diamond";
-			}
-			else if (opts.marker == PlotScatterMarker::PLUS)
-			{
-				particle->setTexture(base_asset_dir+"/assets/plus.png", false);
-				marker_name = "plus";
-			}
-			inner_window.add(particle, Vec3(0,0,plot_index + 1));
+            std::string marker_name{magic_enum::enum_name(opts.marker)};
+            marker_name = to_lower(marker_name);
+            particle->setTexture(base_asset_dir + "/assets/" + marker_name + ".png", false);
+            inner_window.add(particle, Vec3(0, 0, plot_index + 1));
 			
 			if (!opts.label.empty())
 				inner_window.getCameraControlInfo()["labels"].push_back({
@@ -302,17 +308,30 @@ public:
 			opts
 		);
 	}
-	void label(const string& label, const Color& color, const string& marker = "circle")
-	{
-		inner_window.getCameraControlInfo()["labels"].push_back({
-			{"text",label},
-			{"type",marker},
-			{"color",toJson(color.getRGB())}
-		});
-		inner_window.invalidateCameraControlInfo();
-	}
-	void text(const string& raw_text, float size, const Vec2& offset, const Color& color)
-	{
+    void label(const string &text, const Color &color, const PlotScatterMarker marker)
+    {
+        const std::string marker_name{to_lower(magic_enum::enum_name(marker))};
+        inner_window.getCameraControlInfo()["labels"].push_back({
+                                                                        {"text",  text},
+                                                                        {"type",  marker_name},
+                                                                        {"color", toJson(color.getRGB())}
+                                                                });
+        inner_window.invalidateCameraControlInfo();
+    }
+    void label(const string &text, const Color &color, const string &marker_name = "circle")
+    {
+        const auto marker = magic_enum::enum_cast<PlotScatterMarker>(marker_name,
+                                                                     magic_enum::case_insensitive);
+        if (!marker.has_value())
+        {
+			throw std::runtime_error("[vephor::Plot::label()] No marker with name " + marker_name);
+        }
+
+        label(text, color, marker.value());
+    }
+
+    void text(const string &raw_text, float size, const Vec2 &offset, const Color &color)
+    {
 		auto text = make_shared<Text>(raw_text);
 		text->setAnchorCentered();
 		text->setColor(color);
