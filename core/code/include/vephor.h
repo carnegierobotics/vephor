@@ -21,6 +21,7 @@
 #include "vephor/base/thirdparty/tomykaira/base64.h"
 #include "vephor/base/transforms.h"
 #include "vephor/base/socket.h"
+#include "vephor/base/string.h"
 #include "vephor/base/io.h"
 #include "vephor/base/process.h"
 #include "vephor/base/mcubes.h"

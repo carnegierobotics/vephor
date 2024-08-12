@@ -230,19 +230,12 @@ void PlotCamera::setupLegend(const json& label_data, Window& window, AssetManage
 		}
 		else
 		{
-			shared_ptr<Texture> marker_tex; 
-			
-			if (label["type"] == "circle")
-				marker_tex = window.loadTexture(assets.getAssetPath("/assets/circle.png"));
-			else if (label["type"] == "diamond")
-				marker_tex = window.loadTexture(assets.getAssetPath("/assets/diamond.png"));
-			else if (label["type"] == "plus")
-				marker_tex = window.loadTexture(assets.getAssetPath("/assets/plus.png"));
-			else if (label["type"] == "square")
-				marker_tex = window.getTextureFromImage(*generateSimpleImage(Vec2i(8,8), Vec3(1,1,1)));
-			else
-				throw std::runtime_error("Invalid marker type: " + string(label["type"]));
-			
+            std::stringstream asset_subpath;
+            asset_subpath << "/assets/" << label["type"].get<std::string>() << ".png";
+            const auto asset_path = assets.getAssetPath(asset_subpath.str());
+
+            shared_ptr<Texture> marker_tex = window.loadTexture(asset_path);
+
 			auto marker_sprite = make_shared<Sprite>(marker_tex);
 			marker_sprite->setDiffuse(Vec3::Zero());
 			marker_sprite->setAmbient(Vec3::Zero());
