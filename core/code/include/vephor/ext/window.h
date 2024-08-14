@@ -926,6 +926,8 @@ public:
 		path = fs::absolute(path).string();
 
 		v4print "Saving scene to", path;
+
+		fs::remove_all(path);
 		
 		string temp_dir = getTempDir();
 		
