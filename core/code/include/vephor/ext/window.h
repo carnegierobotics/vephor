@@ -926,8 +926,6 @@ public:
 		path = fs::absolute(path).string();
 
 		v4print "Saving scene to", path;
-
-		fs::remove_all(path);
 		
 		string temp_dir = getTempDir();
 		
@@ -945,6 +943,7 @@ public:
 		if (fs::exists(temp_dir+"/scene_assets"))
 		{
 			v4print "Copying scene assets from", temp_dir+"/scene_assets", "to", path+"/scene_assets";
+			fs::remove_all(path+"/scene_assets");
 			fs::copy(temp_dir+"/scene_assets", path+"/scene_assets");
 		}
 
