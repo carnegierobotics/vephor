@@ -14,6 +14,7 @@
 #include <pybind11/eigen.h>
 #include <pybind11/functional.h>
 #include <pybind11/operators.h>
+#include <pybind11/stl.h>
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -69,6 +70,8 @@ PYBIND11_MODULE(_core, m) {
 		.def(py::init<const Vec4&>())
 		.def(py::init<const Vec4u&>());
 	
+	m.def("setTextureCompression", &setTextureCompression, py::arg("compress"), py::arg("quality") = DEFAULT_COMPRESSION_QUALITY);
+
 	m.def("formLine", &formLine, py::arg("vert_list"), py::arg("rad"));
 	m.def("formLineLoop", &formLineLoop, py::arg("vert_list"), py::arg("rad"));
 	m.def("formPolygon", &formPolygon, py::arg("vert_list"));
@@ -232,7 +235,22 @@ PYBIND11_MODULE(_core, m) {
         .def(py::init<float,Vec3,Vec3,float>(),py::arg("rad"),py::arg("normal")=Vec3(0,0,1),py::arg("right")=Vec3(1,0,0),py::arg("cell_size")=1.0f);
 
 	py::class_<Mesh, shared_ptr<Mesh>>(m, "Mesh")
-        .def(py::init<MeshData>());
+        .def(py::init<MeshData>())
+		.def("setColor",[](Mesh& m, 
+			const Vec3& rgb){
+				m.setColor(Color(rgb));
+			}, 
+			py::arg("rgb"))
+		.def("setColor",[](Mesh& m, 
+			const Vec4& rgba){
+				m.setColor(Color(rgba));
+			}, 
+			py::arg("rgba"))
+		.def("setSpecular", &Mesh::setSpecular)
+		.def("setCull", &Mesh::setCull)
+		.def("setDiffuseStrength", &Mesh::setDiffuseStrength)
+		.def("setAmbientStrength", &Mesh::setAmbientStrength)
+		.def("setEmissiveStrength", &Mesh::setEmissiveStrength);
 
 	py::class_<ObjMesh, shared_ptr<ObjMesh>>(m, "ObjMesh")
         .def(py::init<string>());
