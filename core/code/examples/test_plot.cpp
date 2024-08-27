@@ -83,6 +83,18 @@ int main()
     }
 
     {
+        vector<float> x;
+        vector<float> y;
+        for (int i = 1; i < 99; i += 4) {
+            x.push_back(static_cast<float>(i));
+            y.push_back(static_cast<float>(i * i));
+        }
+
+        plt.scatter(x, y,
+                    {.label = "Arrow Scatter", .color = {0.0F, 1.0F, 0.0F}, .marker = PlotScatterMarker::ARROW_RIGHT});
+    }
+
+    {
         plt.label("Custom Label", {1.0F, 0.0F, 0.0F}, "square");
     }
 
