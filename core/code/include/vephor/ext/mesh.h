@@ -21,6 +21,8 @@ public:
     Mesh(const MeshData& p_data)
 	: data(p_data)
 	{
+		if (data.verts.rows() == 0)
+			throw std::runtime_error("Empty mesh created.");
 	}
 	void setTexture(const string& p_tex, bool p_filter_nearest = false)
 	{

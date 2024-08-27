@@ -29,7 +29,8 @@ public:
             {"type", "text"},
 			{"text", text},
 			{"anchor", toJson(anchor)},
-			{"color_rgb", toJson(color)}
+			{"color_rgb", toJson(color)},
+			{"y_flip", y_flip}
         };
 	}
 	
@@ -69,10 +70,15 @@ public:
 	{
 		anchor = Vec2(1,1);
 	}
+	void setYFlip(bool p_y_flip)
+	{
+		y_flip = p_y_flip;
+	}
 private:
 	string text;
 	Vec2 anchor = Vec2::Zero();
 	Vec3 color = Vec3(1,1,1);
+	bool y_flip = false;
 };
 
 }

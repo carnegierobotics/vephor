@@ -324,22 +324,14 @@ inline void calcCellSurfaces(const array<float, 8>& cell_occ, float thresh,
 		{
 			float diff = cell_occ[info.corner_inds[1]] - cell_occ[info.corner_inds[0]];
 			
+			float perc;
 			if (fabs(diff) < 1e-3)
 			{
-				v4print "Zero diff edge found.";
-				v4print "Occ code:", (int)occ_code;
-				v4print "Edge pattern:", tri_info.pattern_id;
-				for (const auto& tri : tri_info.indices)
-				{
-					v4print "Tri:", tri.transpose();
-				}
-				v4print "Edge:", edge_index;
-				v4print "Occ:", cell_occ;
-				
-				std::exit(1);
+				perc = 0.5f;
 			}
-			
-			float perc = (thresh - cell_occ[info.corner_inds[0]]) / diff;
+			else
+				perc = (thresh - cell_occ[info.corner_inds[0]]) / diff;
+
 			edge_pts[edge_index] = corner + corner_offsets[info.corner_inds[0]].cast<float>() * cell_size;
 			edge_pts[edge_index][info.axis] += cell_size * perc;
 			
@@ -350,24 +342,50 @@ inline void calcCellSurfaces(const array<float, 8>& cell_occ, float thresh,
 	
 	for (const auto& tri : tri_info.indices)
 	{
+		bool too_close = false;
+
 		for (int i = 0; i < 3; i++)
 		{
-			verts.push_back(edge_pts[tri[i]]);
-			
 			for (int j = 0; j < 3; j++)
 			{
-				if (edge_pts[tri[i]][j] != edge_pts[tri[i]][j])
+				if (std::isnan(edge_pts[tri[i]][j]))
 				{
 					v4print "Invalid value in vertex:", edge_pts[tri[i]].transpose();
 					std::exit(1);
 				}
 			}
+
+			for (int j = i + 1; j < 3; j++)
+			{
+				float diff = (edge_pts[tri[i]] - edge_pts[tri[j]]).norm();
+
+				if (diff < 1e-3)
+				{
+					too_close = true;
+				}
+			}
 		}
+
+		if (too_close)
+			continue;
+
+		for (int i = 0; i < 3; i++)
+		{
+			verts.push_back(edge_pts[tri[i]]);
+		}
+
 		const Vec3& v0 = edge_pts[tri[0]];//*(verts.rbegin() - 2);
 		const Vec3& v1 = edge_pts[tri[1]];//*(verts.rbegin() - 1);
 		const Vec3& v2 = edge_pts[tri[2]];//*(verts.rbegin() - 0);
 		Vec3 norm = (v1 - v0).cross(v2 - v0);
 		norm /= norm.norm();
+
+		if (std::isnan(norm[0]))
+		{
+			v4print "Invalid normal for triangle:", v0.transpose(), v1.transpose(), v2.transpose();
+			std::exit(1);
+		}
+
 		normals.push_back(norm);
 		normals.push_back(norm);
 		normals.push_back(norm);

@@ -335,6 +335,7 @@ public:
 		auto text = make_shared<Text>(raw_text);
 		text->setAnchorCentered();
 		text->setColor(color);
+		text->setYFlip(inner_window.getCameraControlInfo()["y_flip"]);
 		auto node = inner_window.add(text, Vec3(offset[0],offset[1],plot_index + 1));
 		node->setScale(size);
 		plot_index++;

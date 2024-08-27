@@ -527,7 +527,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		serialization.header = obj;
 		serialization.valid = true;
 		
-		MatX verts = readMatX(obj["verts"]);	
+		MatX verts = readMatX(obj["verts"]);
 		MatX norms = readMatX(obj["norms"]);
 		MatX uvs = readMatX(obj["uvs"]);
 		
@@ -801,6 +801,8 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		
 		Vec2 anchor = readDefault(obj, "anchor", Vec2(0,0));
 		draw_obj->setAnchorOffset(anchor);
+
+		draw_obj->setYFlip(readDefault(obj, "y_flip", false));
 		
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));

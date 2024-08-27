@@ -96,7 +96,12 @@ inline json toJson(const MatX& m)
 		json row;
 		for (int c = 0; c < m.cols(); c++)
 		{
-			row.push_back(m(r,c));
+			if (std::isnan(m(r,c)))
+				throw std::runtime_error("Value in MatX toJson is nan: ("+std::to_string(r)+", "+std::to_string(c)+")");
+			json val = m(r,c);
+			if (val.is_null())
+				throw std::runtime_error("Value in MatX toJson is null: ("+std::to_string(r)+", "+std::to_string(c)+")");
+			row.push_back(val);
 		}
 		data.push_back(row);
 	}
@@ -160,12 +165,23 @@ inline MatX readMatX(const json& data)
 {
 	vector<vector<float>> cells;
 	
-	for (const auto& row : data)
+	for (int r = 0; r < data.size(); r++)
 	{
+		const auto& row = data[r];
 		vector<float> row_cells;
-		for (const auto& col : row)
+		for (int c = 0; c < row.size(); c++)
 		{
-			row_cells.push_back(col);
+			const auto& col = row[c];
+
+			try
+			{
+				row_cells.push_back(col);
+			}
+			catch (...)
+			{
+				v4print "Invalid number:", col, "at", r, c;
+				throw;
+			}
 		}
 		cells.push_back(row_cells);
 	}

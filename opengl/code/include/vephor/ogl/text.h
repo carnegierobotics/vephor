@@ -99,6 +99,10 @@ public:
 	{
 		billboard = p_billboard;
 	}
+	void setYFlip(bool p_y_flip)
+	{
+		y_flip = p_y_flip;
+	}
 	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
 	void onRemoveFromWindow(Window* window);
 private:
@@ -115,6 +119,7 @@ private:
 	Vec2 anchor_perc = Vec2::Zero();
 	TransformSim3 body_from_anchor;
 	bool billboard = true;
+	bool y_flip = false;
 
     bool buffers_set = false;
     GLuint vao_id;

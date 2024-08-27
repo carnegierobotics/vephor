@@ -583,9 +583,11 @@ public:
 				return vector<char>();
 			error("Error reading from socket");
 			disconnect();
+			buf.clear();
 		}
-
-		buf.resize(n);
+		else
+			buf.resize(n);
+		
 		return buf;
 	}
 	void disconnect()

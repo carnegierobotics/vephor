@@ -149,6 +149,12 @@ void Text::setupText()
 		Vec2 uv_down_right( uv_x+cell_size_uv-border, 1.0-(uv_y+cell_size_uv) );
 		Vec2 uv_down_left( uv_x+border, 1.0-(uv_y+cell_size_uv) );
 
+		if (y_flip)
+		{
+			std::swap(uv_up_left[1], uv_down_left[1]);
+			std::swap(uv_up_right[1], uv_down_right[1]);
+		}
+
 		uvs.col(i*6+0) = uv_up_left;
 		uvs.col(i*6+1) = uv_down_left;
 		uvs.col(i*6+2) = uv_up_right;

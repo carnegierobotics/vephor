@@ -463,11 +463,15 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 void PlotCamera::update(const json& data, Window& window, AssetManager& assets)
 {
 	if (data.contains("title"))
+	{
 		setupTitle(data["title"], window);
+		serialization["title"] = data["title"];
+	}
 
 	if (data.contains("labels") && !data["labels"].empty())
 	{
 		setupLegend(data["labels"], window, assets);
+		serialization["labels"] = data["labels"];
 	}
 
 	resizeWindow(window);
