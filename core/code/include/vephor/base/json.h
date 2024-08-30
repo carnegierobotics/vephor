@@ -96,11 +96,21 @@ inline json toJson(const MatX& m)
 		json row;
 		for (int c = 0; c < m.cols(); c++)
 		{
+			json val;
 			if (std::isnan(m(r,c)))
-				throw std::runtime_error("Value in MatX toJson is nan: ("+std::to_string(r)+", "+std::to_string(c)+")");
-			json val = m(r,c);
+			{
+				v4print "Value in MatX toJson is nan: ("+std::to_string(r)+", "+std::to_string(c)+"), replacing with 0";
+				val = 0.0;
+				//throw std::runtime_error("Value in MatX toJson is nan: ("+std::to_string(r)+", "+std::to_string(c)+")");
+			}
+			else
+				val = m(r,c);
 			if (val.is_null())
-				throw std::runtime_error("Value in MatX toJson is null: ("+std::to_string(r)+", "+std::to_string(c)+")");
+			{
+				v4print "Value in MatX toJson is null: ("+std::to_string(r)+", "+std::to_string(c)+"), replacing with 0";
+				val = 0.0;
+				//throw std::runtime_error("Value in MatX toJson is null: ("+std::to_string(r)+", "+std::to_string(c)+")");
+			}
 			row.push_back(val);
 		}
 		data.push_back(row);
