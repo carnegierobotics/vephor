@@ -194,6 +194,9 @@ inline std::string formatByteDisplay(double bytes, int unit = 0)
 class Window;
 using ObjectID = int;
 
+const ConnectionID LOCAL_CONN_ID_PROGRESSIVE = std::numeric_limits<ConnectionID>::max() - 1;
+const ConnectionID LOCAL_CONN_ID_ABSOLUTE = std::numeric_limits<ConnectionID>::max();
+
 struct RenderNode
 {
 public:
@@ -592,13 +595,17 @@ public:
 private:
 	bool print_flag_network_use = false;
 
-	void writeCurrentMessages(const string& path, bool skip_meta = false)
+	int writeMessages(
+		const string& path, 
+		const vector<JSONBMessage>& messages_to_write, 
+		bool skip_meta = false, 
+		int start_msg_index = 0)
 	{
 		json meta_data = {
 			{"messages", {}}
 		};
 
-		static int msg_index = 0;
+		int msg_index = start_msg_index;
 		for (const auto& msg : messages_to_write)
 		{
 			string msg_dir = path + "/" + std::to_string(msg_index);
@@ -616,6 +623,8 @@ private:
 			fout << meta_data;
 			fout.close();
 		}
+
+		return msg_index;
 	}
 
 public:
@@ -681,7 +690,7 @@ public:
 		if (manager.mode == WindowManager::Mode::Record)	
 		{
 			JSONBMessage msg;
-			json scene = produceSceneJSON(std::numeric_limits<ConnectionID>::max(), &msg.payloads);
+			json scene = produceSceneJSON(LOCAL_CONN_ID_PROGRESSIVE, &msg.payloads);
 			auto end_time = std::chrono::high_resolution_clock::now();
 			float record_time = std::chrono::duration<float, std::milli>(end_time-record_start_time).count() / 1000.0f;
 
@@ -691,11 +700,15 @@ public:
 			};
 			msg.header["time"] = record_time;
 			msg.valid = true;
-			messages_to_write.push_back(msg);
 
-			writeCurrentMessages(record_path, true);
-
-			messages_to_write.clear();
+			vector<JSONBMessage> messages_to_write = {msg};
+			if (!find(recorded_messages_written, LOCAL_CONN_ID_PROGRESSIVE))
+				recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = 0;
+			recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = writeMessages(
+				record_path, 
+				messages_to_write, 
+				true, 
+				recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE]);
 
 			// TODO: update incrementally
 			string temp_dir = getTempDir();
@@ -799,24 +812,35 @@ public:
 				// Record after sending so time doesn't go out in the network message
 				if (!record_path.empty())
 				{
+					string conn_record_dir = record_path + "/conn_" + std::to_string(conn_id);
+
+					if (!fs::exists(conn_record_dir))
+						fs::create_directories(conn_record_dir);
+
 					auto end_time = std::chrono::high_resolution_clock::now();
 					float record_time = std::chrono::duration<float, std::milli>(end_time-record_start_time).count() / 1000.0f;
 
 					msg.header["time"] = record_time;
 
-					messages_to_write.push_back(msg);
-					writeCurrentMessages(record_path, true);
-					messages_to_write.clear();
+					vector<JSONBMessage> messages_to_write = {msg};
+
+					if (!find(recorded_messages_written, conn_id))
+						recorded_messages_written[conn_id] = 0;
+					recorded_messages_written[conn_id] = writeMessages(
+						conn_record_dir, 
+						messages_to_write, 
+						true, 
+						recorded_messages_written[conn_id]);
 
 					// TODO: update incrementally
 					string temp_dir = getTempDir();
 					if (fs::exists(temp_dir+"/scene_assets"))
 					{
-						if (fs::exists(record_path+"/scene_assets"))
+						if (fs::exists(conn_record_dir+"/scene_assets"))
 						{
-							fs::remove_all(record_path+"/scene_assets");
+							fs::remove_all(conn_record_dir+"/scene_assets");
 						}
-						fs::copy(temp_dir+"/scene_assets", record_path+"/scene_assets");
+						fs::copy(temp_dir+"/scene_assets", conn_record_dir+"/scene_assets");
 					}
 				}
 
@@ -869,17 +893,23 @@ public:
 			string temp_dir = getTempDir();
 			
 			JSONBMessage msg;
-			json scene = produceSceneJSON(std::numeric_limits<ConnectionID>::max(), &msg.payloads);
+			json scene = produceSceneJSON(LOCAL_CONN_ID_PROGRESSIVE, &msg.payloads);
 			msg.header = {
 				{"type", "scene"},
 				{"data", scene}
 			};
 			msg.valid = true;
-			messages_to_write.push_back(msg);
+			recorded_messages_to_write.push_back(msg);
 
 			if (wait_close || wait_key)
 			{
-				writeCurrentMessages(temp_dir);
+				if (!find(recorded_messages_written, LOCAL_CONN_ID_PROGRESSIVE))
+					recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = 0;
+				recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = writeMessages(
+					temp_dir, 
+					recorded_messages_to_write, 
+					true, 
+					recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE]);
 
 				string show_path = getBaseDir()+"/bin/vephor_show";
 				if (!fs::exists(show_path))
@@ -892,9 +922,7 @@ public:
 				else
 					v4print "Show exited with success.";
 
-				messages_to_write.clear();
-				
-				fs::remove_all(temp_dir);
+				recorded_messages_to_write.clear();
 			}
 			else
 			{
@@ -930,15 +958,15 @@ public:
 		string temp_dir = getTempDir();
 		
 		JSONBMessage msg;
-		json scene = produceSceneJSON(std::numeric_limits<ConnectionID>::max(), &msg.payloads);
+		json scene = produceSceneJSON(LOCAL_CONN_ID_ABSOLUTE, &msg.payloads);
 		msg.header = {
 			{"type", "scene"},
 			{"data", scene}
 		};
 		msg.valid = true;
-		messages_to_write.push_back(msg);
-		
-		writeCurrentMessages(path);
+
+		vector<JSONBMessage> messages_to_write = {msg};
+		writeMessages(path, messages_to_write);
 
 		if (fs::exists(temp_dir+"/scene_assets"))
 		{
@@ -946,10 +974,6 @@ public:
 			fs::remove_all(path+"/scene_assets");
 			fs::copy(temp_dir+"/scene_assets", path+"/scene_assets");
 		}
-
-		messages_to_write.clear();
-
-		fs::remove_all(temp_dir);
 	}
 
 	static void setGlobalDefaultOpacity(float p_opacity)
@@ -1234,13 +1258,30 @@ private:
 				{"opacity", opacity}
 			};
 			scene["camera"]["control"] = camera_control;
-			camera_up_to_date[conn_id] = true;
+
+			if (conn_id != LOCAL_CONN_ID_ABSOLUTE)
+				camera_up_to_date[conn_id] = true;
 		}
 		
 		scene["objects"] = json();
 		
 		for (const auto& obj : objects)
 		{
+			if (conn_id == LOCAL_CONN_ID_ABSOLUTE)
+			{
+				if (obj->destroy)
+					continue;
+
+				json datum = obj->serialize(conn_id, bufs);
+				datum["id"] = obj->id;
+				datum["show"] = obj->show;
+				datum["overlay"] = obj->on_overlay;
+				datum["layer"] = obj->layer;
+				scene["objects"].push_back(datum);
+
+				continue;
+			}
+
 			if (
 				obj->net_status[conn_id].obj_up_to_date && 
 				obj->net_status[conn_id].pose_up_to_date && 
@@ -1357,13 +1398,14 @@ private:
 	bool shutdown = false;
 	json camera_control;
 	unordered_map<ConnectionID, bool> camera_up_to_date;
+	unordered_map<ConnectionID, int> recorded_messages_written;
 	KeyActionCallback key_press_callback = NULL;
 	MouseClickActionCallback mouse_click_callback = NULL;
 	size_t total_network_use_bytes = 0;
 	bool network_use_start_time_set = false;
 	std::chrono::time_point<std::chrono::high_resolution_clock> network_use_start_time;
+	vector<JSONBMessage> recorded_messages_to_write;
 	inline static float default_opacity = 1.0f;
-	inline static vector<JSONBMessage> messages_to_write;
 	inline static unique_ptr<Process> server_proc;
 	inline static string record_path;
 	inline static std::chrono::time_point<std::chrono::high_resolution_clock> record_start_time;

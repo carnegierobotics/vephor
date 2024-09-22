@@ -31,16 +31,27 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-import os
-
 import vephor as v4
 import numpy as np
 
-image = np.zeros((16,16,3))
-image[:8,8:] = np.array((0.5,0.5,0.5))
-image[8:,:8] = np.array((0.75,0.75,0.75))
-image[8:,8:] = np.array((1,1,1))
+w = v4.Window()
+w.add(v4.Sphere(),(5,0,0))
+w.add(v4.Sphere(),(-5,0,0))
+w.add(v4.Sphere(),(0,5,0))
+w.add(v4.Sphere(),(0,-5,0))
+w.add(v4.Cylinder(),(0,0,5))
+w.add(v4.Cylinder(),(0,0,-5))
 
-plt = v4.Plot()
-plt.imshow(image)
-plt.show()
+path = []
+for i in range(100000):
+    t = i/10000.0
+    ang = t*2*np.pi
+    path.append([np.cos(ang)*3,np.sin(ang)*3,t-5])
+
+l = v4.Lines(path)
+l.setColor([1,0,0])
+w.add(l,np.zeros(3))
+w.render()
+
+w.add(v4.Axes())
+w.render()

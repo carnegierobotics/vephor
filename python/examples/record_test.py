@@ -31,16 +31,20 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-import os
-
 import vephor as v4
 import numpy as np
+import time
 
-image = np.zeros((16,16,3))
-image[:8,8:] = np.array((0.5,0.5,0.5))
-image[8:,:8] = np.array((0.75,0.75,0.75))
-image[8:,8:] = np.array((1,1,1))
+v4.Window.setRecordMode("/tmp/vephor_record")
 
-plt = v4.Plot()
-plt.imshow(image)
-plt.show()
+w = v4.Window()
+w.add(v4.Axes())
+w.add(v4.Grid(10))
+obj = w.add(v4.Sphere())
+
+for i in range(1000):
+    t = i/100.0
+    dist = 5
+    obj.setPos((np.cos(t)*dist,np.sin(t)*dist,0))
+    w.render(False)
+    time.sleep(0.01)
