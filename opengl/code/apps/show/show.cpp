@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
 
 	if (!screenshot_path.empty())
 	{
-		std::filesystem::create_directory(screenshot_path);
+		std::filesystem::create_directories(screenshot_path);
 		show.saveScreenshots(screenshot_path);
 	}
 
