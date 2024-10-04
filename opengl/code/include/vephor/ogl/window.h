@@ -114,14 +114,14 @@ public:
 	RenderNode& setParent(TransformNode& parent)
 	{
 		if (node->getParent() != NULL)
-			throw std::runtime_error("RenderNode already has a parent.");
+            throw std::runtime_error("RenderNode already has a parent.");
 		parent.addChild(node);
 		return *this;
 	}
 	RenderNode& setParent(RenderNode& parent)
 	{
 		if (node->getParent() != NULL)
-			throw std::runtime_error("RenderNode already has a parent.");
+            throw std::runtime_error("RenderNode already has a parent.");
 		parent.node->addChild(node);
         parent.props->children.push_back(props);
 		return *this;

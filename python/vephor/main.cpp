@@ -358,7 +358,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("height")=-1,
 			py::arg("name")="show")
 		.def("clear", &Window::clear)
-        .def("render", &Window::render, py::arg("wait_close")=true, py::arg("wait_key")=false)
+        .def("render", &Window::render, py::arg("wait_close")=true, py::arg("wait_key")=false, py::arg("time_increment_s")=0.0f)
 		.def_static("setRecordMode", &Window::setRecordMode, 
 			py::arg("path"))
 		.def_static("setClientMode", &Window::setClientMode, 
@@ -655,7 +655,9 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color"),
 			py::arg("thickness")=0
 		)
-		.def("circle", &Plot::circle, 
+		.def("circle", [](Plot& p, const Vec2& center, float rad, const Vec3& color, float thickness, int slices){
+				p.circle(center, rad, color, thickness, slices);
+			},
 			py::arg("center"),
 			py::arg("rad"),
 			py::arg("color"),

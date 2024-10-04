@@ -680,7 +680,7 @@ public:
 			}
 		}
 	}
-	bool render(bool wait_close = true, bool wait_key = false)
+	bool render(bool wait_close = true, bool wait_key = false, float time_increment_s = 0.0f)
 	{
 		manager.first_render = true;
 
@@ -692,7 +692,12 @@ public:
 			JSONBMessage msg;
 			json scene = produceSceneJSON(LOCAL_CONN_ID_PROGRESSIVE, &msg.payloads);
 			auto end_time = std::chrono::high_resolution_clock::now();
-			float record_time = std::chrono::duration<float, std::milli>(end_time-record_start_time).count() / 1000.0f;
+
+			float record_time;
+			if (time_increment_s > 0)
+				record_time = last_record_time + time_increment_s;
+			else
+				record_time = std::chrono::duration<float, std::milli>(end_time-record_start_time).count() / 1000.0f;
 
 			msg.header = {
 				{"type", "scene"},
@@ -700,6 +705,8 @@ public:
 			};
 			msg.header["time"] = record_time;
 			msg.valid = true;
+
+			last_record_time = record_time;
 
 			vector<JSONBMessage> messages_to_write = {msg};
 			if (!find(recorded_messages_written, LOCAL_CONN_ID_PROGRESSIVE))
@@ -1405,6 +1412,7 @@ private:
 	bool network_use_start_time_set = false;
 	std::chrono::time_point<std::chrono::high_resolution_clock> network_use_start_time;
 	vector<JSONBMessage> recorded_messages_to_write;
+	float last_record_time = 0.0;
 	inline static float default_opacity = 1.0f;
 	inline static unique_ptr<Process> server_proc;
 	inline static string record_path;
