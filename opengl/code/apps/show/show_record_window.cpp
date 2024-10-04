@@ -914,6 +914,28 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		
 		return node;
 	}
+	else if (obj["type"] == "dir_light")
+	{
+		serialization.header = obj;
+		serialization.valid = true;
+		
+		auto draw_obj = make_shared<DirLight>(readVec3(obj["dir"]), obj["strength"]);
+		
+		auto world_from_body = TransformSim3();
+		auto node = window->add(draw_obj, world_from_body, false, -100);
+		return node;
+	}
+	else if (obj["type"] == "ambient_light")
+	{
+		serialization.header = obj;
+		serialization.valid = true;
+		
+		auto draw_obj = make_shared<AmbientLight>(readVec3(obj["strength"]));
+		
+		auto world_from_body = TransformSim3();
+		auto node = window->add(draw_obj, world_from_body, false, -100);
+		return node;
+	}
 	
 	throw std::runtime_error(string("Invalid object type: ") + string(obj["type"]));
 	return NULL;

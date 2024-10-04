@@ -70,6 +70,8 @@ write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
 								 VERSION ${PROJECT_VERSION}
 								 COMPATIBILITY AnyNewerVersion)
 
+if (!VEPHOR_BUILD_PYTHON_BINDINGS)
+
 set(EXAMPLE_APPS
 	test_show
 	mini_test_show
@@ -112,6 +114,8 @@ foreach (APP ${EXAMPLE_NETWORKING_APPS})
 		target_link_libraries(networking_${APP} pthread)
 	endif()
 endforeach()
+
+endif()
 
 
 install(TARGETS vephor

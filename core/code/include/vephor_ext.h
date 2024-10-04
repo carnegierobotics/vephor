@@ -25,4 +25,5 @@
 #include "vephor/ext/circle.h"
 #include "vephor/ext/arrow.h"
 #include "vephor/ext/sprite.h"
+#include "vephor/ext/light.h"
 #include "vephor/ext/plot.h"

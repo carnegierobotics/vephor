@@ -351,6 +351,25 @@ PYBIND11_MODULE(_core, m) {
 
 				return make_shared<Sprite>(image, nearest);
 		}), py::arg("buf"), py::arg("nearest")=false);
+
+	py::class_<Plane, shared_ptr<Plane>>(m, "Plane")
+        .def(py::init<Vec2>(),py::arg("rads"))
+		.def("setColor",[](Plane& c, 
+			const Vec3& rgb){
+				c.setColor(Color(rgb));
+			}, 
+			py::arg("rgb"))
+		.def("setColor",[](Plane& c, 
+			const Vec4& rgba){
+				c.setColor(Color(rgba));
+			}, 
+			py::arg("rgba"));;
+
+	py::class_<AmbientLight, shared_ptr<AmbientLight>>(m, "AmbientLight")
+        .def(py::init<Vec3>(),py::arg("strength"));
+
+	py::class_<DirLight, shared_ptr<DirLight>>(m, "DirLight")
+        .def(py::init<Vec3,float>(),py::arg("dir"),py::arg("strength"));
 	
     py::class_<Window>(m, "Window")
         .def(py::init<int,int,std::string>(),
@@ -549,6 +568,45 @@ PYBIND11_MODULE(_core, m) {
 			float,
             bool, 
             int)>(&Window::add<ObjMesh>),
+			py::arg("object"),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0)
+		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
+            const shared_ptr<Plane>&,
+            const Vec3&,
+			const Vec3&,
+			float,
+            bool, 
+            int)>(&Window::add<Plane>),
+			py::arg("object"),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0)
+		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
+            const shared_ptr<AmbientLight>&,
+            const Vec3&,
+			const Vec3&,
+			float,
+            bool, 
+            int)>(&Window::add<AmbientLight>),
+			py::arg("object"),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0)
+		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
+            const shared_ptr<DirLight>&,
+            const Vec3&,
+			const Vec3&,
+			float,
+            bool, 
+            int)>(&Window::add<DirLight>),
 			py::arg("object"),
 			py::arg("t")=Vec3(0,0,0),
 			py::arg("r")=Vec3(0,0,0),
