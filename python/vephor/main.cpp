@@ -627,7 +627,7 @@ PYBIND11_MODULE(_core, m) {
 		.def("equal", &Plot::equal, py::arg("equal")=true)
 		.def("limits", &Plot::limits, py::arg("min_x"), py::arg("max_x"), py::arg("min_y"), py::arg("max_y"))
 		.def("plot", [](Plot& p, 
-				const VecX& x, 
+				const MatX& x, 
 				const MatX& y, 
 				const Vec3& color,
 				const string& linestyle,
@@ -639,10 +639,19 @@ PYBIND11_MODULE(_core, m) {
 				opts.linestyle = linestyle;
 				opts.thickness = thickness;
 				if (y.rows() == 0)
-					p.plot(x,opts);
+				{
+					if (x.cols() == 1)
+					{
+						p.plot(x.col(0),opts);
+					}
+					else
+					{
+						p.plot(x.col(0),x.col(1),opts);
+					}
+				}
 				else
 					p.plot(x,y,opts);
-			}, 
+			},
 			py::arg("x"), 
 			py::arg("y")=MatX(), 
 			py::arg("color")=Vec3(-1,-1,-1), 
@@ -668,6 +677,8 @@ PYBIND11_MODULE(_core, m) {
 					opts.marker = PlotScatterMarker::PLUS;
 				else if (marker == "square")
 					opts.marker = PlotScatterMarker::SQUARE;
+				else if (marker == "star" || marker == "*")
+					opts.marker = PlotScatterMarker::STAR;
 				else
 					throw std::runtime_error("Invalid marker type: " + marker);
 				if (y.rows() == 0)
@@ -721,6 +732,22 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color"),
 			py::arg("thickness")=0,
 			py::arg("slices")=16
+		)
+		.def("arrow", [](Plot& p, const Vec2& start, const Vec2& end, const Vec3& color, float radius){
+				p.arrow(start, end, color, radius);
+			},
+			py::arg("start"),
+			py::arg("end"),
+			py::arg("color"),
+			py::arg("radius")=1.0
+		)
+		.def("arrowhead", [](Plot& p, const Vec2& center, float heading, const Vec3& color, float radius){
+				p.arrowhead(center, heading, color, radius);
+			},
+			py::arg("center"),
+			py::arg("heading"),
+			py::arg("color"),
+			py::arg("radius")=1.0
 		)
 		.def("rect", &Plot::rect)
 		// TODO: line

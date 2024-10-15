@@ -470,16 +470,33 @@ public:
 	}
     void arrow(const Vec2 &start, const Vec2 &end, const Color &color, const float radius = 1.0F)
     {
-        Vec3 start_3d, end_3d;
-        start_3d << start, 0;
-        end_3d << end, 0;
+		Vec2 vec = end - start;
 
-        auto arrow = std::make_shared<Arrow>(/* start */ start_3d,
-                                             /* end */ end_3d,
-                                             /* radius */ radius,
-                                             /* slices */ 4);
-        arrow->setColor(color);
-        inner_window.add(/* obj */ arrow, /* parent_from_node_t */ Vec3{0, 0, static_cast<float>(plot_index + 1)});
+		float vec_mag = vec.norm();
+
+		if (vec_mag < 1e-3)
+			return;
+
+		vec /= vec_mag;
+
+
+		float head_radius = radius * 0.5;
+		float shaft_radius = radius * 0.2;
+
+
+		Vec2 cross(-vec[1], vec[0]);
+
+		vector<Vec2> verts;
+		verts.push_back(start - cross * shaft_radius);
+		verts.push_back(end - vec * head_radius - cross * shaft_radius);
+		verts.push_back(end - vec * head_radius - cross * head_radius);
+		verts.push_back(end);
+		verts.push_back(end - vec * head_radius + cross * head_radius);
+		verts.push_back(end - vec * head_radius + cross * shaft_radius);
+		verts.push_back(start + cross * shaft_radius);
+
+		polygon(verts, color, -1);
+		
 
         plot_index++;
     }
