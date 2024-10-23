@@ -232,7 +232,12 @@ PYBIND11_MODULE(_core, m) {
         .def(py::init<float,float,int>(),py::arg("rad")=1.0f,py::arg("height")=1.0f,py::arg("slices")=12);
 
 	py::class_<Grid, shared_ptr<Grid>>(m, "Grid")
-        .def(py::init<float,Vec3,Vec3,float>(),py::arg("rad"),py::arg("normal")=Vec3(0,0,1),py::arg("right")=Vec3(1,0,0),py::arg("cell_size")=1.0f);
+        .def(py::init<float,Vec3,Vec3,float>(),py::arg("rad"),py::arg("normal")=Vec3(0,0,1),py::arg("right")=Vec3(1,0,0),py::arg("cell_size")=1.0f)
+		.def("setColor",[](Grid& g, 
+			const Vec3& rgb){
+				g.setColor(rgb);
+			}, 
+			py::arg("rgb"));
 
 	py::class_<Mesh, shared_ptr<Mesh>>(m, "Mesh")
         .def(py::init<MeshData>())
@@ -621,6 +626,21 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("height")=800)
 		.def("window", &Plot::window, py::return_value_policy::reference)
 		.def("title", &Plot::title)
+		.def("back_color", [](Plot& p, const Vec3& color){
+				p.back_color(color);
+			},
+			py::arg("color")
+		)
+		.def("fore_color", [](Plot& p, const Vec3& color){
+				p.fore_color(color);
+			},
+			py::arg("color")
+		)
+		.def("grid_color", [](Plot& p, const Vec3& color){
+				p.grid_color(color);
+			},
+			py::arg("color")
+		)
 		.def("xlabel", &Plot::xlabel)
 		.def("ylabel", &Plot::ylabel)
 		.def("yflip", &Plot::yflip, py::arg("equal")=true)

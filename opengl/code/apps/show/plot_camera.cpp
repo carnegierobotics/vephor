@@ -84,7 +84,6 @@ void PlotCamera::resizeWindow(Window& window)
 	curr_content_max[2] = near_z;
 		
 	Mat4 proj = makeOrthoProj(curr_content_min, curr_content_max);
-	//proj(2,2) *= -1;
 	window.setProjectionMatrix(proj);
 	
 	Vec4 proj_min_pt = proj.transpose() * Vec4(0,0,curr_content_min[2],1);
@@ -108,7 +107,7 @@ void PlotCamera::resizeWindow(Window& window)
 		box_right_border,box_top_border,0,
 		box_right_border,box_bottom_border,0,
 		box_left_border,box_bottom_border,0;
-	auto plot_box_lines = make_shared<Lines>(verts, MatX(), Vec4(0,0,0,1));
+	auto plot_box_lines = make_shared<Lines>(verts, MatX(), fore_color);
 	plot_box = window.add(plot_box_lines, TransformSim3(), true);
 	
 	MeshData border_fill;
@@ -135,7 +134,7 @@ void PlotCamera::resizeWindow(Window& window)
 		Vec2(window.getSize()[0],box_top_border),
 		Vec2(0,0),
 		Vec2(1,1));
-	plot_box_fill = window.add(make_shared<Mesh>(border_fill, Vec3(1,1,1), 0.0, 0.0, 1.0), TransformSim3(), true);
+	plot_box_fill = window.add(make_shared<Mesh>(border_fill, back_color, 0.0, 0.0, 1.0), TransformSim3(), true);
 	
 	if (plot_title)
 	{
@@ -161,7 +160,7 @@ void PlotCamera::setupTitle(const string& title, Window& window)
 	if (plot_title)
 		plot_title->setDestroy();
 
-	title_text = make_shared<Text>(title, text_tex, Vec3(0,0,0));
+	title_text = make_shared<Text>(title, text_tex, fore_color);
 	title_text->setAnchorCentered();
 	
 	plot_title = window.add(
@@ -187,7 +186,7 @@ void PlotCamera::setupLegend(const json& label_data, Window& window, AssetManage
 	for (const auto& label : label_data)
 	{
 		v4print "Label:", label["text"];
-		auto text = make_shared<Text>(label["text"], text_tex, Vec3(0,0,0));
+		auto text = make_shared<Text>(label["text"], text_tex, fore_color);
 		text->setAnchorTopLeft();
 		auto node = window.add(text, Vec3(0, y_shift, 0), true, 2);
 		node->setScale(text_scale);
@@ -259,7 +258,7 @@ void PlotCamera::setupLegend(const json& label_data, Window& window, AssetManage
 		-x_max,y_shift,0,
 		0,y_shift,0,
 		0,0,0;
-	auto legend_box = make_shared<Lines>(legend_box_verts,MatX(),Vec4(0,0,0,1));
+	auto legend_box = make_shared<Lines>(legend_box_verts,MatX(),fore_color);
 	window.add(legend_box, TransformSim3(), true, 1)->setParent(legend_node);
 	
 	MeshData legend_fill_verts;
@@ -272,7 +271,7 @@ void PlotCamera::setupLegend(const json& label_data, Window& window, AssetManage
 		Vec2(0,0),
 		Vec2(1,1)
 	);
-	auto legend_fill = make_shared<Mesh>(legend_fill_verts, Vec3(1,1,1), 0, 0, 1);
+	auto legend_fill = make_shared<Mesh>(legend_fill_verts, back_color, 0, 0, 1);
 	window.add(legend_fill, TransformSim3(), true, 1)->setParent(legend_node);
 	
 	Vec3 pos;
@@ -305,7 +304,20 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	if (data.contains("y_axis"))
 		y_axis = data["y_axis"];
 
-	auto back_tex = window.getTextureFromImage(*generateSimpleImage(Vec2i(64,64), Vec3(1,1,1)));
+	back_color = readDefault(data, "back_color", Vec3(1,1,1));
+	fore_color = readDefault(data, "fore_color", Vec3(0,0,0));
+
+	const float grid_shade = 0.9;
+	grid_color = readDefault(data, "grid_color", Vec3(grid_shade,grid_shade,grid_shade));
+
+	Vec3 light_dir(0,0,1);
+    auto dir_light = make_shared<DirLight>(light_dir, 0.0f);
+    window.add(dir_light, Transform3());
+
+    auto ambient_light = make_shared<AmbientLight>(Vec3(1,1,1));
+    window.add(ambient_light, Transform3());
+
+	auto back_tex = window.getTextureFromImage(*generateSimpleImage(Vec2i(64,64), back_color));
 	auto back = make_shared<Background>(back_tex);
 	window.add(back, Transform3(), false, -1);
 
@@ -318,7 +330,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	if (data.contains("y_flip"))
 		yflip = data["y_flip"];
 	
-	mouse_pos_text = make_shared<Text>("", text_tex, Vec3(0,0,0));
+	mouse_pos_text = make_shared<Text>("", text_tex, fore_color);
 	mouse_pos_node = window.add(mouse_pos_text, TransformSim3(Vec3(0,0,-1)), true, 1);
 	mouse_pos_node->setScale(text_scale);
 	
@@ -329,7 +341,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 
 	if (!x_axis.empty())
 	{
-		auto text = make_shared<Text>(x_axis, text_tex, Vec3(0,0,0));
+		auto text = make_shared<Text>(x_axis, text_tex, fore_color);
 		text->setAnchorBottom();
 
 		x_axis_title = window.add(
@@ -342,7 +354,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 
 	if (!y_axis.empty())
 	{
-		auto text = make_shared<Text>(y_axis, text_tex, Vec3(0,0,0));
+		auto text = make_shared<Text>(y_axis, text_tex, fore_color);
 		text->setAnchorTop();
 		text->setBillboard(false);
 
@@ -356,18 +368,17 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	}
 	
 	const size_t max_num_ticks = 50;
-	const float grid_shade = 0.9;
 	
 	{
 		MatX verts(2,3);
 		verts << 0,0,0,
 				 0,-tick_size,0;
-		auto line = make_shared<Lines>(verts,MatX(),Vec4(0,0,0,1));
+		auto line = make_shared<Lines>(verts,MatX(),fore_color);
 
 		MatX grid_verts(2,3);
 		grid_verts << 0,-0.5,0,
 				 0,0.5,0;
-		auto grid_line = make_shared<Lines>(grid_verts,MatX(),Vec4(grid_shade,grid_shade,grid_shade,1));
+		auto grid_line = make_shared<Lines>(grid_verts,MatX(),grid_color);
 		
 		for (size_t i = 0; i < max_num_ticks; i++)
 		{
@@ -385,7 +396,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 			));
 			(*vert_grid_lines.rbegin())->setShow(false);
 			
-			vert_text.push_back(make_shared<Text>("", text_tex, Vec3(0,0,0)));
+			vert_text.push_back(make_shared<Text>("", text_tex, fore_color));
 			(*vert_text.rbegin())->setAnchorTop();
 			vert_text_node.push_back(window.add(*vert_text.rbegin(), TransformSim3(), true, 1));
 			(*vert_text_node.rbegin())->setScale(text_scale);
@@ -397,12 +408,12 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 		MatX verts(2,3);
 		verts << 0,0,0,
 				 -tick_size,0,0;
-		auto line = make_shared<Lines>(verts,MatX(),Vec4(0,0,0,1));
+		auto line = make_shared<Lines>(verts,MatX(),fore_color);
 
 		MatX grid_verts(2,3);
 		grid_verts << -0.5,0,0,
 				 0.5,0,0;
-		auto grid_line = make_shared<Lines>(grid_verts,MatX(),Vec4(grid_shade,grid_shade,grid_shade,1));
+		auto grid_line = make_shared<Lines>(grid_verts,MatX(),grid_color);
 		
 		for (size_t i = 0; i < max_num_ticks; i++)
 		{
@@ -420,7 +431,7 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 			));
 			(*horiz_grid_lines.rbegin())->setShow(false);
 			
-			horiz_text.push_back(make_shared<Text>("", text_tex, Vec3(0,0,0)));
+			horiz_text.push_back(make_shared<Text>("", text_tex, fore_color));
 			(*horiz_text.rbegin())->setAnchorRight();
 			horiz_text_node.push_back(window.add(*horiz_text.rbegin(), TransformSim3(), true, 1));
 			(*horiz_text_node.rbegin())->setScale(text_scale);

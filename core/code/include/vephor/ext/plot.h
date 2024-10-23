@@ -98,6 +98,18 @@ public:
 	{
 		inner_window.setTitle(title_text);
 	}
+	void back_color(const Color& color)
+	{
+		inner_window.getCameraControlInfo()["back_color"] = color.getRGB();
+	}
+	void fore_color(const Color& color)
+	{
+		inner_window.getCameraControlInfo()["fore_color"] = color.getRGB();
+	}
+	void grid_color(const Color& color)
+	{
+		inner_window.getCameraControlInfo()["grid_color"] = color.getRGB();
+	}
 	void xlabel(const string& text)
 	{
 		inner_window.getCameraControlInfo()["x_axis"] = text;

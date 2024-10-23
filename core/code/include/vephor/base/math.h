@@ -126,6 +126,39 @@ public:
         return a;
     }
 
+	static Color fromHSL(float H, float S, float L)
+	{
+		// From LLM
+		float C = (1 - std::fabs(2 * L - 1)) * S;
+		float H_prime = H / 60.0;  // Divide by 60 to get the sector of the hue circle
+		float X = C * (1 - std::fabs(fmod(H_prime, 2) - 1));
+		
+		float R1, G1, B1;
+		
+		if (0 <= H_prime && H_prime < 1) {
+			R1 = C; G1 = X; B1 = 0;
+		} else if (1 <= H_prime && H_prime < 2) {
+			R1 = X; G1 = C; B1 = 0;
+		} else if (2 <= H_prime && H_prime < 3) {
+			R1 = 0; G1 = C; B1 = X;
+		} else if (3 <= H_prime && H_prime < 4) {
+			R1 = 0; G1 = X; B1 = C;
+		} else if (4 <= H_prime && H_prime < 5) {
+			R1 = X; G1 = 0; B1 = C;
+		} else if (5 <= H_prime && H_prime < 6) {
+			R1 = C; G1 = 0; B1 = X;
+		} else {
+			R1 = 0; G1 = 0; B1 = 0;
+		}
+
+		float m = L - C / 2.0;
+		float R = R1 + m;
+		float G = G1 + m;
+		float B = B1 + m;
+
+		return Color(R,G,B);
+	}
+
 private:
     float r, g, b, a;
 };
@@ -244,6 +277,10 @@ public:
 	manif::SE3f manifoldTransform() const
 	{
 		return transform;
+	}
+	Transform3 interp(const Transform3& other, float perc)
+	{
+		return Transform3((transform.log() * (1 - perc) + other.transform.log() * perc).exp());
 	}
 private:
 	manif::SE3f transform;

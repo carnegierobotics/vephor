@@ -45,6 +45,9 @@ private:
 	string title;
 	string x_axis;
 	string y_axis;
+	Vec3 back_color;
+	Vec3 fore_color;
+	Vec3 grid_color;
 	bool equal = false;
 	bool xflip = false;
 	bool yflip = false;
