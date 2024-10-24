@@ -44,7 +44,7 @@ second_hand = False
 def key_press_handler(key_code):
     global second_hand 
     print("Key code:", key_code)
-    if key_code == 82:
+    if key_code == 82: # Key 'R'
         second_hand = not second_hand
 
 plt = v4.Plot("Clock")

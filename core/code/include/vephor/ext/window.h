@@ -497,6 +497,7 @@ public:
 		camera_control = {
 			{"type", "plot"},
 			{"equal", equal},
+			{"y_flip", false}
 		};
 	}
 
