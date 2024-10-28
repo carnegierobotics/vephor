@@ -4,26 +4,32 @@ Installation:
 Linux:
 
 Git
+```
 sudo apt install git
+```
 
 Eigen
-Download from https://gitlab.com/libeigen/eigen/-/releases
-Unzip, enter directory
-sudo cp -r Eigen /usr/local/include/
+```
+apt install libeigen-dev
+```
 
 Manif
+```
 git clone https://github.com/artivis/manif.git
 mkdir build
 cd build
 cmake ..
 sudo make install
+```
 
+```
 Vephor
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 sudo make install
+```
 
 
 Windows:

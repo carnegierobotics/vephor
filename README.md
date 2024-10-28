@@ -18,7 +18,42 @@ Vephor supports both C++ and Python.
 
 ## Install instructions
 
-Follow the instructions in README.md for vephor and vephor_opengl to install dependencies.
+### Dependencies
+
+These are the dependencies for a single machine to run both headless and rendering parts of the system.
+For separated dependencies, see core/README.md and opengl/README.md.
+
+Eigen
+
+```
+apt install libeigen-dev
+```
+
+Manif
+
+```
+git clone https://github.com/artivis/manif.git
+mkdir build
+cd build
+cmake ..
+sudo make install
+```
+
+GLEW
+```
+sudo apt-get install libglew-dev
+```
+
+GLFW
+```
+Download source from https://github.com/glfw/glfw/releases/download/3.3.8/glfw-3.3.8.zip
+Unzip and enter the root
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+```
 
 ### Linux
 
