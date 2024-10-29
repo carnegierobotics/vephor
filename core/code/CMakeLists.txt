@@ -84,6 +84,7 @@ set(EXAMPLE_APPS
 	test_plot_render
 	test_show_two_windows
 	produce_sprites_with_normals
+	grid_counter
 )
 
 foreach (APP ${EXAMPLE_APPS})
