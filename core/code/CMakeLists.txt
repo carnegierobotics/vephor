@@ -70,7 +70,9 @@ write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
 								 VERSION ${PROJECT_VERSION}
 								 COMPATIBILITY AnyNewerVersion)
 
-if (!VEPHOR_BUILD_PYTHON_BINDINGS)
+if (VEPHOR_BUILD_PYTHON_BINDINGS)
+	message("Not building examples due to python bindings.")
+else (VEPHOR_BUILD_PYTHON_BINDINGS)
 
 set(EXAMPLE_APPS
 	test_show
@@ -115,7 +117,7 @@ foreach (APP ${EXAMPLE_NETWORKING_APPS})
 	endif()
 endforeach()
 
-endif()
+endif (VEPHOR_BUILD_PYTHON_BINDINGS)
 
 
 install(TARGETS vephor

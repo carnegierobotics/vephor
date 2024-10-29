@@ -10,7 +10,7 @@ sudo apt install git
 
 Eigen
 ```
-apt install libeigen-dev
+sudo apt install libeigen-dev
 ```
 
 Manif

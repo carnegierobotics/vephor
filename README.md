@@ -26,7 +26,7 @@ For separated dependencies, see core/README.md and opengl/README.md.
 Eigen
 
 ```
-apt install libeigen-dev
+sudo apt install libeigen-dev
 ```
 
 Manif
@@ -40,12 +40,16 @@ sudo make install
 ```
 
 GLEW
+
 ```
-sudo apt-get install libglew-dev
+sudo apt install libglew-dev
 ```
 
 GLFW
+
 ```
+sudo apt install libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+
 Download source from https://github.com/glfw/glfw/releases/download/3.3.8/glfw-3.3.8.zip
 Unzip and enter the root
 mkdir build
@@ -68,7 +72,6 @@ sudo make install
 For Python:
 
 ```
-cd vephor_python
 pip install scikit-build
 python setup.py install
 ```
@@ -86,7 +89,6 @@ sudo mingw32-make install
 For Python:
 
 ```
-cd vephor_python
 pip install scikit-build
 python setup.py install -G "MinGW Makefiles"
 ```
