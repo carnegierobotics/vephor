@@ -22,7 +22,7 @@ public:
     Cylinder(float p_rad = 1.0f, float p_height = 1.0f, int p_slices = 16)
 	: rad(p_rad), height(p_height), slices(p_slices)
 	{}
-	void setColor(const Vec3& p_color){color = p_color;}
+	void setColor(const Color& p_color){color = p_color.getRGB();}
 	json serialize(vector<vector<char>>*)
 	{	
 		return {

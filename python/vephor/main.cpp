@@ -213,7 +213,17 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("rgba"));
 
     py::class_<Cylinder, shared_ptr<Cylinder>>(m, "Cylinder")
-        .def(py::init<float,float,int>(),py::arg("rad")=1.0f,py::arg("height")=1.0f,py::arg("slices")=12);
+        .def(py::init<float,float,int>(),py::arg("rad")=1.0f,py::arg("height")=1.0f,py::arg("slices")=12)
+		.def("setColor",[](Cylinder& c, 
+			const Vec3& rgb){
+				c.setColor(Color(rgb));
+			}, 
+			py::arg("rgb"))
+		.def("setColor",[](Cylinder& c, 
+			const Vec4& rgba){
+				c.setColor(Color(rgba));
+			}, 
+			py::arg("rgba"));
 
 	py::class_<Cube, shared_ptr<Cube>>(m, "Cube")
         .def(py::init<float>(),py::arg("rad")=1.0f)
@@ -229,7 +239,17 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("rgba"));
 
 	py::class_<Cone, shared_ptr<Cone>>(m, "Cone")
-        .def(py::init<float,float,int>(),py::arg("rad")=1.0f,py::arg("height")=1.0f,py::arg("slices")=12);
+        .def(py::init<float,float,int>(),py::arg("rad")=1.0f,py::arg("height")=1.0f,py::arg("slices")=12)
+		.def("setColor",[](Cone& c, 
+			const Vec3& rgb){
+				c.setColor(Color(rgb));
+			}, 
+			py::arg("rgb"))
+		.def("setColor",[](Cone& c, 
+			const Vec4& rgba){
+				c.setColor(Color(rgba));
+			}, 
+			py::arg("rgba"));
 
 	py::class_<Grid, shared_ptr<Grid>>(m, "Grid")
         .def(py::init<float,Vec3,Vec3,float>(),py::arg("rad"),py::arg("normal")=Vec3(0,0,1),py::arg("right")=Vec3(1,0,0),py::arg("cell_size")=1.0f)
