@@ -495,6 +495,8 @@ public:
 
     Image<uint8_t> getScreenImage();
     Image<uint8_t> getDepthImage();
+    
+    void clear();
 private:
     void removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects);
 

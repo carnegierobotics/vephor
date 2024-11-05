@@ -834,4 +834,17 @@ Image<uint8_t> Window::getDepthImage()
 	return final_image;
 }
 
+void Window::clear()
+{
+	for (auto& layer : object_layers)
+	{
+		layer.clear();
+	}
+	for (auto& layer : overlay_object_layers)
+	{
+		layer.clear();
+	}
+	non_render_objects.clear();
+}
+
 }

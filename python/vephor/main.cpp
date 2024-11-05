@@ -68,7 +68,9 @@ PYBIND11_MODULE(_core, m) {
 		.def(py::init<const Vec3&>())
 		.def(py::init<const Vec3u&>())
 		.def(py::init<const Vec4&>())
-		.def(py::init<const Vec4u&>());
+		.def(py::init<const Vec4u&>())
+		.def_static("fromHSL", &Color::fromHSL);
+		
 	
 	m.def("setTextureCompression", &setTextureCompression, py::arg("compress"), py::arg("quality") = DEFAULT_COMPRESSION_QUALITY);
 
@@ -186,6 +188,17 @@ PYBIND11_MODULE(_core, m) {
 
 	py::class_<Axes, shared_ptr<Axes>>(m, "Axes")
         .def(py::init<float>(),py::arg("size")=1.0f)
+		.def("setColors",[](Axes& a, 
+			const Color& x_c,
+			const Color& y_c,
+			const Color& z_c){
+				a.setColors(
+					Color(x_c),
+					Color(y_c),
+					Color(z_c)
+				);
+			}, 
+			py::arg("x_c"),py::arg("y_c"),py::arg("z_c"))
 		.def("setColors",[](Axes& a, 
 			const Vec3& x_rgb,
 			const Vec3& y_rgb,
@@ -307,6 +320,11 @@ PYBIND11_MODULE(_core, m) {
 			return make_shared<Lines>(verts, colors);
 		}), py::arg("verts"), py::arg("colors")=MatX())
 		.def("setColor",[](Lines& l, 
+			const Color& c){
+				l.setColor(c);
+			}, 
+			py::arg("rgb"))
+		.def("setColor",[](Lines& l, 
 			const Vec3& rgb){
 				l.setColor(Color(rgb));
 			}, 
@@ -322,6 +340,11 @@ PYBIND11_MODULE(_core, m) {
 		.def(py::init([](const MatX& verts, const MatX& colors){
 			return make_shared<Particle>(verts, colors);
 		}), py::arg("verts"), py::arg("colors")=MatX())
+		.def("setColor",[](Particle& p, 
+			const Color& c){
+				p.setColor(c);
+			}, 
+			py::arg("rgb"))
 		.def("setColor",[](Particle& p, 
 			const Vec3& rgb){
 				p.setColor(Color(rgb));
