@@ -296,6 +296,8 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 	glEnable(GL_ALPHA_TEST);
 	glAlphaFunc(GL_GREATER,0.01f);
 
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
 	gl_from_world = Mat4::Identity();
 
 	pure_proj_matrix = Mat4::Identity();
@@ -771,17 +773,25 @@ shared_ptr<Texture> Window::getTextureFromJSON(const json& data, int base_buf_in
 			serial_bufs->push_back(buf);
 		}
 
+		//std::ofstream fout("/tmp/test.jpg", std::ios::binary);
+		//fout.write(reinterpret_cast<const char*>(buf.data()), buf.size());
+    	//fout.close();
+
 		int width, height, numChannels;
 		unsigned char *image_data = stbi_load_from_memory(
 			reinterpret_cast<stbi_uc*>(const_cast<char*>(buf.data())), 
 			buf.size(), &width, &height, &numChannels, 0);
 
-		//v4print "Uncompressing image:", buf.size(), width*height*numChannels;
+		//v4print "Uncompressing image:", buf.size(), width, height, numChannels, width*height*numChannels;
 
 		if (image_data == NULL) {
 			throw std::runtime_error("Error loading compressed image data from buffer.");
 			return NULL;
 		}
+
+		/*Image<uint8_t> test_im(width, height, numChannels);
+		test_im.copyFromBuffer(reinterpret_cast<const char*>(image_data), width*height*numChannels);
+		saveImage("/tmp/test_v4.png", test_im);*/
 		
 		auto tex = getTextureFromBuffer(reinterpret_cast<char*>(image_data), data["channels"], readVec2i(data["size"]), filter_nearest);
 

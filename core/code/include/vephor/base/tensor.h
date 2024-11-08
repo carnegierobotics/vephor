@@ -75,6 +75,7 @@ public:
 	TensorIndex<D> size() const {return sizes;}
 	T& operator ()(const TensorIndex<D>& ind);
 	const T& operator ()(const TensorIndex<D>& ind) const;
+	bool in(const TensorIndex<D>& ind) const;
 	TensorIter<D> getIter() const
 	{
 		return TensorIter<D>(sizes);
@@ -84,6 +85,18 @@ public:
 	int getTypeSize() const {return sizeof(D);}
 	T min() const {return *std::min_element(data.begin(), data.end());}
 	T max() const {return *std::max_element(data.begin(), data.end());}
+	void operator +=(const Tensor<D,T>& t)
+	{
+		if (t.data.size() != data.size())
+			std::runtime_error("Can't add unequal tensor sizes.");
+		for (size_t i = 0; i < data.size(); i++)
+			data[i] += t.data[i];
+	}
+	void operator *=(const T& m)
+	{
+		for (size_t i = 0; i < data.size(); i++)
+			data[i] *= m;
+	}
 private:
 	TensorIndex<D> sizes;
 	vector<T> data;
@@ -141,6 +154,20 @@ const T& Tensor<D,T>::operator ()(const TensorIndex<D>& ind) const
 	}
 	
 	return data[inner_index];
+}
+
+template <int D, typename T>
+bool Tensor<D,T>::in(const TensorIndex<D>& ind) const
+{
+	for (int d = 0; d < D; d++)
+	{	
+		if (ind[d] < 0)
+			return false;
+		if (ind[d] >= sizes[d])
+			return false;
+	}
+	
+	return true;
 }
 	
 }
