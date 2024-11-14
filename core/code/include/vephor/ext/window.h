@@ -202,100 +202,150 @@ struct RenderNode
 public:
 	friend Window;
 
-	RenderNode(const shared_ptr<TransformNode>& p_node):node(p_node){}
+	RenderNode(const shared_ptr<TransformNode>& p_node):node(p_node)
+    {
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
+    }
 	virtual ~RenderNode(){}
 	virtual json serialize(ConnectionID conn_id, vector<vector<char>>* bufs) = 0;
 	Vec3 getPos() const
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return node->getPos();
 	}
 	RenderNode* setPos(const Vec3& pos)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		node->setPos(pos);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return this;
 	}
 	Orient3 getOrient() const
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return node->getOrient();
 	}
 	RenderNode* setOrient(const Orient3& orient)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		node->setOrient(orient);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return this;
 	}
 	TransformSim3 getTransform() const
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return node->getTransform();
 	}
 	RenderNode* setTransform(const TransformSim3& t)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		node->setTransform(t);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return this;
 	}
 	float getScale() const
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return node->getScale();
 	}
 	RenderNode* setScale(float scale)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		node->setScale(scale);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return this;
 	}
 	RenderNode* setParent(TransformNode& parent)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		if (node->getParent() != NULL)
-			throw std::runtime_error("RenderNode already has a parent.");
+        {
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
+            throw std::runtime_error("RenderNode already has a parent.");
+        }
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		parent.addChild(node);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return this;
 	}
 	RenderNode* setParent(RenderNode& parent)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		if (node->getParent() != NULL)
 			throw std::runtime_error("RenderNode already has a parent.");
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		parent.node->addChild(node);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return this;
 	}
 	RenderNode* setParent(const shared_ptr<TransformNode>& parent)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		setParent(*parent.get());
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return this;
 	}
 	RenderNode* setParent(const shared_ptr<RenderNode>& parent)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		setParent(*parent.get());
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return this;
 	}
 	RenderNode* setShow(bool p_show)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		show = p_show;
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		for (auto& status : net_status)
 		{
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 			status.second.show_up_to_date = false;
 		}
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return this;
 	}
 	bool getShow() const {return show;}
 	RenderNode* setDestroy() {
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		destroy = true;
 		for (auto& status : net_status)
 		{
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 			status.second.destroy_up_to_date = false;
 		}
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return this;
 	}
-	bool getDestroy() const {return destroy;}	
-	ObjectID getID() const {return id;}
+	bool getDestroy() const
+    {
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
+        return destroy;
+    }	
+	ObjectID getID() const
+    {
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
+        return id;
+    }
 	bool isNetworkUpToDate() const
 	{
 		// TODO: should this be looking for connections this object hasn't listed?
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		for (auto& status : net_status)
 		{
-			if (!(status.second.obj_up_to_date && 
-				status.second.pose_up_to_date && 
-				status.second.show_up_to_date && 
-				status.second.destroy_up_to_date))
-				return false;
-		}
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
+            if (!(status.second.obj_up_to_date &&
+                  status.second.pose_up_to_date &&
+                  status.second.show_up_to_date &&
+                  status.second.destroy_up_to_date))
+            {
+                std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
+                return false;
+            }
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
+        }
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][RenderNode::" << __func__ << "]\n";
 		return true;
 	}
 private:
@@ -431,23 +481,29 @@ public:
     Window(int p_width=-1, int p_height=-1, string p_title="show")
 	: width(p_width), height(p_height), title(p_title)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		opacity = default_opacity;
 		
 		id = manager.next_window_id;
 		manager.next_window_id++;
 		
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		window_top_right_node = make_shared<TransformNode>(Transform3());
 		window_top_right_node->setName("window_top_right");
 		
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		window_bottom_right_node = make_shared<TransformNode>(Transform3());
 		window_bottom_right_node->setName("window_bottom_right");
 		
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		window_top_left_node = make_shared<TransformNode>(Transform3());
 		window_top_left_node->setName("window_top_left");
 		
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		window_bottom_left_node = make_shared<TransformNode>(Transform3());
 		window_bottom_left_node->setName("window_bottom_left");
 		
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		camera_control = {
 			{"type", "trackball"},
 			{"to", {0,0,0}},
@@ -455,34 +511,45 @@ public:
 			{"up", {0,0,-1}},
 			{"3d", false}		
 		};
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 	}
 	
 	~Window()
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 	}
 	
 	void setTitle(const string& p_title)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		title = p_title;
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		if (camera_control["type"] == "plot")
 		{
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 			camera_control["title"] = title;
 		}
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		invalidateCameraControlInfo();
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 	}
 
 	void setFrameLock(float p_fps){fps = p_fps;}
 
 	void setOpacity(float p_opacity)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		opacity = p_opacity;
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		invalidateCameraControlInfo();
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 	}
 
 	void setFrameSkipMessageLimit(int p_frame_skip_message_limit){frame_skip_message_limit = p_frame_skip_message_limit;}
 
 	void setTrackballMode(const Vec3& to = Vec3(0,0,0), const Vec3& from = Vec3(-1,0,-1), const Vec3& up = Vec3(0,0,-1), bool use_3d = false)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		camera_control = {
 			{"type", "trackball"},
 			{"to", toJson(to)},
@@ -490,44 +557,54 @@ public:
 			{"up", toJson(up)},
 			{"3d", use_3d}
 		};
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 	}
 
 	void setTrackballModeVision()
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		setTrackballMode(Vec3::Zero(), Vec3(-1,-1,0), Vec3(0,-1,0));
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 	}
 	
 	void setPlotMode(bool equal = false)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		camera_control = {
 			{"type", "plot"},
 			{"equal", equal},
 			{"y_flip", false}
 		};
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 	}
 
 	void setPlot3DMode(const Vec3& to = Vec3(0,0,0), const Vec3& from = Vec3(-1,0,-1), const Vec3& up = Vec3(0,0,-1))
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		camera_control = {
 			{"type", "plot3d"},
 			{"to", toJson(to)},
 			{"from", toJson(from)},
 			{"up", toJson(up)}
 		};
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 	}
 
 	json& getCameraControlInfo()
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		return camera_control;
 	}
 	
 	void setKeyPressCallback(KeyActionCallback p_callback)
     {
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
         key_press_callback = p_callback;
     }
 
 	void setMouseClickCallback(MouseClickActionCallback p_callback)
     {
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
         mouse_click_callback = p_callback;
     }
 	
@@ -535,19 +612,28 @@ public:
 		const TransformSim3& parent_from_node
 	)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		auto node = make_shared<TransformNode>(parent_from_node);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		shared_ptr<RenderNode> inner_obj = make_shared<NullRenderNode>(node);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		inner_obj->id = manager.next_obj_id;
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		manager.next_obj_id++;
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		node->setName(to_string(inner_obj->id));
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		node->setScale(parent_from_node.scale);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		objects.push_back(inner_obj);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		
 		node->addTransformCallback([inner_obj](const TransformSim3&)
 		{
 			for (auto& status : inner_obj->net_status)
 				status.second.pose_up_to_date = false;
 		});
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		
 		return inner_obj;
 	}
@@ -558,6 +644,7 @@ public:
 		float parent_from_node_scale = 1.0f
 	)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		return add(TransformSim3(parent_from_node_t,parent_from_node_r,parent_from_node_scale));
 	}
 	
@@ -569,21 +656,32 @@ public:
 		int layer = 0
 	)
     {
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		auto node = make_shared<TransformNode>(parent_from_node);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		shared_ptr<RenderNode> inner_obj = make_shared<TRenderNode<T>>(obj, node);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		inner_obj->id = manager.next_obj_id;
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		manager.next_obj_id++;
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		node->setName(to_string(inner_obj->id));
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		node->setScale(parent_from_node.scale);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		inner_obj->on_overlay = on_overlay;
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		inner_obj->layer = layer;
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		objects.push_back(inner_obj);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		
 		node->addTransformCallback([inner_obj](const TransformSim3&)
 		{
 			for (auto& status : inner_obj->net_status)
 				status.second.pose_up_to_date = false;
 		});
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		
 		return inner_obj;
     }
@@ -598,6 +696,7 @@ public:
 		int layer = 0
 	)
     {
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		return add(obj, TransformSim3(parent_from_node_t,parent_from_node_r,parent_from_node_scale), on_overlay, layer);
     }
 	
@@ -646,36 +745,52 @@ private:
 public:
 	void processEvents(bool& key_event, bool& hide_event, bool verbose = false)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		key_event = false;
 		hide_event = false;
 
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		if (!manager.network_mode)
-			return;
+        {
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
+            return;
+        }
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 
 		auto msgs = manager.getWindowMessages(id);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 
 		if (verbose)
 			v4print "Processing window event messages:", msgs.size();
 		
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		for (const auto& msg : msgs)
 		{
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 			if (msg["type"] == "key_press")
 			{	
+                std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 				if (key_press_callback)
 				{
+                    std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 					key_press_callback(msg["key"]);
 				}
+                std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 				
 				if (msg["key"] == KEY_ENTER)
 				{
+                    std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 					key_event = true;
 					v4print "Continue key event received for window:", id;
 				}
+                std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 			}
 			else if (msg["type"] == "mouse_click")
 			{
+                std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 				if (mouse_click_callback)
 				{
+                    std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 					mouse_click_callback(
 						msg["button"] == "left", 
 						msg["state"] == "down", 
@@ -683,21 +798,26 @@ public:
 						readVec2(msg["window_size"])
 					);
 				}
+                std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 			}
 			else if (msg["type"] == "close")
 			{
+                std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 				v4print "Close message received for window:", id;
 				shutdown = true;
 			}\
 			else if (msg["type"] == "hide")
 			{
+                std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 				v4print "Hide message received for window:", id;
 				hide_event = true;
 			}
 		}
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 	}
 	bool render(bool wait_close = true, bool wait_key = false, float time_increment_s = 0.0f)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		manager.first_render = true;
 
 		if (shutdown)
@@ -974,29 +1094,42 @@ public:
 
 	void save(string path)
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		path = fs::absolute(path).string();
 
 		v4print "Saving scene to", path;
 		
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		string temp_dir = getTempDir();
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		
 		JSONBMessage msg;
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		json scene = produceSceneJSON(LOCAL_CONN_ID_ABSOLUTE, &msg.payloads);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		msg.header = {
 			{"type", "scene"},
 			{"data", scene}
 		};
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		msg.valid = true;
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 
 		vector<JSONBMessage> messages_to_write = {msg};
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		writeMessages(path, messages_to_write);
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 
 		if (fs::exists(temp_dir+"/scene_assets"))
 		{
 			v4print "Copying scene assets from", temp_dir+"/scene_assets", "to", path+"/scene_assets";
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 			fs::remove_all(path+"/scene_assets");
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 			fs::copy(temp_dir+"/scene_assets", path+"/scene_assets");
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		}
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 	}
 
 	static void setGlobalDefaultOpacity(float p_opacity)
@@ -1023,9 +1156,14 @@ public:
 
 	static bool canRender()
 	{
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		if (manager.mode == WindowManager::Mode::Client || 
 			manager.mode == WindowManager::Mode::Server)
-			return !manager.net.getConnectionIdList().empty();
+        {
+            std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
+            return !manager.net.getConnectionIdList().empty();
+        }
+        std::cout << "[" << __FILE__ << "][" << __LINE__ << "][Window::" << __func__ << "]\n";
 		return true;
 	}
 
