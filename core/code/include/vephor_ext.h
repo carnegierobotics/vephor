@@ -27,3 +27,4 @@
 #include "vephor/ext/sprite.h"
 #include "vephor/ext/light.h"
 #include "vephor/ext/plot.h"
+#include "vephor/ext/plot3d.h"

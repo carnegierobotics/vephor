@@ -20,6 +20,7 @@
 #include "spin_camera.h"
 #include "trackball_camera.h"
 #include "plot_camera.h"
+#include "plot3d_camera.h"
 
 using WindowID = int64_t;
 using ObjectID = int64_t;

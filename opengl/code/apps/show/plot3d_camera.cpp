@@ -8,33 +8,104 @@
  * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
 **/
 
-#include "trackball_camera.h"
+#include "plot3d_camera.h"
 
-void TrackballCamera::resizeWindow(Window& window)
+void Plot3DCamera::resizeWindow(Window& window)
 {
-	Mat4 proj = makePerspectiveProj(fov, window.getSize(), curr_near_z, curr_far_z);
+	float aspect = (float)window.getSize()[0]/window.getSize()[1];
+    Mat4 proj = makeOrthoProj(
+        Vec3(-zoom*aspect,-zoom,-1000),//curr_near_z), 
+        Vec3(zoom*aspect,zoom,1000)//curr_far_z)
+    );
 	window.setProjectionMatrix(proj);
 }
 
-void TrackballCamera::setup(const json& data, Window& window, AssetManager& assets)
+void Plot3DCamera::moveGrid(Window& window)
+{
+	float curr_inc = pow(10, int(log(zoom)/log(10)));
+
+	grid_render->setScale(curr_inc);
+
+	Vec3 pos = orbit_point_render->getPos();
+
+	// if flat
+	pos[2] = 0;
+
+	pos = (pos/curr_inc + Vec3(.5f,.5f,.5f)).array().floor().cast<float>()*curr_inc;
+
+	grid_render->setPos(pos);
+
+	axes_render->setScale(curr_inc / 10);
+	axes_render->setPos(pos);
+
+	if (text_render)
+		text_render->setDestroy();
+
+	auto axes = make_shared<Axes>();
+
+	auto text = make_shared<Text>("("+
+		std::to_string(int(pos[0]))+","+
+		std::to_string(int(pos[1]))+","+
+		std::to_string(int(pos[2]))+")", text_tex, Vec3(0,0,0));
+	text->setAnchorBottom();
+
+	text_render = window.add(text, pos);
+	text_render->setScale(zoom/30);
+}
+
+void Plot3DCamera::setup(const json& data, Window& window, AssetManager& assets)
 {	
-	auto back_tex = window.getTextureFromImage(*generateGradientImage(Vec2i(64,64), Vec3(0.3,0.3,0.6), Vec3(0.05,0.05,0.1)));
+	Vec3 light_dir(0,0,1);
+    auto dir_light = make_shared<DirLight>(light_dir, 0.0f);
+    window.add(dir_light, Transform3());
+
+    auto ambient_light = make_shared<AmbientLight>(Vec3(1,1,1));
+    window.add(ambient_light, Transform3());
+
+	Vec3 back_color = readDefault(data, "back_color", Vec3(1,1,1));
+
+	auto back_tex = window.getTextureFromImage(*generateSimpleImage(Vec2i(64,64), back_color));
 	auto back = make_shared<Background>(back_tex);
 	window.add(back, Transform3(), false, -1);
+
+	{
+		auto axes = make_shared<Axes>();
+		axes->setColors(
+			Vec3(0,1,1),
+			Vec3(1,0,1),
+			Vec3(1,1,0)
+		);
+		axes_render = window.add(axes);
+	}
+
+	grid_render = window.add(Transform3());
+
+	{
+		auto axes = make_shared<Axes>();
+		window.add(axes);
+	}
+
+	{
+		auto grid = make_shared<Grid>(10,Vec3(0,0,1),Vec3(1,0,0),1.0f,Vec3(.9f,.9f,.9f));
+		window.add(grid)->setParent(grid_render);
+	}
+
+	{
+		auto grid = make_shared<Grid>(100,Vec3(0,0,1),Vec3(1,0,0),10.0f,Vec3(.9f,.9f,.9f));
+		window.add(grid)->setParent(grid_render);
+	}
+
+	{
+		auto grid = make_shared<Grid>(1000,Vec3(0,0,1),Vec3(1,0,0),100.0f,Vec3(.9f,.9f,.9f));
+		window.add(grid)->setParent(grid_render);
+	}
 	
 	auto orbit_sphere = formSphere(16,16);
-	auto orbit_point = make_shared<Mesh>(orbit_sphere);
+	auto orbit_point = make_shared<Mesh>(orbit_sphere, Vec3(0.5,0.5,0.5));
 	orbit_point_render = window.add(orbit_point, Transform3());
 	orbit_point_render->setShow(false);
 
 	orbit_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
-
-	auto drag_point = make_shared<Mesh>(orbit_sphere, Vec3(1,1,0));
-	drag_point_render = window.add(drag_point, Transform3());
-	drag_point_render->setShow(false);
-
-	drag_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
-	
 	
 	trackball_to = readVec3(data["to"]);
 	trackball_from = readVec3(data["from"]);
@@ -71,19 +142,17 @@ void TrackballCamera::setup(const json& data, Window& window, AssetManager& asse
 		scene_scale = (trackball_from - trackball_to).norm();
 	orbit_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
 	orbit_point_render->setPos(trackball_to);
+	moveGrid(window);
 	
 	curr_near_z = 0.001f * scene_scale;
 	curr_far_z = 10.0f * scene_scale;
 	resizeWindow(window);
-
-	if (data.contains("3d"))
-		trackball_3d = data["3d"];
 	
 	if (data.contains("auto_fit"))
 		auto_fit = data["auto_fit"];
 }
 
-void TrackballCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
+void Plot3DCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 {
 	if (!auto_fit)
 		return;
@@ -134,6 +203,7 @@ void TrackballCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 	}
 
 	offset *= scene_scale;
+	zoom = scene_scale;
 	
 	curr_near_z = 0.001f * scene_scale;
 	curr_far_z = 10.0f * scene_scale;
@@ -162,9 +232,10 @@ void TrackballCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 
 	orbit_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
 	orbit_point_render->setPos(trackball_to);
+	moveGrid(window);
 }
 
-void TrackballCamera::update(Window& window, float dt, const ControlInfo& control_info)
+void Plot3DCamera::update(Window& window, float dt, const ControlInfo& control_info)
 {
 	if (control_info.left_drag_on || control_info.right_drag_on || control_info.total_scroll_amount != 0.0f || control_info.key_motion != Vec3::Zero())
 	{
@@ -248,12 +319,7 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 			window.getWorldRayForMousePos(control_info.drag_start_mouse_pos, drag_origin, drag_ray);
 
 			right_drag_off = false;
-			right_world_point = drag_origin + drag_ray * (-offset.dot(drag_ray));
-
-			scene_scale = offset.norm();
-			drag_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
-			drag_point_render->setPos(right_world_point);
-			drag_point_render->setShow(true);
+			right_world_point = drag_origin + drag_ray * (offset.dot(drag_ray));
 		}
 
 		// Keep the world point selected on initial click under the mouse cursor
@@ -271,18 +337,17 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 		// lambda = camera_dir * (cam_origin - right_world_point) / (camera_dir * -curr_ray)
 		Vec3 camera_dir = offset / offset.norm();
 		float lambda = camera_dir.dot(world_from_cam.translation() - right_world_point) / camera_dir.dot(-curr_ray);
-		trackball_from = right_world_point - curr_ray * lambda;
+		trackball_from += right_world_point - curr_ray * lambda - curr_origin;
 		trackball_to = trackball_from - offset;
 
 		orbit_point_render->setPos(trackball_to);
+		moveGrid(window);
 
 		world_from_cam.setTranslation(trackball_from);
 		window.setCamFromWorld(world_from_cam.inverse());
 	}
 	else
 	{
-		drag_point_render->setShow(false);
-
 		right_drag_off = true;
 	}
 
@@ -298,7 +363,9 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 			offset *= mult;
 
 			scene_scale = offset.norm();
+			zoom = scene_scale;
 			orbit_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
+			moveGrid(window);
 
 			curr_near_z = 0.001f * scene_scale;
 			curr_far_z = 100.0f * scene_scale;
@@ -318,6 +385,7 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 			float movement_mag = scene_scale / 100.0f;
 			trackball_to += world_from_cam.rotation() * control_info.key_motion * movement_mag;
 			orbit_point_render->setPos(trackball_to);
+			moveGrid(window);
 
 			trackball_from = offset + trackball_to;
 			world_from_cam.setTranslation(trackball_from);

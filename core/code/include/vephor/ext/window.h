@@ -491,6 +491,11 @@ public:
 			{"3d", use_3d}
 		};
 	}
+
+	void setTrackballModeVision()
+	{
+		setTrackballMode(Vec3::Zero(), Vec3(-1,-1,0), Vec3(0,-1,0));
+	}
 	
 	void setPlotMode(bool equal = false)
 	{
@@ -498,6 +503,16 @@ public:
 			{"type", "plot"},
 			{"equal", equal},
 			{"y_flip", false}
+		};
+	}
+
+	void setPlot3DMode(const Vec3& to = Vec3(0,0,0), const Vec3& from = Vec3(-1,0,-1), const Vec3& up = Vec3(0,0,-1))
+	{
+		camera_control = {
+			{"type", "plot3d"},
+			{"to", toJson(to)},
+			{"from", toJson(from)},
+			{"up", toJson(up)}
 		};
 	}
 

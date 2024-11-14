@@ -12,7 +12,7 @@
 
 #include "show_camera.h"
 
-class TrackballCamera : public ShowCamera
+class Plot3DCamera : public ShowCamera
 {
 public:
 	virtual void resizeWindow(Window& window) override;
@@ -22,7 +22,7 @@ public:
 	virtual json serialize() override
 	{
 		return {
-			{"type", "trackball"},
+			{"type", "plot3d"},
 			{"to", toJson(trackball_to)},
 			{"from", toJson(trackball_from)},
 			{"up", toJson(trackball_up)},
@@ -32,11 +32,15 @@ public:
 		};
 	}
 private:
+	void moveGrid(Window& window);
+
 	float scene_scale = 12.0f;
 	shared_ptr<RenderNode> orbit_point_render;
-	shared_ptr<RenderNode> drag_point_render;
+	shared_ptr<RenderNode> grid_render;
+	shared_ptr<RenderNode> axes_render;
+	shared_ptr<RenderNode> text_render;
 	const float orbit_point_scene_scale_mult = 1.0f / 100.0f;
-	bool trackball_3d = true;
+	bool trackball_3d = false;
 	Vec3 trackball_to;
 	Vec3 trackball_from;
 	Vec3 trackball_up;
@@ -46,6 +50,7 @@ private:
 	float curr_near_z = 0.1f;
 	float curr_far_z = 100.0f;
 	bool auto_fit = true;
+	float zoom = 40.0f;
 
 	bool right_drag_off = true;
 	Vec3 right_world_point;

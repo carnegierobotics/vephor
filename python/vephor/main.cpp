@@ -36,15 +36,26 @@ PYBIND11_MODULE(_core, m) {
 		.def("normalize", &Orient3::normalize)
 		.def("rvec", &Orient3::rvec)
 		.def(py::self * py::self)
-		.def(py::self * Vec3());
+		.def(py::self * Vec3())
+		.def_static("fromMatrix", &Orient3::fromMatrix);
     py::class_<Transform3>(m, "Transform3")
 		.def(py::init<>())
 		.def(py::init<const Vec3&,const Vec3>(),py::arg("t"),py::arg("r")=Vec3(0,0,0))
-		.def(py::init<const Vec3&,const Orient3&>());
+		.def(py::init<const Vec3&,const Orient3&>())
+		.def(py::self * py::self)
+		.def(py::self * Vec3())
+		.def("inverse", &Transform3::inverse)
+		.def("translation", &Transform3::translation)
+		.def("rvec", &Transform3::rvec)
+		.def("rotation", &Transform3::rotation)
+		.def("matrix", &Transform3::matrix);
     py::class_<TransformSim3>(m, "TransformSim3")
 		.def(py::init<>())
 		.def(py::init<const Vec3&,const Vec3,float>(),py::arg("t"),py::arg("r")=Vec3(0,0,0),py::arg("scale")=1.0f)
-		.def(py::init<const Transform3&,float>(),py::arg("transform"),py::arg("scale")=1.0f);
+		.def(py::init<const Transform3&,float>(),py::arg("transform"),py::arg("scale")=1.0f)
+		.def(py::self * py::self)
+		.def(py::self * Transform3())
+		.def(py::self * Vec3());
     py::class_<TransformNode, shared_ptr<TransformNode>>(m, "TransformNode");
     py::class_<RenderNode, shared_ptr<RenderNode>>(m, "RenderNode")
 		.def("setPos", &RenderNode::setPos)
@@ -455,6 +466,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("from")=Vec3(-1,0,-1), 
 			py::arg("up")=Vec3(0,0,-1), 
 			py::arg("use_3d")=false)
+		.def("setTrackballModeVision", &Window::setTrackballModeVision)
 		.def("setKeyPressCallback", &Window::setKeyPressCallback)
 		.def("setPlotMode", &Window::setPlotMode, py::arg("equal")=false)
 		.def("setOpacity", &Window::setOpacity)
@@ -477,6 +489,15 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("t")=Vec3(0,0,0),
 			py::arg("r")=Vec3(0,0,0),
 			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0)
+		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
+            const shared_ptr<Axes>&,
+            const TransformSim3&,
+            bool, 
+            int)>(&Window::add<Axes>),
+			py::arg("object"),
+			py::arg("T"),
 			py::arg("overlay")=false,
 			py::arg("layer")=0)
 		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
@@ -859,6 +880,64 @@ PYBIND11_MODULE(_core, m) {
 		.def("show", &Plot::show, py::arg("wait_close")=true, py::arg("wait_key")=false)
 		.def("clear", &Plot::clear)
 		.def("save", &Plot::save);
+
+	py::class_<Plot3D>(m, "Plot3D")
+        .def(py::init<string,int,int>(),
+			py::arg("title")="plot",
+			py::arg("width")=800,
+			py::arg("height")=800)
+		.def("window", &Plot3D::window, py::return_value_policy::reference)
+		.def("title", &Plot3D::title)
+		.def("back_color", [](Plot3D& p, const Vec3& color){
+				p.back_color(color);
+			},
+			py::arg("color")
+		)
+		.def("fore_color", [](Plot3D& p, const Vec3& color){
+				p.fore_color(color);
+			},
+			py::arg("color")
+		)
+		.def("grid_color", [](Plot3D& p, const Vec3& color){
+				p.grid_color(color);
+			},
+			py::arg("color")
+		)
+		.def("plot", [](Plot3D& p, 
+				const MatX& x, 
+				const MatX& y, 
+				const MatX& z, 
+				const Vec3& color,
+				const string& linestyle,
+				float thickness,
+				const string& label){
+				PlotLineOptions opts;
+				opts.color = color;
+				opts.label = label;
+				opts.linestyle = linestyle;
+				opts.thickness = thickness;
+				if (x.cols() == 2)
+				{
+					p.plot(x.col(0),x.col(1),x.col(2),opts);
+				}
+				else
+				{
+					p.plot(x,y,z,opts);
+				}
+			},
+			py::arg("x"), 
+			py::arg("y")=MatX(),
+			py::arg("z")=MatX(),
+			py::arg("color")=Vec3(-1,-1,-1), 
+			py::arg("linestyle") = "",
+			py::arg("thickness") = 0,
+			py::arg("label") = "")
+		.def("xlabel", &Plot3D::xlabel)
+		.def("ylabel", &Plot3D::ylabel)
+		.def("zlabel", &Plot3D::zlabel)
+		.def("show", &Plot3D::show, py::arg("wait_close")=true, py::arg("wait_key")=false)
+		.def("clear", &Plot3D::clear)
+		.def("save", &Plot3D::save);
 
 
 #ifdef VERSION_INFO

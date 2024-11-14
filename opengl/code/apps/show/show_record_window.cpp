@@ -291,6 +291,10 @@ void ShowRecordWindow::setupCamera(const json& data, AssetManager& assets)
 			{
 				camera = make_shared<PlotCamera>();
 			}
+			else if (control_data["type"] == "plot3d")
+			{
+				camera = make_shared<Plot3DCamera>();
+			}
 			camera->text_tex = text_tex;
 			camera->setup(control_data, *window.get(), assets);
 		}

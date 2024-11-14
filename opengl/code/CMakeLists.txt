@@ -98,7 +98,12 @@ foreach (APP ${EXAMPLE_APPS})
 	target_link_libraries(${APP} vephor_opengl)
 endforeach()
 
-add_executable (vephor_show apps/show/show.cpp apps/show/plot_camera.cpp apps/show/trackball_camera.cpp apps/show/show_record_window.cpp)
+add_executable (vephor_show 
+	apps/show/show.cpp 
+	apps/show/plot_camera.cpp 
+	apps/show/plot3d_camera.cpp 
+	apps/show/trackball_camera.cpp 
+	apps/show/show_record_window.cpp)
 include_directories(vephor_show include)
 target_link_libraries(vephor_show vephor_opengl)
 
