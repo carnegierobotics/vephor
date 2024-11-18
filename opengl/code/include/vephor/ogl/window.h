@@ -176,12 +176,20 @@ public:
         float strength = 0.0f;
     };
 
-    Window(
-		int width = -1, 
-		int height = -1, 
-		string title = "show", 
-		WindowResizeCallback resize_callback = NULL, 
-		const WindowOptions& opts = WindowOptions());
+    Window(int width = -1,
+           int height = -1,
+           const string &title = "show",
+           WindowResizeCallback resize_callback = nullptr,
+           const WindowOptions &opts = WindowOptions());
+
+    Window(int width,
+           int height,
+           int x_position,
+           int y_position,
+           const string &title = "show",
+           WindowResizeCallback resize_callback = nullptr,
+           const WindowOptions &options = WindowOptions());
+
     ~Window();
 
     void show()
@@ -416,6 +424,10 @@ public:
     const int getWidth() const {return window_size[0];}
     const int getHeight() const {return window_size[1];}
 
+    [[nodiscard]] const Vec2i& getPosition() const { return window_position; }
+    [[nodiscard]] const int getXPosition() const { return window_position[0]; }
+    [[nodiscard]] const int getYPosition() const { return window_position[1]; }
+
     const shared_ptr<Texture> getDefaultTex() const {return default_tex;}
 	const shared_ptr<Texture> getDefaultNormalMap() const {return default_normal_map;}
 
@@ -502,6 +514,7 @@ private:
 
     WindowResizeCallback resize_callback;
     Vec2i window_size;
+    Vec2i window_position; ///< Position of the window's upper-left corner.
     string title;
 	Vec2 content_scale = Vec2(1,1);
     GLFWwindow* window = NULL;

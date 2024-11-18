@@ -19,8 +19,12 @@ namespace vephor
 class Plot3D
 {
 public:
-	Plot3D(const string& title = "plot", int width=800, int height=800)
-	: inner_window(width,height,title)
+    Plot3D(const string &title = "plot", int width = 800, int height = 800, int x_position = -1, int y_position = -1)
+            : inner_window(/* width */ width,
+                           /* height */ height,
+                           /* x_position */ x_position,
+                           /* y_position */ y_position,
+                           /* title */ title)
 	{
 		inner_window.setPlot3DMode();
 		base_asset_dir = getBaseAssetDir();
