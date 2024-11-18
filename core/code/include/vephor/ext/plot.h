@@ -75,9 +75,13 @@ struct PlotScatterOptions
 class Plot
 {
 public:
-	Plot(const string& title = "plot", int width=800, int height=800)
-	: inner_window(width,height,title)
-	{
+    Plot(const string &title = "plot", int width = 800, int height = 800, int x_position = -1, int y_position = -1)
+            : inner_window(/* width */ width,
+                           /* height */ height,
+                           /* x_position */ x_position,
+                           /* y_position */ y_position,
+                           /* title */ title)
+    {
 		inner_window.setPlotMode(false /*equal*/);
 		base_asset_dir = getBaseAssetDir();
 

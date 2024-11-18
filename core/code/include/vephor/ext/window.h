@@ -424,12 +424,24 @@ struct WindowManager
 		}
 	}
 };
-	
-class Window
-{
+
+class Window {
 public:
-    Window(int p_width=-1, int p_height=-1, string p_title="show")
-	: width(p_width), height(p_height), title(p_title)
+    explicit Window(int p_width = -1, int p_height = -1, const string &p_title = "show")
+            : Window(/* p_width */ p_width,
+                     /* p_height */ p_height,
+                     /* p_x_position */ -1,
+                     /* p_y_position */ -1,
+                     /* p_title */ p_title)
+    {
+	}
+
+    Window(int p_width,
+           int p_height,
+           int p_x_position,
+           int p_y_position = -1,
+           const string &p_title = "show")
+            : width(p_width), height(p_height), x_position(p_x_position), y_position(p_y_position), title(p_title)
 	{
 		opacity = default_opacity;
 		
@@ -456,11 +468,9 @@ public:
 			{"3d", false}		
 		};
 	}
-	
-	~Window()
-	{
-	}
-	
+
+    ~Window() = default;
+
 	void setTitle(const string& p_title)
 	{
 		title = p_title;
@@ -1276,6 +1286,8 @@ private:
 			scene["window"] = {
 				{"width", width},
 				{"height", height},
+				{"x_position", x_position},
+				{"y_position", y_position},
 				{"title", title},
 				{"fps", fps},
 				{"opacity", opacity}
@@ -1404,7 +1416,10 @@ private:
     };
 
 	WindowID id;
-	int width, height;
+	int width;
+    int height;
+    int x_position; ///< Position of the upper-left window corner along the x-axis.
+    int y_position; ///< Position of the upper-left window corner along the y-axis.
 	string title;
 	float fps = 30.0f;
 	float opacity;
