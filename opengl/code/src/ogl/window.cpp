@@ -173,13 +173,34 @@ GLuint buildProgram(const string& program_name, const string& vert_shader, const
 	// TODO Later: glDeleteProgram(program_id);
 }
 
-Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p_resize_callback, const WindowOptions& opts)
-: resize_callback(p_resize_callback), title(p_title)
+Window::Window(const int p_width,
+               const int p_height,
+               const string &p_title,
+               const WindowResizeCallback p_resize_callback,
+               const WindowOptions &p_opts)
+        : Window(/* width */ p_width,
+                 /* height */ p_height,
+                 /* x_position */ -1,
+                 /* y_position */ -1,
+                 /* title */ p_title,
+                 /* resize_callback */ p_resize_callback,
+                 /* opts */ p_opts)
+{
+}
+
+Window::Window(int p_width,
+               int p_height,
+               int p_x_position,
+               int p_y_position,
+               const string &p_title,
+               WindowResizeCallback p_resize_callback,
+               const WindowOptions &opts)
+        : resize_callback(p_resize_callback), title(p_title)
 {
 	id = next_id;
 	next_id++;
 
-	if (resize_callback == NULL)
+    if (resize_callback == nullptr)
 	{
 		resize_callback = [](Window* this_window, const Vec2i& window_size){
 			Mat4 proj = makePerspectiveProj(45, window_size, 0.1f, 100.0f);
@@ -212,19 +233,21 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 	}
 
 	auto* monitor = glfwGetPrimaryMonitor();
-	int mon_xpos, mon_ypos;
-	glfwGetMonitorPos(monitor, &mon_xpos, &mon_ypos);
+	int monitor_xpos, monitor_ypos;
+	glfwGetMonitorPos(monitor, &monitor_xpos, &monitor_ypos);
 	const auto* mode = glfwGetVideoMode(monitor);
 
-	bool monitor_size = false;
-	if (p_width == -1 && p_height == -1)
+	glfwGetMonitorContentScale(monitor, &content_scale[0], &content_scale[1]);
+
+	const bool use_monitor_size = (p_width == -1) && (p_height == -1);
+	if (p_width == -1)
 	{
 		p_width = mode->width;
-		p_height = mode->height;
-		monitor_size = true;
 	}
-	
-	glfwGetMonitorContentScale(monitor, &content_scale[0], &content_scale[1]);
+	if (p_height == -1)
+	{
+		p_height = mode->height;
+	}
 
 	if (opts.fullscreen)
 	{
@@ -237,21 +260,35 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 	}
 	else
 	{
-		window = glfwCreateWindow(p_width, p_height, title.c_str(), NULL, first_window);
+		window = glfwCreateWindow(p_width, p_height, title.c_str(), nullptr, first_window);
 
-		if (!monitor_size)
+		if (!use_monitor_size)
 		{
-			int xpos = 50 + (mode->width / 3.0f) * (id % 3);
-			int ypos = 50 + 50 * int(id / 3);
-			if (xpos + p_width > mode->width)
-				xpos = mode->width - p_width;
-			if (ypos + p_height > mode->height)
-				ypos = mode->height - p_height;
-			glfwSetWindowPos(window, mon_xpos + xpos, mon_ypos + ypos);
+            // Tile windows three abreast with a slight vertical offset for each new row
+            if (p_x_position == -1)
+            {
+                p_x_position = 50 + (mode->width / 3) * (id % 3);
+            }
+            if (p_y_position == -1)
+            {
+                p_y_position = 50 * (1 + (id / 3));
+            }
+
+            // If we've reached the extant edge of the screen, restart at the upper-left origin
+			if (p_x_position + p_width > mode->width)
+            {
+                p_x_position = mode->width - p_width;
+            }
+			if (p_y_position + p_height > mode->height)
+            {
+                p_y_position = mode->height - p_height;
+            }
+
+			glfwSetWindowPos(window, monitor_xpos + p_x_position, monitor_ypos + p_y_position);
 		}
 	}
 
-	if( window == NULL ){
+	if( window == nullptr ){
 		fprintf( stderr, "Failed to open GLFW window.\n" );
 		getchar();
 		glfwTerminate();
@@ -263,8 +300,8 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 		glfwSetWindowAttrib(window, GLFW_FLOATING, GLFW_TRUE);
 		on_top = true;
 	}
-	
-	if (first_window == NULL)
+
+	if (first_window == nullptr)
 	{
 		first_window = window;
 	}
@@ -273,6 +310,7 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 	glfwSwapInterval(0);
 
 	glfwGetFramebufferSize(window, &window_size[0], &window_size[1]);
+	glfwGetWindowPos(window, &window_position[0], &window_position[1]);
 
     // Initialize GLEW
 	if (glewInit() != GLEW_OK) {
@@ -344,9 +382,7 @@ Window::Window(int p_width, int p_height, string p_title, WindowResizeCallback p
 	onResize(window_size);
 }
 
-Window::~Window()
-{
-}
+Window::~Window() = default;
 
 void Window::removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects)
 {
@@ -559,6 +595,8 @@ json Window::produceSceneJSON(vector<vector<char>>* bufs)
 	scene["window"] = {
 		{"width", window_size[0]},
 		{"height", window_size[1]},
+		{"x_position", window_position[0]},
+		{"y_position", window_position[1]},
 		{"title", title}
 	};
 
