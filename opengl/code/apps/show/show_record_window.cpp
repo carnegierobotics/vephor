@@ -118,6 +118,8 @@ void ShowRecordWindow::setup(const json& data,
 	
 	int width = -1;
 	int height = -1;
+	int x_position = -1;
+	int y_position = -1;
 	Vec2 size(-1, -1);
 	string title = "show";
 	float fps = 30.0f;
@@ -125,27 +127,55 @@ void ShowRecordWindow::setup(const json& data,
 	
 	if (data.contains("window"))
 	{
-		if (data["window"].contains("width"))
-			width = data["window"]["width"];
-		if (data["window"].contains("height"))
-			height = data["window"]["height"];
-		if (data["window"].contains("title"))
-			title = data["window"]["title"];
-		if (data["window"].contains("fps"))
-			fps = data["window"]["fps"];
-		if (data["window"].contains("opacity"))
-			opacity = data["window"]["opacity"];
+        const auto& window_data = data["window"];
+
+		if (window_data.contains("width"))
+        {
+            width = window_data["width"];
+        }
+		if (window_data.contains("height"))
+        {
+            height = window_data["height"];
+        }
+		if (window_data.contains("x_position"))
+        {
+            x_position = window_data["x_position"];
+        }
+		if (window_data.contains("y_position"))
+        {
+            y_position = window_data["y_position"];
+        }
+		if (window_data.contains("title"))
+        {
+            title = window_data["title"];
+        }
+		if (window_data.contains("fps"))
+        {
+            fps = window_data["fps"];
+        }
+		if (window_data.contains("opacity"))
+        {
+            opacity = window_data["opacity"];
+        }
 	}
-	
+
 	v4print "Window created:", window_id, title;
-	
+
 	WindowOptions opts;
 	opts.show = false;
-	opts.always_on_top = false;
-	window = make_shared<Window>(width, height, title, [&](Window* this_window, const Vec2i& window_size){
-		if (camera)
-			camera->resizeWindow(*this_window);
-	}, opts);
+    opts.always_on_top = false;
+    window = make_shared<Window>(/* width */ width,
+                                 /* height */ height,
+                                 /* x_position */ x_position,
+                                 /* y_position */ y_position,
+                                 /* title */ title,
+                                 /* resize_callback */
+                                 [&](Window *this_window, const Vec2i &window_size)
+                                 {
+                                     if (camera)
+                                         camera->resizeWindow(*this_window);
+                                 },
+                                 /* options */ opts);
 
 	window->setHideOnClose(hide_windows);
 	window->setOpacity(opacity);
