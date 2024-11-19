@@ -232,42 +232,64 @@ Window::Window(int p_width,
 		showing = false;
 	}
 
-	auto* monitor = glfwGetPrimaryMonitor();
-	int monitor_xpos, monitor_ypos;
-	glfwGetMonitorPos(monitor, &monitor_xpos, &monitor_ypos);
-	const auto* mode = glfwGetVideoMode(monitor);
+    int monitor_count;
+    const auto *monitors = glfwGetMonitors(/* count */ &monitor_count);
+    if (monitors == nullptr)
+    {
+        fprintf(stderr, "[vephor::Window::Window] No monitors available.\n");
+        getchar();
+        glfwTerminate();
+        throw std::runtime_error("[vephor::Window::Window] No monitors available.");
+    }
 
-	glfwGetMonitorContentScale(monitor, &content_scale[0], &content_scale[1]);
+    int monitor_index = opts.monitor;
+    if (monitor_index < 0 || monitor_index >= monitor_count)
+    {
+        // Default to primary monitor, which is always at index zero
+        monitor_index = 0;
+        std::cerr << "Invalid monitor specified.\n";
+    }
+    auto *monitor = monitors[monitor_index];
 
-	const bool use_monitor_size = (p_width == -1) && (p_height == -1);
-	if (p_width == -1)
-	{
-		p_width = mode->width;
-	}
-	if (p_height == -1)
-	{
-		p_height = mode->height;
-	}
+    const auto *video_mode = glfwGetVideoMode(monitor);
 
-	if (opts.fullscreen)
-	{
-		glfwWindowHint(GLFW_RED_BITS, mode->redBits);
-		glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-		glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
-		glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+    int workarea_xpos;
+    int workarea_ypos;
+    int workarea_width;
+    int workarea_height;
+    glfwGetMonitorWorkarea(monitor, &workarea_xpos, &workarea_ypos, &workarea_width, &workarea_height);
 
-		window = glfwCreateWindow(p_width, p_height, title.c_str(), monitor, first_window);
-	}
-	else
-	{
-		window = glfwCreateWindow(p_width, p_height, title.c_str(), nullptr, first_window);
+    glfwGetMonitorContentScale(monitor, &content_scale[0], &content_scale[1]);
 
-		if (!use_monitor_size)
-		{
+    const bool use_monitor_size = (p_width == -1) && (p_height == -1);
+    if (p_width == -1)
+    {
+        p_width = workarea_width;
+    }
+    if (p_height == -1)
+    {
+        p_height = workarea_height;
+    }
+
+    if (opts.fullscreen)
+    {
+        glfwWindowHint(GLFW_RED_BITS, video_mode->redBits);
+        glfwWindowHint(GLFW_GREEN_BITS, video_mode->greenBits);
+        glfwWindowHint(GLFW_BLUE_BITS, video_mode->blueBits);
+        glfwWindowHint(GLFW_REFRESH_RATE, video_mode->refreshRate);
+
+        window = glfwCreateWindow(p_width, p_height, title.c_str(), monitor, first_window);
+    }
+    else
+    {
+        window = glfwCreateWindow(p_width, p_height, title.c_str(), nullptr, first_window);
+
+        if (!use_monitor_size)
+        {
             // Tile windows three abreast with a slight vertical offset for each new row
             if (p_x_position == -1)
             {
-                p_x_position = 50 + (mode->width / 3) * (id % 3);
+                p_x_position = 50 + (workarea_width / 3) * (id % 3);
             }
             if (p_y_position == -1)
             {
@@ -275,18 +297,18 @@ Window::Window(int p_width,
             }
 
             // If we've reached the extant edge of the screen, restart at the upper-left origin
-			if (p_x_position + p_width > mode->width)
+            if (p_x_position + p_width > workarea_width)
             {
-                p_x_position = mode->width - p_width;
+                p_x_position = workarea_width - p_width;
             }
-			if (p_y_position + p_height > mode->height)
+            if (p_y_position + p_height > workarea_height)
             {
-                p_y_position = mode->height - p_height;
+                p_y_position = workarea_height - p_height;
             }
 
-			glfwSetWindowPos(window, monitor_xpos + p_x_position, monitor_ypos + p_y_position);
-		}
-	}
+            glfwSetWindowPos(window, workarea_xpos + p_x_position, workarea_ypos + p_y_position);
+        }
+    }
 
 	if( window == nullptr ){
 		fprintf( stderr, "Failed to open GLFW window.\n" );

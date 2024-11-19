@@ -124,6 +124,7 @@ void ShowRecordWindow::setup(const json& data,
 	string title = "show";
 	float fps = 30.0f;
 	float opacity = 1.0f;
+	int monitor = 0;
 	
 	if (data.contains("window"))
 	{
@@ -157,6 +158,10 @@ void ShowRecordWindow::setup(const json& data,
         {
             opacity = window_data["opacity"];
         }
+		if (window_data.contains("monitor"))
+        {
+            monitor = window_data["monitor"];
+        }
 	}
 
 	v4print "Window created:", window_id, title;
@@ -164,6 +169,7 @@ void ShowRecordWindow::setup(const json& data,
 	WindowOptions opts;
 	opts.show = false;
     opts.always_on_top = false;
+    opts.monitor = monitor;
     window = make_shared<Window>(/* width */ width,
                                  /* height */ height,
                                  /* x_position */ x_position,

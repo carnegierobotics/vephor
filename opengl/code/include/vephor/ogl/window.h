@@ -158,6 +158,7 @@ struct WindowOptions
     bool fullscreen = false;
     bool show = true;
     bool always_on_top = false;
+    int monitor{0}; ///< Monitor to display window on.  Zero indicates primary monitor.
 };
 
 class Window
