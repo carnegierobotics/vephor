@@ -128,6 +128,8 @@ public:
 
 	static Color fromHSL(float H, float S, float L)
 	{
+		H = fmod(H, 360.0f);
+
 		// From LLM
 		float C = (1 - std::fabs(2 * L - 1)) * S;
 		float H_prime = H / 60.0;  // Divide by 60 to get the sector of the hue circle

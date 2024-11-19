@@ -203,7 +203,9 @@ public:
 	friend Window;
 
 	RenderNode(const shared_ptr<TransformNode>& p_node):node(p_node){}
-	virtual ~RenderNode(){}
+	virtual ~RenderNode()
+	{
+	}
 	virtual json serialize(ConnectionID conn_id, vector<vector<char>>* bufs) = 0;
 	Vec3 getPos() const
 	{
@@ -564,10 +566,12 @@ public:
 		node->setName(to_string(inner_obj->id));
 		node->setScale(parent_from_node.scale);
 		objects.push_back(inner_obj);
+
+		auto* inner_obj_ptr = inner_obj.get();
 		
-		node->addTransformCallback([inner_obj](const TransformSim3&)
+		node->addTransformCallback([inner_obj_ptr](const TransformSim3&)
 		{
-			for (auto& status : inner_obj->net_status)
+			for (auto& status : inner_obj_ptr->net_status)
 				status.second.pose_up_to_date = false;
 		});
 		
@@ -600,10 +604,12 @@ public:
 		inner_obj->on_overlay = on_overlay;
 		inner_obj->layer = layer;
 		objects.push_back(inner_obj);
+
+		auto* inner_obj_ptr = inner_obj.get();
 		
-		node->addTransformCallback([inner_obj](const TransformSim3&)
+		node->addTransformCallback([inner_obj_ptr](const TransformSim3&)
 		{
-			for (auto& status : inner_obj->net_status)
+			for (auto& status : inner_obj_ptr->net_status)
 				status.second.pose_up_to_date = false;
 		});
 		
@@ -1372,6 +1378,10 @@ private:
         : RenderNode(p_node)
         {}
 
+		~NullRenderNode()
+		{
+		}
+
         virtual json serialize(ConnectionID conn_id, vector<vector<char>>*) override
         {
 			json data;
@@ -1401,6 +1411,10 @@ private:
         TRenderNode(const shared_ptr<T>& p_obj, const shared_ptr<TransformNode>& p_node)
         : RenderNode(p_node), obj(p_obj)
         {}
+
+		~TRenderNode()
+		{
+		}
 
         virtual json serialize(ConnectionID conn_id, vector<vector<char>>* bufs) override
         {

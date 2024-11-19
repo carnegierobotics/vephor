@@ -80,7 +80,10 @@ PYBIND11_MODULE(_core, m) {
 		.def(py::init<const Vec3u&>())
 		.def(py::init<const Vec4&>())
 		.def(py::init<const Vec4u&>())
-		.def_static("fromHSL", &Color::fromHSL);
+		.def_static("fromHSL", &Color::fromHSL)
+		.def("getRGB", &Color::getRGB)
+		.def("getRGBA", &Color::getRGBA)
+		.def("getAlpha", &Color::getAlpha);
 		
 	
 	m.def("setTextureCompression", &setTextureCompression, py::arg("compress"), py::arg("quality") = DEFAULT_COMPRESSION_QUALITY);
@@ -307,6 +310,11 @@ PYBIND11_MODULE(_core, m) {
 	py::class_<Text, shared_ptr<Text>>(m, "Text")
 		.def(py::init<string>())
 		.def("setColor",[](Text& t, 
+			const Color& c){
+				t.setColor(c);
+			}, 
+			py::arg("color"))
+		.def("setColor",[](Text& t, 
 			const Vec3& rgb){
 				t.setColor(Color(rgb));
 			}, 
@@ -334,7 +342,7 @@ PYBIND11_MODULE(_core, m) {
 			const Color& c){
 				l.setColor(c);
 			}, 
-			py::arg("rgb"))
+			py::arg("color"))
 		.def("setColor",[](Lines& l, 
 			const Vec3& rgb){
 				l.setColor(Color(rgb));
@@ -355,7 +363,7 @@ PYBIND11_MODULE(_core, m) {
 			const Color& c){
 				p.setColor(c);
 			}, 
-			py::arg("rgb"))
+			py::arg("color"))
 		.def("setColor",[](Particle& p, 
 			const Vec3& rgb){
 				p.setColor(Color(rgb));
