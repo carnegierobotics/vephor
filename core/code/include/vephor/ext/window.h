@@ -491,6 +491,18 @@ public:
 
 	void setFrameSkipMessageLimit(int p_frame_skip_message_limit){frame_skip_message_limit = p_frame_skip_message_limit;}
 
+    void setStaticCameraMode(const Vec3 &to = {0, 0, 0},
+                             const Vec3 &from = {-1, 0, -1},
+                             const Vec3 &up = {0, 0, -1})
+    {
+        camera_control = {
+                {"type", "static"},
+                {"to",   toJson(to)},
+                {"from", toJson(from)},
+                {"up",   toJson(up)},
+        };
+    }
+
 	void setTrackballMode(const Vec3& to = Vec3(0,0,0), const Vec3& from = Vec3(-1,0,-1), const Vec3& up = Vec3(0,0,-1), bool use_3d = false)
 	{
 		camera_control = {
