@@ -429,12 +429,13 @@ struct WindowManager
 
 class Window {
 public:
-    explicit Window(int p_width = -1, int p_height = -1, const string &p_title = "show")
+    explicit Window(int p_width = -1, int p_height = -1, const string &p_title = "show", int p_monitor = 0)
             : Window(/* p_width */ p_width,
                      /* p_height */ p_height,
                      /* p_x_position */ -1,
                      /* p_y_position */ -1,
-                     /* p_title */ p_title)
+                     /* p_title */ p_title,
+                     /* p_monitor */ p_monitor)
     {
 	}
 
@@ -442,9 +443,15 @@ public:
            int p_height,
            int p_x_position,
            int p_y_position = -1,
-           const string &p_title = "show")
-            : width(p_width), height(p_height), x_position(p_x_position), y_position(p_y_position), title(p_title)
-	{
+           const string &p_title = "show",
+           int p_monitor = 0)
+            : width(p_width),
+              height(p_height),
+              x_position(p_x_position),
+              y_position(p_y_position),
+              title(p_title),
+              monitor(p_monitor)
+    {
 		opacity = default_opacity;
 		
 		id = manager.next_window_id;
@@ -1308,7 +1315,8 @@ private:
 				{"y_position", y_position},
 				{"title", title},
 				{"fps", fps},
-				{"opacity", opacity}
+				{"opacity", opacity},
+				{"monitor", monitor},
 			};
 			scene["camera"]["control"] = camera_control;
 
@@ -1449,6 +1457,7 @@ private:
 	string title;
 	float fps = 30.0f;
 	float opacity;
+    int monitor{0}; ///< Monitor to open the window on.  Zero is always the primary monitor.
 	int frame_messages_waiting = 0;
 	int frame_skip_message_limit = 3;
 	int frame_message_skips = 0;
