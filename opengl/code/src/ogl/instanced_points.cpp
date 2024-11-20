@@ -300,6 +300,7 @@ void InstancedPoints::onRemoveFromWindow(Window*)
 	glDeleteBuffers(1, &offset_buffer_id);
 	glDeleteBuffers(1, &color_buffer_id);
     glDeleteVertexArrays(1, &vao_id);
+	glDeleteVertexArrays(1, &ss_vao_id);
 }
 
 void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_body)
