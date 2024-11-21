@@ -429,7 +429,7 @@ struct WindowManager
 
 class Window {
 public:
-    explicit Window(int p_width = -1, int p_height = -1, const string &p_title = "show")
+    explicit Window(float p_width = -1, float p_height = -1, const string &p_title = "show")
             : Window(/* p_width */ p_width,
                      /* p_height */ p_height,
                      /* p_x_position */ -1,
@@ -438,10 +438,10 @@ public:
     {
 	}
 
-    Window(int p_width,
-           int p_height,
-           int p_x_position,
-           int p_y_position = -1,
+    Window(float p_width,
+           float p_height,
+           float p_x_position,
+           float p_y_position = -1,
            const string &p_title = "show")
             : width(p_width), height(p_height), x_position(p_x_position), y_position(p_y_position), title(p_title)
 	{
@@ -472,6 +472,34 @@ public:
 	}
 
     ~Window() = default;
+
+	void layoutAbsolute(
+		float p_width,
+		float p_height,
+		float p_x_position = -1,
+		float p_y_position = -1
+	)
+	{
+		width = p_width;
+		height = p_height;
+		x_position = p_x_position;
+		y_position = p_y_position;
+		perunit_layout = false;
+	}
+
+	void layoutPerUnit(
+		float p_width,
+		float p_height,
+		float p_x_position = -1,
+		float p_y_position = -1
+	)
+	{
+		width = p_width;
+		height = p_height;
+		x_position = p_x_position;
+		y_position = p_y_position;
+		perunit_layout = true;
+	}
 
 	void setTitle(const string& p_title)
 	{
@@ -1306,6 +1334,7 @@ private:
 				{"height", height},
 				{"x_position", x_position},
 				{"y_position", y_position},
+				{"perunit_layout", perunit_layout},
 				{"title", title},
 				{"fps", fps},
 				{"opacity", opacity}
@@ -1442,10 +1471,11 @@ private:
     };
 
 	WindowID id;
-	int width;
-    int height;
-    int x_position; ///< Position of the upper-left window corner along the x-axis.
-    int y_position; ///< Position of the upper-left window corner along the y-axis.
+	float width;
+    float height;
+    float x_position; ///< Position of the upper-left window corner along the x-axis.
+    float y_position; ///< Position of the upper-left window corner along the y-axis.
+	bool perunit_layout = false;
 	string title;
 	float fps = 30.0f;
 	float opacity;

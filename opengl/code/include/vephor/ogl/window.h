@@ -160,6 +160,12 @@ struct WindowOptions
     bool always_on_top = false;
 };
 
+struct MonitorInfo
+{
+    Vec2i size;
+    Vec2i pos;
+};
+
 class Window
 {
 public:
@@ -191,6 +197,8 @@ public:
            const WindowOptions &options = WindowOptions());
 
     ~Window();
+
+    static std::vector<MonitorInfo> getMonitorInfo();
 
     void show()
     {

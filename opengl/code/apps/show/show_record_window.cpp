@@ -116,14 +116,15 @@ void ShowRecordWindow::setup(const json& data,
 	conn_id = p_conn_id;
 	net_manager = p_net_manager;
 	
-	int width = -1;
-	int height = -1;
-	int x_position = -1;
-	int y_position = -1;
+	float width = -1;
+	float height = -1;
+	float x_position = -1;
+	float y_position = -1;
 	Vec2 size(-1, -1);
 	string title = "show";
 	float fps = 30.0f;
 	float opacity = 1.0f;
+	bool perunit_layout = false;
 	
 	if (data.contains("window"))
 	{
@@ -145,6 +146,10 @@ void ShowRecordWindow::setup(const json& data,
         {
             y_position = window_data["y_position"];
         }
+		if (window_data.contains("perunit_layout"))
+        {
+            perunit_layout = window_data["perunit_layout"];
+        }
 		if (window_data.contains("title"))
         {
             title = window_data["title"];
@@ -160,6 +165,41 @@ void ShowRecordWindow::setup(const json& data,
 	}
 
 	v4print "Window created:", window_id, title;
+
+	if (perunit_layout)
+	{
+		auto monitor_infos = Window::getMonitorInfo();
+
+		if (monitor_infos.empty())
+		{
+			width = -1;
+			height = -1;
+			x_position = -1;
+			y_position = -1;
+		}
+		else
+		{
+			v4print "Monitors";
+			for (const auto& info : monitor_infos)
+			{
+				v4print "\t", info.pos.transpose(), info.size.transpose();
+			}
+
+			v4print "Setting window layout based on monitor dimensions.";
+
+			const auto& curr_monitor = monitor_infos[0];
+			if (x_position > 0)
+				x_position = curr_monitor.pos[0] + curr_monitor.size[0] * x_position;
+			if (y_position > 0)
+				y_position = curr_monitor.pos[1] + curr_monitor.size[1] * y_position;
+			width = curr_monitor.size[0] * width;
+			height = curr_monitor.size[1] * height;
+
+			v4print "\t", "Size:", width, height, "Pos:", x_position, y_position;
+		}
+
+		
+	}
 
 	WindowOptions opts;
 	opts.show = false;

@@ -309,8 +309,14 @@ Window::Window(int p_width,
 
 	glfwSwapInterval(0);
 
+	Vec2i full_window_size;
+	glfwGetWindowSize(window, &full_window_size[0], &full_window_size[1]);
 	glfwGetFramebufferSize(window, &window_size[0], &window_size[1]);
 	glfwGetWindowPos(window, &window_position[0], &window_position[1]);
+
+	v4print "Window size:", full_window_size[0], full_window_size[1];
+	v4print "Framebuffer size:", window_size[0], window_size[1];
+	v4print "Window pos:", window_position[0], window_position[1];
 
     // Initialize GLEW
 	if (glewInit() != GLEW_OK) {
@@ -383,6 +389,43 @@ Window::Window(int p_width,
 }
 
 Window::~Window() = default;
+
+std::vector<MonitorInfo> Window::getMonitorInfo()
+{
+	if (!glfw_initialized)
+	{
+		if( !glfwInit() )
+		{
+			fprintf( stderr, "Failed to initialize GLFW\n" );
+			getchar();
+			throw std::runtime_error("Failed to initialize GLFW");
+		}
+		glfw_initialized = true;
+	}
+
+	int monitor_count;
+    const auto *monitors = glfwGetMonitors(/* count */ &monitor_count);
+    if (monitors == nullptr)
+    {
+        fprintf(stderr, "[vephor::Window::getMonitorInfo] No monitors available.\n");
+        getchar();
+        glfwTerminate();
+        throw std::runtime_error("[vephor::Window::getMonitorInfo] No monitors available.");
+    }
+
+	std::vector<MonitorInfo> infos;
+
+	for (int i = 0; i < monitor_count; i++)
+	{
+		auto *monitor = monitors[i];
+
+		MonitorInfo info;
+		glfwGetMonitorWorkarea(monitor, &info.pos[0], &info.pos[1], &info.size[0], &info.size[1]);
+		infos.push_back(info);
+	}
+
+	return infos;
+}
 
 void Window::removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects)
 {

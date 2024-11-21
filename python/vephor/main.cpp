@@ -445,6 +445,16 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("name")="show")
 		.def("clear", &Window::clear)
         .def("render", &Window::render, py::arg("wait_close")=true, py::arg("wait_key")=false, py::arg("time_increment_s")=0.0f)
+		.def("layoutAbsolute", &Window::layoutAbsolute, 
+			py::arg("width"), 
+			py::arg("height"), 
+			py::arg("x_position")=-1,
+			py::arg("y_position")=-1)
+		.def("layoutPerUnit", &Window::layoutPerUnit, 
+			py::arg("width"), 
+			py::arg("height"), 
+			py::arg("x_position")=-1,
+			py::arg("y_position")=-1)
 		.def_static("setRecordMode", &Window::setRecordMode, 
 			py::arg("path"))
 		.def_static("setClientMode", &Window::setClientMode, 
