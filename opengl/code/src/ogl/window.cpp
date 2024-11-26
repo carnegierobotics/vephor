@@ -615,12 +615,13 @@ void Window::shutdown()
 			obj->onRemoveFromWindow(this);
 		}
 	}
-	
-	window_center_node = NULL;
-	window_top_right_node = NULL;
-	window_bottom_right_node = NULL;
-	window_top_left_node = NULL;
-	window_bottom_left_node = NULL;
+
+    window_center_node = nullptr;
+    window_top_right_node = nullptr;
+    window_bottom_right_node = nullptr;
+    window_top_left_node = nullptr;
+    window_bottom_left_node = nullptr;
+
 	object_layers.clear();
 	overlay_object_layers.clear();
 	non_render_objects.clear();
