@@ -373,6 +373,9 @@ Window::Window(int p_width,
 
 	ambient_light_strength = Vec3(0.1f,0.1f,0.1f);
 
+    window_center_node = make_shared<TransformNode>(Transform3());
+    window_center_node->setName("window_center");
+
 	window_top_right_node = make_shared<TransformNode>(Transform3());
 	window_top_right_node->setName("window_top_right");
 
@@ -610,11 +613,13 @@ void Window::shutdown()
 			obj->onRemoveFromWindow(this);
 		}
 	}
-	
-	window_top_right_node = NULL;
-	window_bottom_right_node = NULL;
-	window_top_left_node = NULL;
-	window_bottom_left_node = NULL;
+
+    window_center_node = nullptr;
+    window_top_right_node = nullptr;
+    window_bottom_right_node = nullptr;
+    window_top_left_node = nullptr;
+    window_bottom_left_node = nullptr;
+
 	object_layers.clear();
 	overlay_object_layers.clear();
 	non_render_objects.clear();

@@ -72,8 +72,12 @@ struct ShowRecord
 		{
 			throw std::runtime_error("Null window found in setParent.");
 		}
-		
-		if (parent_node == "window_top_right")
+
+        if (parent_node == "window_center")
+        {
+            node->setParent(windows[window_id]->window->getWindowCenterNode());
+        }
+        else if (parent_node == "window_top_right")
 		{
 			node->setParent(windows[window_id]->window->getWindowTopRightNode());
 		}
