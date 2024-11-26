@@ -475,6 +475,7 @@ PYBIND11_MODULE(_core, m) {
 		.def_static("setServerModeBYOC", &Window::setServerModeBYOC, 
 			py::arg("record_also")=false,
 			py::arg("record_path")="")
+		.def("getWindowCenterNode", &Window::getWindowCenterNode)
 		.def("getWindowBottomRightNode", &Window::getWindowBottomRightNode)
 		.def("getWindowTopLeftNode", &Window::getWindowTopLeftNode)
 		.def("getWindowBottomLeftNode", &Window::getWindowBottomLeftNode)

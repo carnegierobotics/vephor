@@ -449,7 +449,10 @@ public:
 		
 		id = manager.next_window_id;
 		manager.next_window_id++;
-		
+
+        window_center_node = make_shared<TransformNode>(Transform3());
+        window_center_node->setName("window_center");
+
 		window_top_right_node = make_shared<TransformNode>(Transform3());
 		window_top_right_node->setName("window_top_right");
 		
@@ -704,6 +707,7 @@ public:
 		return add(obj, TransformSim3(parent_from_node_t,parent_from_node_r,parent_from_node_scale), on_overlay, layer);
     }
 	
+    shared_ptr<TransformNode> getWindowCenterNode() const { return window_center_node; }
 	shared_ptr<TransformNode> getWindowTopRightNode() const {return window_top_right_node;}
 	shared_ptr<TransformNode> getWindowBottomRightNode() const {return window_bottom_right_node;}
 	shared_ptr<TransformNode> getWindowTopLeftNode() const {return window_top_left_node;}
@@ -1529,6 +1533,7 @@ private:
 	int frame_messages_waiting = 0;
 	int frame_skip_message_limit = 3;
 	int frame_message_skips = 0;
+	shared_ptr<TransformNode> window_center_node;
 	shared_ptr<TransformNode> window_top_right_node;
 	shared_ptr<TransformNode> window_bottom_right_node;
 	shared_ptr<TransformNode> window_top_left_node;

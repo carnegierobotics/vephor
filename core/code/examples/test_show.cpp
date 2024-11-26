@@ -195,7 +195,15 @@ int main(int argc, char* argv[])
 	auto obj_mesh = make_shared<ObjMesh>(base_asset_dir+"/assets/pyramid.obj");
 	auto obj_mesh_node = window.add(obj_mesh, Transform3(Vec3(obj_mesh_dist,0,-2.5)));
 
-	{
+    {
+        auto text = make_shared<Text>("Center");
+        text->setColor(Vec3(1, 0, 1));
+        text->setAnchorCentered();
+        window.add(text, TransformSim3(Vec3(0, 0, 0), Vec3::Zero(), 25), true)
+            ->setParent(window.getWindowCenterNode());
+    }
+
+    {
 		auto text = make_shared<Text>("Bottom Right");
 		text->setColor(Vec3(1,0,1));
 		text->setAnchorBottomRight();
