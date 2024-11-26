@@ -25,6 +25,7 @@ public:
     );
     ~Lines();
 	void setLineStrip(bool p_is_strip){is_strip = p_is_strip;}
+    void setAlpha(bool p_is_alpha){is_alpha = p_is_alpha;}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
     void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
 	void onRemoveFromWindow(Window* window);
@@ -32,6 +33,7 @@ private:
     MatX verts;
     MatX colors;
     bool is_strip = true;
+    bool is_alpha = false;
 
     GLuint vao_id;
     GLuint pos_buffer_id;

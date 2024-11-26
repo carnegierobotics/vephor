@@ -164,6 +164,11 @@ void Text::setupText()
 		uvs.col(i*6+5) = uv_down_left;
 	}
 
+	for (int c = 0; c < verts.cols(); c++)
+	{
+		verts.col(c) += body_from_anchor.translation();
+	}
+
 	glBindVertexArray(vao_id);
 
 	glGenBuffers(1, &pos_buffer_id);
@@ -208,7 +213,7 @@ void Text::renderOGL(Window* window, const TransformSim3& world_from_body)
 	if (text_needs_setup)
 		setupText();
 
-	TransformSim3 world_from_anchor = world_from_body * body_from_anchor;
+	TransformSim3 world_from_anchor = world_from_body;// * body_from_anchor;
 	
     glUseProgram(program_id);
 

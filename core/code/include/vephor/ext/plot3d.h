@@ -103,14 +103,14 @@ public:
 			{
 				auto lines = make_shared<Lines>(pts);
 				lines->setColor(curr_color);
-				inner_window.add(lines, Vec3(0,0,plot_index + 1));
+				inner_window.add(lines);
 			}
 			else
 			{
 				auto lines = make_shared<ThickLines>(pts);
 				lines->setColor(curr_color);
 				lines->setLineWidth(opts.thickness);
-				inner_window.add(lines, Vec3(0,0,plot_index + 1));
+				inner_window.add(lines);
 			}
 			
 			if (!opts.label.empty())

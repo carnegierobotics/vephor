@@ -482,6 +482,9 @@ public:
 
     void onResize(const Vec2i& window_size)
 	{
+        if (window_center_node)
+			window_center_node->setPos(Vec3(window_size[0]/2, window_size[1]/2, 0));
+
 		if (window_top_right_node)
 			window_top_right_node->setPos(Vec3(window_size[0], window_size[1], 0));
 		
@@ -496,6 +499,7 @@ public:
 	
 	Vec2 getContentScale() const {return content_scale;}
 	
+    shared_ptr<TransformNode> getWindowCenterNode() const {return window_center_node;}
 	shared_ptr<TransformNode> getWindowTopRightNode() const {return window_top_right_node;}
 	shared_ptr<TransformNode> getWindowBottomRightNode() const {return window_bottom_right_node;}
 	shared_ptr<TransformNode> getWindowTopLeftNode() const {return window_top_left_node;}
@@ -659,6 +663,7 @@ private:
         shared_ptr<T> obj;
     };
 
+    shared_ptr<TransformNode> window_center_node;
 	shared_ptr<TransformNode> window_top_right_node;
 	shared_ptr<TransformNode> window_bottom_right_node;
 	shared_ptr<TransformNode> window_top_left_node;

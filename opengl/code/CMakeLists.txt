@@ -60,21 +60,6 @@ write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
 								 VERSION ${PROJECT_VERSION}
 								 COMPATIBILITY AnyNewerVersion)
 
-set(EXAMPLE_APPS
-	background_test
-	basic
-	camera_test
-	marching_cubes
-	physics
-	physics_constraints
-	physics_height_map
-	physics_solid
-	screenshot_test
-	sprites
-	thick_lines_test
-	two_windows
-)
-
 add_library(vephor_opengl SHARED
 	src/ogl/window.cpp 
 	src/ogl/mesh.cpp 
@@ -92,11 +77,30 @@ add_library(vephor_opengl SHARED
 )
 target_link_libraries(vephor_opengl ${GRAPHICS_LIBS} vephor)
 
-foreach (APP ${EXAMPLE_APPS})
-	add_executable (${APP} examples/${APP}.cpp)
-	include_directories(${APP} include)
-	target_link_libraries(${APP} vephor_opengl)
-endforeach()
+if (VEPHOR_BUILD_PYTHON_BINDINGS)
+	message("Not building OpenGL examples due to python bindings.")
+else (VEPHOR_BUILD_PYTHON_BINDINGS)
+	set(EXAMPLE_APPS
+		background_test
+		basic
+		camera_test
+		marching_cubes
+		physics
+		physics_constraints
+		physics_height_map
+		physics_solid
+		screenshot_test
+		sprites
+		thick_lines_test
+		two_windows
+	)
+
+	foreach (APP ${EXAMPLE_APPS})
+		add_executable (${APP} examples/${APP}.cpp)
+		include_directories(${APP} include)
+		target_link_libraries(${APP} vephor_opengl)
+	endforeach()
+endif (VEPHOR_BUILD_PYTHON_BINDINGS)
 
 add_executable (vephor_show 
 	apps/show/show.cpp 

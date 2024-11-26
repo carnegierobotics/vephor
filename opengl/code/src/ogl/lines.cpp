@@ -156,10 +156,16 @@ void Lines::renderOGL(Window* window, const TransformSim3& world_from_body)
         (void*)0            // array buffer offset
     );*/
 
+    if (is_alpha)
+        glEnable(GL_BLEND);
+
     if (is_strip)
         glDrawArrays(GL_LINE_STRIP, 0, verts.cols());
     else
         glDrawArrays(GL_LINES, 0, verts.cols());
+
+    if (is_alpha)
+        glDisable(GL_BLEND);
 
     //glDisableVertexAttribArray(pos_attr_loc);
     //glDisableVertexAttribArray(color_attr_loc);

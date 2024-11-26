@@ -22,35 +22,56 @@ void Plot3DCamera::resizeWindow(Window& window)
 
 void Plot3DCamera::moveGrid(Window& window)
 {
-	float curr_inc = pow(10, int(log(zoom)/log(10)));
+	float curr_inc = pow(10, floor(log(zoom/5)/log(10)));
 
 	grid_render->setScale(curr_inc);
 
 	Vec3 pos = orbit_point_render->getPos();
 
-	// if flat
-	pos[2] = 0;
+	Vec3 cam_forward_in_world = window.getCamFromWorld().rotation().row(2);
 
-	pos = (pos/curr_inc + Vec3(.5f,.5f,.5f)).array().floor().cast<float>()*curr_inc;
+	cam_forward_in_world = cam_forward_in_world.array().abs();
 
-	grid_render->setPos(pos);
+	Eigen::Index max_index;
+	cam_forward_in_world.maxCoeff(&max_index);
 
-	axes_render->setScale(curr_inc / 10);
+	Vec3 rot_vec = Vec3::Zero();
+	if (max_index == 0)
+		rot_vec[1] = M_PI / 2;
+	else if (max_index == 1)
+		rot_vec[0] = M_PI / 2;
+
+	Vec3 clamp_pos = (pos/curr_inc + Vec3(.5f,.5f,.5f)).array().floor().cast<float>()*curr_inc;
+
+	grid_render->setPos(clamp_pos);
+	grid_render->setOrient(rot_vec);
+
+	axes_render->setScale(orbit_point_render->getScale()*5);
 	axes_render->setPos(pos);
 
-	if (text_render)
-		text_render->setDestroy();
+	zero_axes_render->setScale(orbit_point_render->getScale()*5);
 
-	auto axes = make_shared<Axes>();
+	if (curr_pos_text_render)
+		curr_pos_text_render->setDestroy();
 
 	auto text = make_shared<Text>("("+
-		std::to_string(int(pos[0]))+","+
-		std::to_string(int(pos[1]))+","+
-		std::to_string(int(pos[2]))+")", text_tex, Vec3(0,0,0));
+		std::to_string(pos[0])+","+
+		std::to_string(pos[1])+","+
+		std::to_string(pos[2])+")", text_tex, Vec3(0,0,0));
 	text->setAnchorBottom();
 
-	text_render = window.add(text, pos);
-	text_render->setScale(zoom/30);
+	Vec3 curr_pos_text_pos = pos + trackball_up*zoom/30.0f;
+	curr_pos_text_render = window.add(text, Transform3(curr_pos_text_pos), false /*overlay*/, 2 /*layer*/);
+	curr_pos_text_render->setScale(zoom/30);
+
+
+
+	if (curr_inc_text_render)
+		curr_inc_text_render->setDestroy();
+
+	curr_inc_text_render = window.add(make_shared<Text>("Unit: " + std::to_string(curr_inc), text_tex, Vec3(0,0,0)), 
+		Transform3(), true);
+	curr_inc_text_render->setScale(25);
 }
 
 void Plot3DCamera::setup(const json& data, Window& window, AssetManager& assets)
@@ -62,7 +83,7 @@ void Plot3DCamera::setup(const json& data, Window& window, AssetManager& assets)
     auto ambient_light = make_shared<AmbientLight>(Vec3(1,1,1));
     window.add(ambient_light, Transform3());
 
-	Vec3 back_color = readDefault(data, "back_color", Vec3(1,1,1));
+	Vec3 back_color = readDefault(data, "back_color", Vec3(0.25,0.25,0.25));
 
 	auto back_tex = window.getTextureFromImage(*generateSimpleImage(Vec2i(64,64), back_color));
 	auto back = make_shared<Background>(back_tex);
@@ -82,15 +103,67 @@ void Plot3DCamera::setup(const json& data, Window& window, AssetManager& assets)
 
 	{
 		auto axes = make_shared<Axes>();
-		window.add(axes);
+		zero_axes_render = window.add(axes);
 	}
 
 	{
-		auto grid = make_shared<Grid>(10,Vec3(0,0,1),Vec3(1,0,0),1.0f,Vec3(.9f,.9f,.9f));
-		window.add(grid)->setParent(grid_render);
+		//auto grid = make_shared<Grid>(3,Vec3(0,0,1),Vec3(1,0,0),1.0f,Vec3(.9f,.9f,.9f));
+		
+
+		int grid_rad = 5;
+		float solid_rad = 1.5;
+
+		vector<Vec3> line_verts;
+		vector<Vec4> line_colors;
+
+		Vec3 forward(1,0,0);
+		Vec3 right(0,1,0);
+
+		// Create horizontal lines
+		for (int i = -grid_rad; i <= grid_rad; i++)
+		{
+			for (int j = -grid_rad; j <= grid_rad - 1; j++)
+			{
+				int next_j = j + 1;
+
+				float curr_dist = Vec2(i,j).norm();
+				float next_dist = Vec2(i,next_j).norm();
+
+
+				float curr_alpha;
+				if (curr_dist < solid_rad)
+					curr_alpha = 1.0;
+				else
+					curr_alpha = (grid_rad - curr_dist) / (grid_rad - solid_rad);
+
+				float next_alpha;
+				if (next_dist < solid_rad)
+					next_alpha = 1.0;
+				else
+					next_alpha = (grid_rad - next_dist) / (grid_rad - solid_rad);
+
+				line_verts.push_back(i*forward + j*right);
+				line_verts.push_back(i*forward + next_j*right);
+
+				line_colors.push_back(Vec4(.9f,.9f,.9f,curr_alpha));
+				line_colors.push_back(Vec4(.9f,.9f,.9f,next_alpha));
+
+				line_verts.push_back(i*right + j*forward);
+				line_verts.push_back(i*right + next_j*forward);
+
+				line_colors.push_back(Vec4(.9f,.9f,.9f,curr_alpha));
+				line_colors.push_back(Vec4(.9f,.9f,.9f,next_alpha));
+			}
+		}
+		
+		auto lines = make_shared<Lines>(toMat(line_verts), toMat(line_colors));
+		lines->setLineStrip(false);
+		lines->setAlpha(true);
+
+		window.add(lines, Transform3(), false /*overlay*/, 1 /*layer*/)->setParent(grid_render);
 	}
 
-	{
+	/*{
 		auto grid = make_shared<Grid>(100,Vec3(0,0,1),Vec3(1,0,0),10.0f,Vec3(.9f,.9f,.9f));
 		window.add(grid)->setParent(grid_render);
 	}
@@ -98,7 +171,7 @@ void Plot3DCamera::setup(const json& data, Window& window, AssetManager& assets)
 	{
 		auto grid = make_shared<Grid>(1000,Vec3(0,0,1),Vec3(1,0,0),100.0f,Vec3(.9f,.9f,.9f));
 		window.add(grid)->setParent(grid_render);
-	}
+	}*/
 	
 	auto orbit_sphere = formSphere(16,16);
 	auto orbit_point = make_shared<Mesh>(orbit_sphere, Vec3(0.5,0.5,0.5));
@@ -106,6 +179,12 @@ void Plot3DCamera::setup(const json& data, Window& window, AssetManager& assets)
 	orbit_point_render->setShow(false);
 
 	orbit_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
+
+	auto drag_point = make_shared<Mesh>(orbit_sphere, Vec3(1,1,0));
+	drag_point_render = window.add(drag_point, Transform3());
+	drag_point_render->setShow(false);
+
+	drag_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
 	
 	trackball_to = readVec3(data["to"]);
 	trackball_from = readVec3(data["from"]);
@@ -173,6 +252,18 @@ void Plot3DCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 	trackball_to /= pts.size();
 
 
+	Vec3 min_pt(
+		std::numeric_limits<float>::max(),
+		std::numeric_limits<float>::max(),
+		std::numeric_limits<float>::max()
+	);
+
+	Vec3 max_pt(
+		std::numeric_limits<float>::min(),
+		std::numeric_limits<float>::min(),
+		std::numeric_limits<float>::min()
+	);
+
 	scene_scale = 0;
 	for (const auto& pt : pts)
 	{
@@ -200,6 +291,14 @@ void Plot3DCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 			scene_scale = x_d;
 		if (y_d > scene_scale)
 			scene_scale = y_d; 
+
+		for (int a = 0; a < 3; a++)
+		{
+			if (pt[a] < min_pt[a])
+				min_pt[a] = pt[a];
+			if (pt[a] > max_pt[a])
+				max_pt[a] = pt[a];
+		}
 	}
 
 	offset *= scene_scale;
@@ -233,6 +332,54 @@ void Plot3DCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 	orbit_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
 	orbit_point_render->setPos(trackball_to);
 	moveGrid(window);
+
+
+
+	// Add the bounding box
+	{
+		vector<Vec3> line_verts;
+
+		line_verts.push_back(Vec3(min_pt[0], min_pt[1], min_pt[2]));
+		line_verts.push_back(Vec3(max_pt[0], min_pt[1], min_pt[2]));
+
+		line_verts.push_back(Vec3(min_pt[0], min_pt[1], min_pt[2]));
+		line_verts.push_back(Vec3(min_pt[0], max_pt[1], min_pt[2]));
+
+		line_verts.push_back(Vec3(min_pt[0], min_pt[1], min_pt[2]));
+		line_verts.push_back(Vec3(min_pt[0], min_pt[1], max_pt[2]));
+
+		line_verts.push_back(Vec3(max_pt[0], max_pt[1], max_pt[2]));
+		line_verts.push_back(Vec3(min_pt[0], max_pt[1], max_pt[2]));
+
+		line_verts.push_back(Vec3(max_pt[0], max_pt[1], max_pt[2]));
+		line_verts.push_back(Vec3(max_pt[0], min_pt[1], max_pt[2]));
+
+		line_verts.push_back(Vec3(max_pt[0], max_pt[1], max_pt[2]));
+		line_verts.push_back(Vec3(max_pt[0], max_pt[1], min_pt[2]));
+
+		line_verts.push_back(Vec3(max_pt[0], min_pt[1], min_pt[2]));
+		line_verts.push_back(Vec3(max_pt[0], max_pt[1], min_pt[2]));
+
+		line_verts.push_back(Vec3(max_pt[0], min_pt[1], min_pt[2]));
+		line_verts.push_back(Vec3(max_pt[0], min_pt[1], max_pt[2]));
+
+		line_verts.push_back(Vec3(min_pt[0], max_pt[1], min_pt[2]));
+		line_verts.push_back(Vec3(max_pt[0], max_pt[1], min_pt[2]));
+
+		line_verts.push_back(Vec3(min_pt[0], max_pt[1], min_pt[2]));
+		line_verts.push_back(Vec3(min_pt[0], max_pt[1], max_pt[2]));
+
+		line_verts.push_back(Vec3(min_pt[0], min_pt[1], max_pt[2]));
+		line_verts.push_back(Vec3(max_pt[0], min_pt[1], max_pt[2]));
+
+		line_verts.push_back(Vec3(min_pt[0], min_pt[1], max_pt[2]));
+		line_verts.push_back(Vec3(min_pt[0], max_pt[1], max_pt[2]));
+
+		auto lines = make_shared<Lines>(toMat(line_verts), MatX(), Vec4(1,1,1,1));
+		lines->setLineStrip(false);
+
+		window.add(lines);
+	}
 }
 
 void Plot3DCamera::update(Window& window, float dt, const ControlInfo& control_info)
@@ -305,6 +452,8 @@ void Plot3DCamera::update(Window& window, float dt, const ControlInfo& control_i
 				trackball_to, trackball_from, trackball_up
 			));
 		}
+
+		moveGrid(window);
 	}
 
 	if (control_info.right_drag_on)
@@ -320,6 +469,11 @@ void Plot3DCamera::update(Window& window, float dt, const ControlInfo& control_i
 
 			right_drag_off = false;
 			right_world_point = drag_origin + drag_ray * (offset.dot(drag_ray));
+
+			scene_scale = offset.norm();
+			drag_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
+			drag_point_render->setPos(right_world_point);
+			drag_point_render->setShow(true);
 		}
 
 		// Keep the world point selected on initial click under the mouse cursor
@@ -348,6 +502,8 @@ void Plot3DCamera::update(Window& window, float dt, const ControlInfo& control_i
 	}
 	else
 	{
+		drag_point_render->setShow(false);
+
 		right_drag_off = true;
 	}
 

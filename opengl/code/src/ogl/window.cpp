@@ -373,6 +373,9 @@ Window::Window(int p_width,
 
 	ambient_light_strength = Vec3(0.1f,0.1f,0.1f);
 
+	window_center_node = make_shared<TransformNode>(Transform3());
+	window_center_node->setName("window_center");
+
 	window_top_right_node = make_shared<TransformNode>(Transform3());
 	window_top_right_node->setName("window_top_right");
 
@@ -463,7 +466,9 @@ void Window::getWorldRayForMousePos(const Vec2& mpos, Vec3& origin, Vec3& ray)
 	
 	Transform3 world_from_cam = cam_from_world.inverse();
 	
-	origin = world_from_cam.translation();
+	//origin = world_from_cam.translation();
+	Vec3 origin_offset = (pure_proj_matrix.inverse() * Vec4(pos[0],pos[1],0,1)).head<3>();
+	origin = world_from_cam.translation() + world_from_cam.rotation() * origin_offset;
 	ray = (pure_proj_matrix.inverse() * Vec4(pos[0],pos[1],-1,1)).head<3>();
 	
 	ray /= ray.norm();
@@ -611,6 +616,7 @@ void Window::shutdown()
 		}
 	}
 	
+	window_center_node = NULL;
 	window_top_right_node = NULL;
 	window_bottom_right_node = NULL;
 	window_top_left_node = NULL;

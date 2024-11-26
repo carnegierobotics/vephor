@@ -36,9 +36,12 @@ private:
 
 	float scene_scale = 12.0f;
 	shared_ptr<RenderNode> orbit_point_render;
+	shared_ptr<RenderNode> drag_point_render;
 	shared_ptr<RenderNode> grid_render;
 	shared_ptr<RenderNode> axes_render;
-	shared_ptr<RenderNode> text_render;
+	shared_ptr<RenderNode> zero_axes_render;
+	shared_ptr<RenderNode> curr_pos_text_render;
+	shared_ptr<RenderNode> curr_inc_text_render;
 	const float orbit_point_scene_scale_mult = 1.0f / 100.0f;
 	bool trackball_3d = false;
 	Vec3 trackball_to;
