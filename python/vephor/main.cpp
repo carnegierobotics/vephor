@@ -430,7 +430,7 @@ PYBIND11_MODULE(_core, m) {
 			const Vec4& rgba){
 				c.setColor(Color(rgba));
 			}, 
-			py::arg("rgba"));;
+			py::arg("rgba"));
 
 	py::class_<AmbientLight, shared_ptr<AmbientLight>>(m, "AmbientLight")
         .def(py::init<Vec3>(),py::arg("strength"));
@@ -479,12 +479,43 @@ PYBIND11_MODULE(_core, m) {
 		.def("getWindowTopLeftNode", &Window::getWindowTopLeftNode)
 		.def("getWindowBottomLeftNode", &Window::getWindowBottomLeftNode)
 		.def("getWindowTopRightNode", &Window::getWindowTopRightNode)
+		.def("setStaticCameraMode", &Window::setStaticCameraMode, 
+			py::arg("to")=Vec3(0,0,0), 
+			py::arg("from")=Vec3(-1,0,-1), 
+			py::arg("up")=Vec3(0,0,-1))
+		.def("setSpinCameraMode", &Window::setSpinCameraMode, 
+			py::arg("to")=Vec3(0,0,0), 
+			py::arg("up")=Vec3(0,0,-1), 
+			py::arg("from_dist")=10.0f, 
+			py::arg("from_angle_deg")=30.0f,
+			py::arg("s_per_rev")=10.0f)
 		.def("setTrackballMode", &Window::setTrackballMode, 
 			py::arg("to")=Vec3(0,0,0), 
 			py::arg("from")=Vec3(-1,0,-1), 
 			py::arg("up")=Vec3(0,0,-1), 
 			py::arg("use_3d")=false)
 		.def("setTrackballModeVision", &Window::setTrackballModeVision)
+		.def("setSolidBackground",[](Window& w, 
+			const Vec3& color){
+				w.setSolidBackground(Color(color));
+			}, 
+			py::arg("color"))
+		.def("setGradientBackground",[](Window& w, 
+			const Vec3& top,
+			const Vec3& bottom){
+				w.setGradientBackground(Color(top), Color(bottom));
+			}, 
+			py::arg("top"),
+			py::arg("bottom"))
+		.def("setCheckerBackground",[](Window& w, 
+			const Vec3& color_1,
+			const Vec3& color_2,
+			const Vec2i& n_cells){
+				w.setCheckerBackground(Color(color_1), Color(color_2), n_cells);
+			}, 
+			py::arg("color_1"),
+			py::arg("color_2"),
+			py::arg("n_cells")=Vec2i(8,8))
 		.def("setKeyPressCallback", &Window::setKeyPressCallback)
 		.def("setPlotMode", &Window::setPlotMode, py::arg("equal")=false)
 		.def("setOpacity", &Window::setOpacity)

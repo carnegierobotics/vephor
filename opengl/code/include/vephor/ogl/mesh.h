@@ -37,6 +37,19 @@ public:
 	void setOpacity(const float& p_opacity){opacity = p_opacity;}
 	void setCull(bool p_cull){cull = p_cull;}
     void setSpecular(bool p_specular){specular = p_specular;}
+    void setCustomShader(
+        const string& tag, 
+        const string& vertex, 
+        const string& fragment, 
+        const string& normal_map_vertex, 
+        const string& normal_map_fragment)
+    {
+        custom_tag = +"_" + tag;
+        custom_vertex = vertex;
+        custom_fragment = fragment;
+        custom_normal_map_vertex = normal_map_vertex;
+        custom_normal_map_fragment = normal_map_fragment;
+    }
     void renderOGL(Window* window, const TransformSim3& world_from_body);
     void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
 	void onRemoveFromWindow(Window* window);
@@ -99,6 +112,12 @@ private:
 	
     MeshSettings standard;
     MeshSettings no_normal_map;
+
+    string custom_tag;
+    string custom_vertex;
+    string custom_fragment;
+    string custom_normal_map_vertex;
+    string custom_normal_map_fragment;
 };
 
 // Allows render parameters of a mesh to be changed without needing to store the memory of the mesh multiple times

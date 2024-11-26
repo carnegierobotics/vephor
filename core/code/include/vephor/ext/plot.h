@@ -104,15 +104,15 @@ public:
 	}
 	void back_color(const Color& color)
 	{
-		inner_window.getCameraControlInfo()["back_color"] = color.getRGB();
+		inner_window.getCameraControlInfo()["back_color"] = toJson(color.getRGB());
 	}
 	void fore_color(const Color& color)
 	{
-		inner_window.getCameraControlInfo()["fore_color"] = color.getRGB();
+		inner_window.getCameraControlInfo()["fore_color"] = toJson(color.getRGB());
 	}
 	void grid_color(const Color& color)
 	{
-		inner_window.getCameraControlInfo()["grid_color"] = color.getRGB();
+		inner_window.getCameraControlInfo()["grid_color"] = toJson(color.getRGB());
 	}
 	void xlabel(const string& text)
 	{

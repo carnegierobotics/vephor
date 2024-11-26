@@ -225,6 +225,12 @@ inline Vec2 convert_from<Vec2, json>(const json& s)
 }
 
 template <>
+inline Vec2i convert_from<Vec2i, json>(const json& s)
+{
+	return readVec2i(s);
+}
+
+template <>
 inline Vec3 convert_from<Vec3, json>(const json& s)
 {
 	return readVec3(s);

@@ -17,7 +17,9 @@ class SpinCamera : public ShowCamera
 public:
 	virtual void setup(const json& data, Window& window, AssetManager& assets) override
 	{
-		auto back_tex = window.getTextureFromImage(*generateGradientImage(Vec2i(64,64), Vec3(0.3,0.3,0.6), Vec3(0.05,0.05,0.1)));
+		bool back_tex_nearest;
+		auto back_img = *getCameraBackground(data, back_tex_nearest);
+		auto back_tex = window.getTextureFromImage(back_img, back_tex_nearest);
 		auto back = make_shared<Background>(back_tex);
 		window.add(back, Transform3(), false, -1);
 		

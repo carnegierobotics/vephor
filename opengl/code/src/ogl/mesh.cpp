@@ -375,7 +375,13 @@ void Mesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
 
     {
         auto mesh_shader = produceMeshShader(true);
-        standard.program_id = buildProgram("mesh", mesh_shader.vertex, mesh_shader.fragment);
+
+        if (!custom_vertex.empty())
+            mesh_shader.vertex = custom_vertex;
+        if (!custom_fragment.empty())
+            mesh_shader.fragment = custom_fragment;
+
+        standard.program_id = buildProgram("mesh" + custom_tag, mesh_shader.vertex, mesh_shader.fragment);
 
         fillInCommonProps(standard);
 
@@ -414,7 +420,13 @@ void Mesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
 
     {
         auto mesh_shader = produceMeshShader(false);
-        no_normal_map.program_id = buildProgram("mesh_no_normal", mesh_shader.vertex, mesh_shader.fragment);
+
+        if (!custom_normal_map_vertex.empty())
+            mesh_shader.vertex = custom_normal_map_vertex;
+        if (!custom_normal_map_fragment.empty())
+            mesh_shader.fragment = custom_normal_map_fragment;
+
+        no_normal_map.program_id = buildProgram("mesh_no_normal" + custom_tag, mesh_shader.vertex, mesh_shader.fragment);
 
         fillInCommonProps(no_normal_map);
     }
