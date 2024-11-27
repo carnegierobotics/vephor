@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <cstdint>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -26,6 +27,10 @@
 
 namespace vephor
 {
+
+//
+// STL
+//
 
 using std::vector;
 using std::unordered_set;
@@ -54,30 +59,106 @@ using std::numeric_limits;
 using std::pair;
 using std::swap;
 
-using Vec2 = Eigen::Matrix<float, 2, 1>;
-using Vec2d = Eigen::Matrix<double, 2, 1>;
-using Vec3u = Eigen::Matrix<uint8_t, 3, 1>;
-using Vec3 = Eigen::Matrix<float, 3, 1>;
-using Vec3d = Eigen::Matrix<double, 3, 1>;
-using Vec3Ref = Eigen::Ref<const Vec3>;
-using Vec4u = Eigen::Matrix<uint8_t, 4, 1>;
-using Vec4 = Eigen::Matrix<float, 4, 1>;
-using Vec4d = Eigen::Matrix<double, 4, 1>;
-using Vec4Ref = Eigen::Ref<const Vec4>;
-using VecX = Eigen::Matrix<float, Eigen::Dynamic, 1>;
-using VecXRef = Eigen::Ref<const VecX>;
-using VecXMap = Eigen::Map<const VecX>;
-using VecXui = Eigen::Matrix<uint32_t, Eigen::Dynamic, 1>;
+//
+// Utility macros
+//
 
-using Vec2i = Eigen::Matrix<int32_t, 2, 1>;
-using Vec3i = Eigen::Matrix<int32_t, 3, 1>;
+#define VEPHOR_CONCAT2(a, b) a##b
+#define VEPHOR_CONCAT3(a, b, c) a##b##c
 
-using Mat2 = Eigen::Matrix<float, 2, 2>;
-using Mat3 = Eigen::Matrix<float, 3, 3>;
-using Mat4 = Eigen::Matrix<float, 4, 4>;
-using MatX = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>;
-using MatXRef = Eigen::Ref<const MatX>;
-using MatXMap = Eigen::Map<const MatX>;
+//
+// Matrices
+//
+
+template <int Rows, int Cols, typename T = float>
+using Mat = Eigen::Matrix<T, Rows, Cols>;
+
+template <int Rows, int Cols>
+using Matf = Mat<Rows, Cols, float>;
+
+template <int Rows, int Cols>
+using Matd = Mat<Rows, Cols, double>;
+
+template <int Rows, int Cols>
+using Matu = Mat<Rows, Cols, uint8_t>;
+
+template <int Rows, int Cols>
+using Mati = Mat<Rows, Cols, int32_t>;
+
+template <int Rows, int Cols>
+using Matui = Mat<Rows, Cols, uint32_t>;
+
+template <int Rows, int Cols, typename T = float>
+using MatRef = Eigen::Ref<const Mat<Rows, Cols, T>>;
+
+template <int Rows, int Cols, typename T = float>
+using MatMap = Eigen::Map<const Mat<Rows, Cols, T>>;
+
+#define VEPHOR_DEFINE_CONCRETE_MATRIX_TYPES(name, rows, cols)                                                          \
+    using VEPHOR_CONCAT2(Mat, name) = Mat<rows, cols>;                                                                 \
+    using VEPHOR_CONCAT3(Mat, name, Ref) = MatRef<rows, cols>;                                                         \
+    using VEPHOR_CONCAT3(Mat, name, Map) = MatMap<rows, cols>;                                                         \
+    using VEPHOR_CONCAT3(Mat, name, f) = Matf<rows, cols>;                                                             \
+    using VEPHOR_CONCAT3(Mat, name, d) = Matd<rows, cols>;                                                             \
+    using VEPHOR_CONCAT3(Mat, name, u) = Matu<rows, cols>;                                                             \
+    using VEPHOR_CONCAT3(Mat, name, i) = Mati<rows, cols>;                                                             \
+    using VEPHOR_CONCAT3(Mat, name, ui) = Matui<rows, cols>;
+
+VEPHOR_DEFINE_CONCRETE_MATRIX_TYPES(2, 2, 2)
+VEPHOR_DEFINE_CONCRETE_MATRIX_TYPES(3, 3, 3)
+VEPHOR_DEFINE_CONCRETE_MATRIX_TYPES(4, 4, 4)
+VEPHOR_DEFINE_CONCRETE_MATRIX_TYPES(X, Eigen::Dynamic, Eigen::Dynamic)
+
+#undef VEPHOR_DEFINE_CONCRETE_MATRIX_TYPES
+
+//
+// Vectors
+//
+
+template <int Rows, typename T = float>
+using Vec = Mat<Rows, 1, T>;
+
+template <int Rows>
+using Vecf = Vec<Rows, float>;
+
+template <int Rows>
+using Vecd = Vec<Rows, double>;
+
+template <int Rows>
+using Vecu = Vec<Rows, uint8_t>;
+
+template <int Rows>
+using Veci = Vec<Rows, int32_t>;
+
+template <int Rows>
+using Vecui = Vec<Rows, uint32_t>;
+
+template <int Rows, typename T = float>
+using VecRef = Eigen::Ref<const Vec<Rows, T>>;
+
+template <int Rows, typename T = float>
+using VecMap = Eigen::Map<const Vec<Rows, T>>;
+
+#define VEPHOR_DEFINE_CONCRETE_VECTOR_TYPES(name, rows)                                                                \
+    using VEPHOR_CONCAT2(Vec, name) = Vec<rows>;                                                                       \
+    using VEPHOR_CONCAT3(Vec, name, Ref) = VecRef<rows>;                                                               \
+    using VEPHOR_CONCAT3(Vec, name, Map) = VecMap<rows>;                                                               \
+    using VEPHOR_CONCAT3(Vec, name, f) = Vecf<rows>;                                                                   \
+    using VEPHOR_CONCAT3(Vec, name, d) = Vecd<rows>;                                                                   \
+    using VEPHOR_CONCAT3(Vec, name, u) = Vecu<rows>;                                                                   \
+    using VEPHOR_CONCAT3(Vec, name, i) = Veci<rows>;                                                                   \
+    using VEPHOR_CONCAT3(Vec, name, ui) = Vecui<rows>;
+
+VEPHOR_DEFINE_CONCRETE_VECTOR_TYPES(2, 2)
+VEPHOR_DEFINE_CONCRETE_VECTOR_TYPES(3, 3)
+VEPHOR_DEFINE_CONCRETE_VECTOR_TYPES(4, 4)
+VEPHOR_DEFINE_CONCRETE_VECTOR_TYPES(X, Eigen::Dynamic)
+
+#undef VEPHOR_DEFINE_CONCRETE_VECTOR_TYPES
+
+//
+// Colors
+//
 
 class Color
 {
@@ -164,6 +245,10 @@ public:
 private:
     float r, g, b, a;
 };
+
+//
+// Transforms
+//
 
 class Orient3
 {
