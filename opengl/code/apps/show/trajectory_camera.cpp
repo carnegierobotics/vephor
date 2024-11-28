@@ -241,6 +241,7 @@ void TrajectoryCamera::setup(const json &data, Window &window, AssetManager &ass
 
     //
     // TODO: Constrain looping trajectories with matching start and end points so that they are continuous at the ends.
+    // TODO: Solve for individual spline segments instead of entire spline at once for more stable larger trajectories.
     //
 
     std::error_code error_code;
