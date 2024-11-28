@@ -78,6 +78,7 @@ set(EXAMPLE_APPS
 	test_show
 	mini_test_show
 	mini_test_show_transparent
+	mini_test_show_trajectory_camera
 	mini_test_server
 	test_plot
 	test_imshow
