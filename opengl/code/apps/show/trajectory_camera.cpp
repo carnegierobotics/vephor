@@ -270,11 +270,7 @@ void TrajectoryCamera::setup(const json &data, Window &window, AssetManager &ass
 
 void TrajectoryCamera::update(Window &window, const float dt, const ControlInfo &control_info)
 {
-    //
-    // TODO: Integrate speed.
-    //
-
-    time_ += dt;
+    time_ += dt * speed_;
     time_ = wrapToRange(/* value */ time_, /* range */ time_range_);
 
     world_from_camera_ = computePose(time_);
