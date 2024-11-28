@@ -35,18 +35,18 @@ Polynomial<float> polynomialCurveFit1D(const VecX &t, const VecX &x, const int d
     if (x.size() == 0 || t.size() == 0)
     {
         error_code = {static_cast<int>(PolynomialCurveFitError::EMPTY_DATA), polynomial_fit_error_category};
-        return Polynomial<float>{};
+        return {};
     }
     if (t.size() != x.size())
     {
         error_code = {static_cast<int>(PolynomialCurveFitError::MISMATCHED_DATA), polynomial_fit_error_category};
-        return Polynomial<float>{};
+        return {};
     }
     if (degree < 0)
     {
         error_code = {static_cast<int>(PolynomialCurveFitError::NON_POSITIVE_POLYNOMIAL_DEGREE),
                       polynomial_fit_error_category};
-        return Polynomial<float>{};
+        return {};
     }
 
     int num_points = t.size();
@@ -69,7 +69,7 @@ Polynomial<float> polynomialCurveFit1D(const VecX &t, const VecX &x, const int d
     if (ldlt_of_XT_X.info() != Eigen::Success)
     {
         error_code = {static_cast<int>(PolynomialCurveFitError::LEAST_SQUARES_FAILURE), polynomial_fit_error_category};
-        return Polynomial<float>{};
+        return {};
     }
 
     error_code = {static_cast<int>(PolynomialCurveFitError::SUCCESS), polynomial_fit_error_category};
@@ -92,23 +92,23 @@ PolynomialND<float> polynomialCurveFitND(const std::vector<float> &t_vector,
     if (t_vector.empty() || x_vector.empty())
     {
         error_code = {static_cast<int>(PolynomialCurveFitError::EMPTY_DATA), polynomial_fit_error_category};
-        return PolynomialND<float>();
+        return {};
     }
     if (t_vector.size() != x_vector.size())
     {
         error_code = {static_cast<int>(PolynomialCurveFitError::MISMATCHED_DATA), polynomial_fit_error_category};
-        return PolynomialND<float>();
+        return {};
     }
-    if (degree <= 0)
+    if (degree < 0)
     {
         error_code = {static_cast<int>(PolynomialCurveFitError::NON_POSITIVE_POLYNOMIAL_DEGREE),
                       polynomial_fit_error_category};
-        return PolynomialND<float>();
+        return {};
     }
     if (dimensions < 1)
     {
         error_code = {static_cast<int>(PolynomialCurveFitError::NULL_DIMENSION), polynomial_fit_error_category};
-        return PolynomialND<float>();
+        return {};
     }
 
     const auto num_points = t_vector.size();
@@ -137,7 +137,7 @@ PolynomialND<float> polynomialCurveFitND(const std::vector<float> &t_vector,
         if (dimension_error_code.value() != static_cast<int>(PolynomialCurveFitError::SUCCESS))
         {
             error_code = dimension_error_code;
-            return PolynomialND<float>();
+            return {};
         }
 
         polynomials_by_dimension.emplace_back(coefficients);
