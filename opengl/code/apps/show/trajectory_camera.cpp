@@ -17,6 +17,7 @@
 
 #include <Eigen/Dense>
 
+#include <algorithm>
 #include <cmath>
 #include <iterator>
 #include <sstream>
@@ -151,6 +152,15 @@ PolynomialND<float> polynomialCurveFitND(const std::vector<float> &t_vector,
 // #####################################################################################################################
 //
 
+bool inRange(float value, const std::pair<float, float> &range)
+{
+    return (value >= range.first) && (value < range.second);
+}
+
+//
+// #####################################################################################################################
+//
+
 float wrapToRange(float value, const std::pair<float, float> &range)
 {
     const float span = range.second - range.first;
@@ -163,7 +173,7 @@ float wrapToRange(float value, const std::pair<float, float> &range)
     {
         return range.second - std::fmod(range.first - value, span);
     }
-    else if (value > range.second)
+    if (value > range.second)
     {
         return range.first + std::fmod(value - range.second, span);
     }
@@ -211,6 +221,7 @@ void TrajectoryCamera::setup(const json &data, Window &window, AssetManager &ass
 
     // Record the time limits for later use
     time_range_ = {trajectory_nodes_.front().time, trajectory_nodes_.back().time};
+    time_span_ = time_range_.second - time_range_.first;
 
     //
     // Fit polynomials to the trajectory nodes
@@ -227,6 +238,10 @@ void TrajectoryCamera::setup(const json &data, Window &window, AssetManager &ass
         from_vectors.emplace_back(trajectory_node.from);
         up_hint_vectors.emplace_back(trajectory_node.up_hint); // TODO: Should we normalize these?
     }
+
+    //
+    // TODO: Constrain looping trajectories with matching start and end points so that they are continuous at the ends.
+    //
 
     std::error_code error_code;
 
@@ -271,7 +286,11 @@ void TrajectoryCamera::setup(const json &data, Window &window, AssetManager &ass
 void TrajectoryCamera::update(Window &window, const float dt, const ControlInfo &control_info)
 {
     time_ += dt * speed_;
-    time_ = wrapToRange(/* value */ time_, /* range */ time_range_);
+
+    // Keep time from overflowing.  Our longest motion cycle is 2 * time_span and all cycle times are multiples of
+    // time_span.
+    time_ = wrapToRange(/* value */ time_,
+                        /* range */ {time_range_.first, time_range_.first + 2 * time_span_});
 
     world_from_camera_ = computePose(time_);
     window.setCamFromWorld(world_from_camera_);
@@ -315,14 +334,41 @@ TrajectoryNode TrajectoryCamera::evaluateTrajectory(const float time) const
 
 Transform3 TrajectoryCamera::computePose(float time) const
 {
-    time = wrapToRange(/* value */ time, /* range */ time_range_);
+    //
+    // Handle motion mode via the trajectory time
+    //
+
+    if (motion_mode_ == "SINGLE")
+    {
+        time = std::clamp(time, time_range_.first, time_range_.second);
+    }
+    else if (motion_mode_ == "LOOP")
+    {
+        time = wrapToRange(/* value */ time, /* range */ time_range_);
+    }
+    else if (motion_mode_ == "OSCILLATE")
+    {
+        // This mode takes 2 * time_span to complete
+        const std::pair<float, float> reverse_range{time_range_.second, time_range_.second + time_span_};
+
+        time = wrapToRange(/* value */ time, /* range */ {time_range_.first, reverse_range.second});
+        if (inRange(time, reverse_range))
+        {
+            time = time_range_.second - wrapToRange(/* value */ time, /* range */ time_range_);
+        }
+    }
+    else
+    {
+        throw std::runtime_error("[TrajectoryCamera::computePose()] Bad motion mode: " + motion_mode_);
+    }
+
+    //
+    // Compute transformation at current trajectory time
+    //
+
     const auto node = evaluateTrajectory(/* time */ time);
     const auto world_from_camera =
         makeLookAtTransform(/* look_at */ node.to, /* look_from */ node.from, /* up_hint */ node.up_hint);
-
-    //
-    // TODO: Add handling for the various modes, currently this will just loop.
-    //
 
     return world_from_camera;
 }

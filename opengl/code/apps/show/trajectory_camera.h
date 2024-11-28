@@ -336,6 +336,11 @@ PolynomialND<float> polynomialCurveFitND(const std::vector<float> &t,
                                          std::error_code &error_code);
 
 ///
+/// Check if a value falls in a specified range.
+///
+bool inRange(float value, const std::pair<float, float> &range);
+
+///
 /// Wrap a value so that it remains within a specified range.
 ///
 float wrapToRange(float value, const std::pair<float, float> &range);
@@ -388,31 +393,47 @@ struct SmoothedTrajectory
 };
 
 ///
-/// TODO
+/// Camera that follows a specified, spline-interpolated trajectory.
 ///
 class TrajectoryCamera : public ShowCamera
 {
 public:
+    ///
+    /// Setup the camera.
+    ///
     void setup(const json &data, Window &window, AssetManager &assets) override;
 
+    ///
+    /// Update the camera with a new time step.
+    ///
     void update(Window &window, float dt, const ControlInfo &control_info) override;
 
+    ///
+    /// Serialize contained data to JSON.
+    ///
     json serialize() override;
 
 private:
-    std::vector<TrajectoryNode> trajectory_nodes_;
-    std::string motion_mode_;
-    float speed_;
-    float start_time_;
-    int polynomial_degree_;
+    std::vector<TrajectoryNode> trajectory_nodes_; ///< Discrete nodes to which the trajectory spline is fit.
+    std::string motion_mode_;                      ///< Trajectory tracking mode.
+    float speed_;                                  //< Speed multiplier for trajectory tracking.
+    float start_time_;                             ///< Trajectory start time.
+    int polynomial_degree_;                        ///< Degree of the polynomial spline fit.
 
-    SmoothedTrajectory trajectory_;
-    std::pair<float, float> time_range_;
+    SmoothedTrajectory trajectory_;      ///< Trajectory for the camera to follow.
+    std::pair<float, float> time_range_; ///< Range of times for the contained trajectory.
+    float time_span_;                    ///< Time span for the contained trajectory.
 
-    float time_;
-    Transform3 world_from_camera_;
+    float time_; ///< Current trajectory time.  This value gets wrapped to the time range, where appropriate.
+    Transform3 world_from_camera_; ///< Current camera pose in the world frame.
 
+    ///
+    /// Evaluate the trajectory at a specific time.
+    ///
     [[nodiscard]] TrajectoryNode evaluateTrajectory(float time) const;
 
+    ///
+    /// Compute the trajectory pose at a specific time.
+    ///
     [[nodiscard]] Transform3 computePose(float time) const;
 };
