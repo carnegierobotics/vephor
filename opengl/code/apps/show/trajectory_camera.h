@@ -13,7 +13,6 @@
 
 #pragma once
 
-#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -273,49 +272,68 @@ std::ostream &operator<<(std::ostream &out, const PolynomialND<T> &polynomial)
     return out << polynomial.string();
 }
 
-// enum class PolynomialCurveFitError
-// {
-//     SUCCESS = 0,
-//     EMPTY_DATA,
-//     NON_POSITIVE_POLYNOMIAL_DEGREE,
-//     LEAST_SQUARES_FAILURE
-// };
-//
-// class PolynomialCurveFitErrorCategory : public std::error_category
-// {
-// public:
-//     const char *name() const noexcept override
-//     {
-//         return "PolynomialFit";
-//     }
-//
-//     std::string message(int ev) const override
-//     {
-//         switch (static_cast<PolynomialCurveFitError>(ev))
-//         {
-//         case PolynomialCurveFitError::EMPTY_DATA:
-//             return "Data provided for polynomial fitting is empty.";
-//         case PolynomialCurveFitError::NON_POSITIVE_POLYNOMIAL_DEGREE:
-//             return "Polynomial fitting requires a positive degree.";
-//         case PolynomialCurveFitError::LEAST_SQUARES_FAILURE:
-//             return "Least squares solve was unsuccessful.";
-//         default:
-//             return "Unknown error.";
-//         }
-//     }
-// };
+///
+/// Error code for a polynomial curve fit.
+///
+enum class PolynomialCurveFitError
+{
+    SUCCESS = 0,                    ///< Successful fit.
+    EMPTY_DATA,                     ///< Provided data was empty.
+    MISMATCHED_DATA,                ///< Provided data dimensions were not consistent.
+    NON_POSITIVE_POLYNOMIAL_DEGREE, ///< Requested polynomial degree for fit was invalid.
+    NULL_DIMENSION,                 ///< Provided data has null dimension.
+    LEAST_SQUARES_FAILURE,          ///< Least squares solver failed.
+};
+
+///
+/// Error code category for a polynomial curve fit.
+///
+class PolynomialCurveFitErrorCategory : public std::error_category
+{
+public:
+    ///
+    /// Get the category name.
+    ///
+    [[nodiscard]] const char *name() const noexcept override
+    {
+        return "PolynomialCurveFitError";
+    }
+
+    ///
+    /// Translate error code to an informative message.
+    ///
+    [[nodiscard]] std::string message(int ev) const override
+    {
+        switch (static_cast<PolynomialCurveFitError>(ev))
+        {
+        case PolynomialCurveFitError::EMPTY_DATA:
+            return "Empty data.";
+        case PolynomialCurveFitError::MISMATCHED_DATA:
+            return "Inconsistently sized data.";
+        case PolynomialCurveFitError::NON_POSITIVE_POLYNOMIAL_DEGREE:
+            return "Polynomial does not have a positive degree.";
+        case PolynomialCurveFitError::NULL_DIMENSION:
+            return "Data has no dimension.";
+        case PolynomialCurveFitError::LEAST_SQUARES_FAILURE:
+            return "Least squares solve was unsuccessful.";
+        default:
+            return "Unknown error.";
+        }
+    }
+};
 
 ///
 /// Fit a polynomial @f$ x(t) @f$ to a set of 1-D data.
 ///
-std::optional<Polynomial<float>> polynomialCurveFit1D(const VecX &t, const VecX &x, int degree);
+Polynomial<float> polynomialCurveFit1D(const VecX &t, const VecX &x, int degree, std::error_code &error_code);
 
 ///
 /// Fit a polynomial @f$ \boldsymbol{x}(t) @f$ to a set of N-D data.
 ///
-std::optional<PolynomialND<float>> polynomialCurveFitND(const std::vector<float> &t,
-                                                        const std::vector<VecX> &x,
-                                                        int degree);
+PolynomialND<float> polynomialCurveFitND(const std::vector<float> &t,
+                                         const std::vector<VecX> &x,
+                                         int degree,
+                                         std::error_code &error_code);
 
 ///
 /// Wrap a value so that it remains within a specified range.

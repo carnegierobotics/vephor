@@ -28,18 +28,31 @@
 // #####################################################################################################################
 //
 
-std::optional<Polynomial<float>> polynomialCurveFit1D(const VecX &t, const VecX &x, const int degree)
+Polynomial<float> polynomialCurveFit1D(const VecX &t, const VecX &x, const int degree, std::error_code &error_code)
 {
-    int numPoints = t.size();
+    static PolynomialCurveFitErrorCategory const polynomial_fit_error_category{};
 
-    if (x.size() != numPoints || numPoints == 0 || degree < 0)
+    if (x.size() == 0 || t.size() == 0)
     {
-        std::cerr << "Invalid input." << std::endl;
-        return std::nullopt;
+        error_code = {static_cast<int>(PolynomialCurveFitError::EMPTY_DATA), polynomial_fit_error_category};
+        return Polynomial<float>{};
+    }
+    if (t.size() != x.size())
+    {
+        error_code = {static_cast<int>(PolynomialCurveFitError::MISMATCHED_DATA), polynomial_fit_error_category};
+        return Polynomial<float>{};
+    }
+    if (degree < 0)
+    {
+        error_code = {static_cast<int>(PolynomialCurveFitError::NON_POSITIVE_POLYNOMIAL_DEGREE),
+                      polynomial_fit_error_category};
+        return Polynomial<float>{};
     }
 
-    MatX X(numPoints, degree + 1);
-    for (int i = 0; i < numPoints; ++i)
+    int num_points = t.size();
+
+    MatX X(num_points, degree + 1);
+    for (int i = 0; i < num_points; ++i)
     {
         for (int j = 0; j < degree + 1; ++j)
         {
@@ -55,10 +68,11 @@ std::optional<Polynomial<float>> polynomialCurveFit1D(const VecX &t, const VecX 
 
     if (ldlt_of_XT_X.info() != Eigen::Success)
     {
-        std::cerr << "Failed to solve for coefficients of the polynomial curve fit." << std::endl;
-        return std::nullopt;
+        error_code = {static_cast<int>(PolynomialCurveFitError::LEAST_SQUARES_FAILURE), polynomial_fit_error_category};
+        return Polynomial<float>{};
     }
 
+    error_code = {static_cast<int>(PolynomialCurveFitError::SUCCESS), polynomial_fit_error_category};
     return Polynomial<float>{coefficients};
 }
 
@@ -66,27 +80,35 @@ std::optional<Polynomial<float>> polynomialCurveFit1D(const VecX &t, const VecX 
 // #####################################################################################################################
 //
 
-std::optional<PolynomialND<float>> polynomialCurveFitND(const std::vector<float> &t_vector,
-                                                        const std::vector<VecX> &x_vector,
-                                                        const int degree)
+PolynomialND<float> polynomialCurveFitND(const std::vector<float> &t_vector,
+                                         const std::vector<VecX> &x_vector,
+                                         const int degree,
+                                         std::error_code &error_code)
 {
+    static PolynomialCurveFitErrorCategory const polynomial_fit_error_category{};
+
     const int dimensions = x_vector.front().size();
 
     if (t_vector.empty() || x_vector.empty())
     {
-        throw std::runtime_error("[polynomialCurveFitND()] Data (t, x) cannot be empty.");
+        error_code = {static_cast<int>(PolynomialCurveFitError::EMPTY_DATA), polynomial_fit_error_category};
+        return PolynomialND<float>();
     }
     if (t_vector.size() != x_vector.size())
     {
-        throw std::runtime_error("[polynomialCurveFitND()] Input dimensions don't match.");
+        error_code = {static_cast<int>(PolynomialCurveFitError::MISMATCHED_DATA), polynomial_fit_error_category};
+        return PolynomialND<float>();
     }
     if (degree <= 0)
     {
-        throw std::runtime_error("[polynomialCurveFitND()] Polynomial degree must be positive.");
+        error_code = {static_cast<int>(PolynomialCurveFitError::NON_POSITIVE_POLYNOMIAL_DEGREE),
+                      polynomial_fit_error_category};
+        return PolynomialND<float>();
     }
     if (dimensions < 1)
     {
-        throw std::runtime_error("[polynomialCurveFitND()] Data dimension must be at least 1.");
+        error_code = {static_cast<int>(PolynomialCurveFitError::NULL_DIMENSION), polynomial_fit_error_category};
+        return PolynomialND<float>();
     }
 
     const auto num_points = t_vector.size();
@@ -109,15 +131,19 @@ std::optional<PolynomialND<float>> polynomialCurveFitND(const std::vector<float>
         // Fit polynomial for this dimension
         //
 
-        const auto coefficients = polynomialCurveFit1D(/* t */ t, /* x */ x, /* degree */ degree);
-        if (!coefficients.has_value())
+        std::error_code dimension_error_code;
+        const auto coefficients =
+            polynomialCurveFit1D(/* t */ t, /* x */ x, /* degree */ degree, /* error_code */ dimension_error_code);
+        if (dimension_error_code.value() != static_cast<int>(PolynomialCurveFitError::SUCCESS))
         {
-            return std::nullopt;
+            error_code = dimension_error_code;
+            return PolynomialND<float>();
         }
 
-        polynomials_by_dimension.emplace_back(coefficients.value());
+        polynomials_by_dimension.emplace_back(coefficients);
     }
 
+    error_code = {static_cast<int>(PolynomialCurveFitError::SUCCESS), polynomial_fit_error_category};
     return PolynomialND<float>(polynomials_by_dimension);
 }
 
@@ -202,30 +228,32 @@ void TrajectoryCamera::setup(const json &data, Window &window, AssetManager &ass
         up_hint_vectors.emplace_back(trajectory_node.up_hint); // TODO: Should we normalize these?
     }
 
-    const auto to_polynomial =
-        polynomialCurveFitND(/* times */ times, /* points */ to_vectors, /* degree */ polynomial_degree_);
-    if (!to_polynomial.has_value())
+    std::error_code error_code;
+
+    const auto to_polynomial = polynomialCurveFitND(
+        /* times */ times, /* points */ to_vectors, /* degree */ polynomial_degree_, /* error_code */ error_code);
+    if (error_code.value() != static_cast<int>(PolynomialCurveFitError::SUCCESS))
     {
         throw std::runtime_error("[TrajectoryCamera::setup()] Could not fit polynomial to the trajectory to vectors.");
     }
 
-    const auto from_polynomial =
-        polynomialCurveFitND(/* times */ times, /* points */ from_vectors, /* degree */ polynomial_degree_);
-    if (!from_polynomial.has_value())
+    const auto from_polynomial = polynomialCurveFitND(
+        /* times */ times, /* points */ from_vectors, /* degree */ polynomial_degree_, /* error_code */ error_code);
+    if (error_code.value() != static_cast<int>(PolynomialCurveFitError::SUCCESS))
     {
         throw std::runtime_error(
             "[TrajectoryCamera::setup()] Could not fit polynomial to the trajectory from vectors.");
     }
 
-    const auto up_hint_polynomial =
-        polynomialCurveFitND(/* times */ times, /* points */ up_hint_vectors, /* degree */ polynomial_degree_);
-    if (!up_hint_polynomial.has_value())
+    const auto up_hint_polynomial = polynomialCurveFitND(
+        /* times */ times, /* points */ up_hint_vectors, /* degree */ polynomial_degree_, /* error_code */ error_code);
+    if (error_code.value() != static_cast<int>(PolynomialCurveFitError::SUCCESS))
     {
         throw std::runtime_error(
             "[TrajectoryCamera::setup()] Could not fit polynomial to the trajectory up hint vectors.");
     }
 
-    trajectory_ = {.to = to_polynomial.value(), .from = from_polynomial.value(), .up_hint = up_hint_polynomial.value()};
+    trajectory_ = {.to = to_polynomial, .from = from_polynomial, .up_hint = up_hint_polynomial};
 
     //
     // Configure initial state
