@@ -575,13 +575,19 @@ public:
                                  const TrajectoryCameraMotionMode motion_mode = TrajectoryCameraMotionMode::SINGLE,
                                  const float speed = 1.0F,
                                  const float start_time = 0.0F,
-                                 const int polynomial_degree = 3)
+                                 int polynomial_degree = -1)
     {
         json trajectory_json;
         for (const auto &[time, to, from, up_hint] : trajectory)
         {
             trajectory_json.emplace_back(
                 json{{"time", time}, {"to", toJson(to)}, {"from", toJson(from)}, {"up_hint", toJson(up_hint)}});
+        }
+
+        // If not specified, default to a polynomial degree of one less than the number of data points
+        if (polynomial_degree < 0)
+        {
+            polynomial_degree = std::clamp(polynomial_degree, 0, static_cast<int>(trajectory.size()) - 1);
         }
 
         camera_control = {{"type", "trajectory"},
