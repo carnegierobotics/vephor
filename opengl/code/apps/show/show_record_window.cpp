@@ -10,6 +10,8 @@
 
 #include "show_record_window.h"
 
+#include "trajectory_camera.h"
+
 void waitForMessages(NetworkManager* net_manager, std::deque<JSONBMessage>* messages, std::mutex* message_mutex, bool* shutdown)
 {
 	while (!*shutdown)
@@ -352,6 +354,10 @@ void ShowRecordWindow::setupCamera(const json& data, AssetManager& assets)
 			else if (control_data["type"] == "spin")
 			{
 				camera = make_shared<SpinCamera>();
+			}
+			else if (control_data["type"] == "trajectory")
+			{
+				camera = make_shared<TrajectoryCamera>();
 			}
 			else if (control_data["type"] == "static")
 			{

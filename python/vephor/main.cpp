@@ -438,7 +438,8 @@ PYBIND11_MODULE(_core, m) {
 	py::class_<DirLight, shared_ptr<DirLight>>(m, "DirLight")
         .def(py::init<Vec3,float>(),py::arg("dir"),py::arg("strength"));
 	
-    py::class_<Window>(m, "Window")
+    py::class_<Window> window(m, "Window");
+    window
         .def(py::init<int,int,std::string>(),
 			py::arg("width")=-1,
 			py::arg("height")=-1,
@@ -732,6 +733,33 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("scale")=1.0f,
 			py::arg("overlay")=false,
 			py::arg("layer")=0);
+
+    py::enum_<Window::TrajectoryCameraMotionMode>(window, "TrajectoryCameraMotionMode")
+        .value("SINGLE", Window::TrajectoryCameraMotionMode::SINGLE)
+        .value("OSCILLATE", Window::TrajectoryCameraMotionMode::OSCILLATE)
+        .value("LOOP", Window::TrajectoryCameraMotionMode::LOOP)
+        .export_values();
+
+    py::class_<Window::CameraTrajectoryNode>(window, "CameraTrajectoryNode")
+        .def(py::init<float, Vec3, Vec3, Vec3>(),
+             py::arg("time"),
+             py::arg("to_point"),   // The argument name is changed here for compatability with python reserved names
+             py::arg("from_point"), // The argument name is changed here for compatability with python reserved names
+             py::arg("up_hint"))
+        .def_readwrite("time", &Window::CameraTrajectoryNode::time)
+        .def_readwrite("to", &Window::CameraTrajectoryNode::to)
+        .def_readwrite("from", &Window::CameraTrajectoryNode::from)
+        .def_readwrite("up_hint", &Window::CameraTrajectoryNode::up_hint);
+
+    // Defined here because it requires the nested enum TrajectoryCameraMotionMode and struct CameraTrajectoryNode
+    window
+        .def("setTrajectoryCameraMode",
+             &Window::setTrajectoryCameraMode,
+             py::arg("trajectory"),
+             py::arg("motion_mode") = Window::TrajectoryCameraMotionMode::SINGLE,
+             py::arg("speed") = 1.0F,
+             py::arg("start_time") = 0.0F,
+             py::arg("polynomial_degree") = 3);
 
 	py::class_<Plot>(m, "Plot")
         .def(py::init<string,int,int>(),

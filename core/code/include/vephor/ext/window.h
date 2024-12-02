@@ -11,8 +11,12 @@
 #pragma once
 
 #include "vephor.h"
-#include <random>
+#include "vephor/base/thirdparty/Neargye/magic_enum/magic_enum.hpp"
+
 #include <filesystem>
+#include <limits>
+#include <optional>
+#include <random>
 
 namespace fs = std::filesystem;
 
@@ -552,10 +556,51 @@ public:
         };
     }
 
-	void setTrackballMode(
-		const Vec3& to = Vec3(0,0,0), 
-		const Vec3& from = Vec3(-1,0,-1), 
-		const Vec3& up = Vec3(0,0,-1), 
+    struct CameraTrajectoryNode
+    {
+        float time;
+        Vec3 to;
+        Vec3 from;
+        Vec3 up_hint;
+    };
+
+    enum class TrajectoryCameraMotionMode
+    {
+        SINGLE,    ///< Follow the trajectory until completion, then remain at the end.
+        OSCILLATE, ///< Oscillate between the trajectory start and end.
+        LOOP,      ///< Loop back to the trajectory start once the end is reached via a discontinuous jump.
+    };
+
+    void setTrajectoryCameraMode(const std::vector<CameraTrajectoryNode> &trajectory,
+                                 const TrajectoryCameraMotionMode motion_mode = TrajectoryCameraMotionMode::SINGLE,
+                                 const float speed = 1.0F,
+                                 const float start_time = 0.0F,
+                                 int polynomial_degree = -1)
+    {
+        json trajectory_json;
+        for (const auto &[time, to, from, up_hint] : trajectory)
+        {
+            trajectory_json.emplace_back(
+                json{{"time", time}, {"to", toJson(to)}, {"from", toJson(from)}, {"up_hint", toJson(up_hint)}});
+        }
+
+        // If not specified, default to a polynomial degree of one less than the number of data points
+        if (polynomial_degree < 0)
+        {
+            polynomial_degree = std::clamp(polynomial_degree, 0, static_cast<int>(trajectory.size()) - 1);
+        }
+
+        camera_control = {{"type", "trajectory"},
+                          {"trajectory", trajectory_json},
+                          {"motion_mode", magic_enum::enum_name(motion_mode)},
+                          {"speed", speed},
+                          {"start_time", start_time},
+                          {"polynomial_degree", polynomial_degree}};
+    }
+
+    void setTrackballMode(const Vec3 &to = Vec3(0, 0, 0),
+                          const Vec3 &from = Vec3(-1, 0, -1),
+                          const Vec3& up = Vec3(0,0,-1), 
 		bool use_3d = false)
 	{
 		camera_control = {
