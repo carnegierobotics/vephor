@@ -58,8 +58,6 @@ public:
     [[nodiscard]] T evaluate(const T t) const
     {
         const auto reverse_coefficients = coefficients_.reverse();
-        auto coefficient = std::begin(reverse_coefficients);
-        const auto last_coefficient = std::end(reverse_coefficients);
 
         float x = reverse_coefficients(0);
         for (int i = 1; i < reverse_coefficients.size(); ++i)
