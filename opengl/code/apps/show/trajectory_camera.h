@@ -20,8 +20,6 @@
 #include <utility>
 #include <vector>
 
-#include <nlohmann/json.hpp>
-
 #include "vephor.h"
 
 #include "show_camera.h"
