@@ -63,10 +63,10 @@ public:
         auto coefficient = std::begin(reverse_coefficients);
         const auto last_coefficient = std::end(reverse_coefficients);
 
-        float x;
-        for (x = *(coefficient++); coefficient != last_coefficient; ++coefficient)
+        float x = reverse_coefficients(0);
+        for (int i = 1; i < reverse_coefficients.size(); ++i)
         {
-            x = *coefficient + t * x;
+            x = reverse_coefficients(i) + t * x;
         }
 
         return x;
