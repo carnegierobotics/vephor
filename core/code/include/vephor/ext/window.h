@@ -877,13 +877,18 @@ public:
 			last_record_time = record_time;
 
 			vector<JSONBMessage> messages_to_write = {msg};
-			if (!find(recorded_messages_written, LOCAL_CONN_ID_PROGRESSIVE))
-				recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = 0;
-			recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = writeMessages(
-				record_path, 
-				messages_to_write, 
-				true, 
-				recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE]);
+
+			{
+				std::lock_guard<std::mutex> lock(recorded_messages_written_lock);
+
+				if (!find(recorded_messages_written, LOCAL_CONN_ID_PROGRESSIVE))
+					recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = 0;
+				recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = writeMessages(
+					record_path, 
+					messages_to_write, 
+					true, 
+					recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE]);
+			}
 
 			// TODO: update incrementally
 			string temp_dir = getTempDir();
@@ -999,13 +1004,17 @@ public:
 
 					vector<JSONBMessage> messages_to_write = {msg};
 
-					if (!find(recorded_messages_written, conn_id))
-						recorded_messages_written[conn_id] = 0;
-					recorded_messages_written[conn_id] = writeMessages(
-						conn_record_dir, 
-						messages_to_write, 
-						true, 
-						recorded_messages_written[conn_id]);
+					{
+						std::lock_guard<std::mutex> lock(recorded_messages_written_lock);
+
+						if (!find(recorded_messages_written, conn_id))
+							recorded_messages_written[conn_id] = 0;
+						recorded_messages_written[conn_id] = writeMessages(
+							conn_record_dir, 
+							messages_to_write, 
+							true, 
+							recorded_messages_written[conn_id]);
+					}
 
 					// TODO: update incrementally
 					string temp_dir = getTempDir();
@@ -1078,13 +1087,17 @@ public:
 
 			if (wait_close || wait_key)
 			{
-				if (!find(recorded_messages_written, LOCAL_CONN_ID_PROGRESSIVE))
-					recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = 0;
-				recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = writeMessages(
-					temp_dir, 
-					recorded_messages_to_write, 
-					true, 
-					recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE]);
+				{
+					std::lock_guard<std::mutex> lock(recorded_messages_written_lock);
+
+					if (!find(recorded_messages_written, LOCAL_CONN_ID_PROGRESSIVE))
+						recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = 0;
+					recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = writeMessages(
+						temp_dir, 
+						recorded_messages_to_write, 
+						true, 
+						recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE]);
+				}
 
 				string show_path = getBaseDir()+"/bin/vephor_show";
 				if (!fs::exists(show_path))
@@ -1589,7 +1602,8 @@ private:
 	bool shutdown = false;
 	json camera_control;
 	unordered_map<ConnectionID, bool> camera_up_to_date;
-	unordered_map<ConnectionID, int> recorded_messages_written;
+	std::mutex recorded_messages_written_lock;
+	inline static unordered_map<ConnectionID, int> recorded_messages_written;
 	KeyActionCallback key_press_callback = NULL;
 	MouseClickActionCallback mouse_click_callback = NULL;
 	size_t total_network_use_bytes = 0;
