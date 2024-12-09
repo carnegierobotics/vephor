@@ -196,40 +196,73 @@ int main(int argc, char* argv[])
 	auto obj_mesh_node = window.add(obj_mesh, Transform3(Vec3(obj_mesh_dist,0,-2.5)));
 
     {
-        auto text = make_shared<Text>("Center");
+        auto text = make_shared<Text>("Top Left");
         text->setColor(Vec3(1, 0, 1));
-        text->setAnchorCentered();
-        window.add(text, TransformSim3(Vec3(0, 0, 0), Vec3::Zero(), 25), true)
-            ->setParent(window.getWindowCenterNode());
+        text->setAnchorTopLeft();
+        window.add(text, TransformSim3(Vec3(50, -50, 0), Vec3::Zero(), 25), true)
+            ->setParent(window.getWindowTopLeftNode());
     }
 
     {
-		auto text = make_shared<Text>("Bottom Right");
-		text->setColor(Vec3(1,0,1));
-		text->setAnchorBottomRight();
-		window.add(text, TransformSim3(Vec3(-50,50,0), Vec3::Zero(), 25), true)->setParent(window.getWindowBottomRightNode());
-	}
-	
-	{
-		auto text = make_shared<Text>("Top Left");
-		text->setColor(Vec3(1,0,1));
-		text->setAnchorTopLeft();
-		window.add(text, TransformSim3(Vec3(50,-50,0), Vec3::Zero(), 25), true)->setParent(window.getWindowTopLeftNode());
-	}
-	
-	{
-		auto text = make_shared<Text>("Bottom Left");
-		text->setColor(Vec3(1,0,1));
-		text->setAnchorBottomLeft();
-		window.add(text, TransformSim3(Vec3(50,50,0), Vec3::Zero(), 25), true)->setParent(window.getWindowBottomLeftNode());
-	}
-	
-	{
-		auto text = make_shared<Text>("Top Right");
-		text->setColor(Vec3(1,0,1));
-		text->setAnchorTopRight();
-		window.add(text, TransformSim3(Vec3(-50,-50,0), Vec3::Zero(), 25), true)->setParent(window.getWindowTopRightNode());
-	}
+        auto text = make_shared<Text>("Top");
+        text->setColor(Vec3(1, 0, 1));
+        text->setAnchorTop();
+        window.add(text, TransformSim3(Vec3(0, -50, 0), Vec3::Zero(), 25), true)->setParent(window.getWindowTopNode());
+    }
+
+    {
+        auto text = make_shared<Text>("Top Right");
+        text->setColor(Vec3(1, 0, 1));
+        text->setAnchorTopRight();
+        window.add(text, TransformSim3(Vec3(-50, -50, 0), Vec3::Zero(), 25), true)
+            ->setParent(window.getWindowTopRightNode());
+    }
+
+    {
+        auto text = make_shared<Text>("Left");
+        text->setColor(Vec3(1, 0, 1));
+        text->setAnchorLeft();
+        window.add(text, TransformSim3(Vec3(50, 0, 0), Vec3::Zero(), 25), true)->setParent(window.getWindowLeftNode());
+    }
+
+    {
+        auto text = make_shared<Text>("Center");
+        text->setColor(Vec3(1, 0, 1));
+        text->setAnchorCentered();
+        window.add(text, TransformSim3(Vec3(0, 0, 0), Vec3::Zero(), 25), true)->setParent(window.getWindowCenterNode());
+    }
+
+    {
+        auto text = make_shared<Text>("Right");
+        text->setColor(Vec3(1, 0, 1));
+        text->setAnchorRight();
+        window.add(text, TransformSim3(Vec3(-50, 0, 0), Vec3::Zero(), 25), true)
+            ->setParent(window.getWindowRightNode());
+    }
+
+    {
+        auto text = make_shared<Text>("Bottom Left");
+        text->setColor(Vec3(1, 0, 1));
+        text->setAnchorBottomLeft();
+        window.add(text, TransformSim3(Vec3(50, 50, 0), Vec3::Zero(), 25), true)
+            ->setParent(window.getWindowBottomLeftNode());
+    }
+
+    {
+        auto text = make_shared<Text>("Bottom");
+        text->setColor(Vec3(1, 0, 1));
+        text->setAnchorBottom();
+        window.add(text, TransformSim3(Vec3(0, 50, 0), Vec3::Zero(), 25), true)
+            ->setParent(window.getWindowBottomNode());
+    }
+
+    {
+        auto text = make_shared<Text>("Bottom Right");
+        text->setColor(Vec3(1, 0, 1));
+        text->setAnchorBottomRight();
+        window.add(text, TransformSim3(Vec3(-50, 50, 0), Vec3::Zero(), 25), true)
+            ->setParent(window.getWindowBottomRightNode());
+    }
 
 	{
 		auto sprite = make_shared<Sprite>(base_asset_dir+"/assets/world.png", true);

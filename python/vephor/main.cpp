@@ -476,11 +476,15 @@ PYBIND11_MODULE(_core, m) {
 		.def_static("setServerModeBYOC", &Window::setServerModeBYOC, 
 			py::arg("record_also")=false,
 			py::arg("record_path")="")
-		.def("getWindowCenterNode", &Window::getWindowCenterNode)
-		.def("getWindowBottomRightNode", &Window::getWindowBottomRightNode)
 		.def("getWindowTopLeftNode", &Window::getWindowTopLeftNode)
-		.def("getWindowBottomLeftNode", &Window::getWindowBottomLeftNode)
+		.def("getWindowTopNode", &Window::getWindowTopNode)
 		.def("getWindowTopRightNode", &Window::getWindowTopRightNode)
+		.def("getWindowLeftNode", &Window::getWindowLeftNode)
+		.def("getWindowCenterNode", &Window::getWindowCenterNode)
+		.def("getWindowRightNode", &Window::getWindowRightNode)
+		.def("getWindowBottomLeftNode", &Window::getWindowBottomLeftNode)
+		.def("getWindowBottomNode", &Window::getWindowBottomNode)
+		.def("getWindowBottomRightNode", &Window::getWindowBottomRightNode)
 		.def("setStaticCameraMode", &Window::setStaticCameraMode, 
 			py::arg("to")=Vec3(0,0,0), 
 			py::arg("from")=Vec3(-1,0,-1), 
