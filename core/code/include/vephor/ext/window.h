@@ -454,21 +454,35 @@ public:
 		id = manager.next_window_id;
 		manager.next_window_id++;
 
-		window_center_node = make_shared<TransformNode>(Transform3());
-		window_center_node->setName("window_center");
-		
-		window_top_right_node = make_shared<TransformNode>(Transform3());
-		window_top_right_node->setName("window_top_right");
-		
-		window_bottom_right_node = make_shared<TransformNode>(Transform3());
-		window_bottom_right_node->setName("window_bottom_right");
-		
-		window_top_left_node = make_shared<TransformNode>(Transform3());
-		window_top_left_node->setName("window_top_left");
-		
-		window_bottom_left_node = make_shared<TransformNode>(Transform3());
-		window_bottom_left_node->setName("window_bottom_left");
-		
+        {
+            window_top_left_node = make_shared<TransformNode>(Transform3());
+            window_top_left_node->setName("window_top_left");
+
+            window_top_node = make_shared<TransformNode>(Transform3());
+            window_top_node->setName("window_top");
+
+            window_top_right_node = make_shared<TransformNode>(Transform3());
+            window_top_right_node->setName("window_top_right");
+
+            window_left_node = make_shared<TransformNode>(Transform3());
+            window_left_node->setName("window_left");
+
+            window_center_node = make_shared<TransformNode>(Transform3());
+            window_center_node->setName("window_center");
+
+            window_right_node = make_shared<TransformNode>(Transform3());
+            window_right_node->setName("window_right");
+
+            window_bottom_left_node = make_shared<TransformNode>(Transform3());
+            window_bottom_left_node->setName("window_bottom_left");
+
+            window_bottom_node = make_shared<TransformNode>(Transform3());
+            window_bottom_node->setName("window_bottom");
+
+            window_bottom_right_node = make_shared<TransformNode>(Transform3());
+            window_bottom_right_node->setName("window_bottom_right");
+        }
+
 		camera_control = {
 			{"type", "trackball"},
 			{"to", {0,0,0}},
@@ -751,12 +765,16 @@ public:
     {
 		return add(obj, TransformSim3(parent_from_node_t,parent_from_node_r,parent_from_node_scale), on_overlay, layer);
     }
-	
-	shared_ptr<TransformNode> getWindowCenterNode() const {return window_center_node;}
-	shared_ptr<TransformNode> getWindowTopRightNode() const {return window_top_right_node;}
-	shared_ptr<TransformNode> getWindowBottomRightNode() const {return window_bottom_right_node;}
-	shared_ptr<TransformNode> getWindowTopLeftNode() const {return window_top_left_node;}
-	shared_ptr<TransformNode> getWindowBottomLeftNode() const {return window_bottom_left_node;}
+
+    shared_ptr<TransformNode> getWindowTopLeftNode() const { return window_top_left_node; }
+    shared_ptr<TransformNode> getWindowTopNode() const { return window_top_node; }
+    shared_ptr<TransformNode> getWindowTopRightNode() const { return window_top_right_node; }
+    shared_ptr<TransformNode> getWindowLeftNode() const { return window_left_node; }
+    shared_ptr<TransformNode> getWindowCenterNode() const { return window_center_node; }
+    shared_ptr<TransformNode> getWindowRightNode() const { return window_right_node; }
+    shared_ptr<TransformNode> getWindowBottomLeftNode() const { return window_bottom_left_node; }
+    shared_ptr<TransformNode> getWindowBottomNode() const { return window_bottom_node; }
+    shared_ptr<TransformNode> getWindowBottomRightNode() const { return window_bottom_right_node; }
 
 	void setPrintFlagNetworkUse(bool flag = true){print_flag_network_use = flag;}
 
@@ -1591,11 +1609,17 @@ private:
 	int frame_messages_waiting = 0;
 	int frame_skip_message_limit = 3;
 	int frame_message_skips = 0;
-	shared_ptr<TransformNode> window_center_node;
-	shared_ptr<TransformNode> window_top_right_node;
-	shared_ptr<TransformNode> window_bottom_right_node;
-	shared_ptr<TransformNode> window_top_left_node;
-	shared_ptr<TransformNode> window_bottom_left_node;
+
+    shared_ptr<TransformNode> window_top_left_node;
+    shared_ptr<TransformNode> window_top_node;
+    shared_ptr<TransformNode> window_top_right_node;
+    shared_ptr<TransformNode> window_left_node;
+    shared_ptr<TransformNode> window_center_node;
+    shared_ptr<TransformNode> window_right_node;
+    shared_ptr<TransformNode> window_bottom_left_node;
+    shared_ptr<TransformNode> window_bottom_node;
+    shared_ptr<TransformNode> window_bottom_right_node;
+
 	vector<shared_ptr<RenderNode>> objects;
 	inline static WindowManager manager;
 	std::thread server_message_thread;

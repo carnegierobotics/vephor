@@ -66,39 +66,59 @@ struct ShowRecord
 		assets.addFolder(getBaseAssetDir());
 		start_time = std::chrono::steady_clock::now();
 	}
-	void setParent(const shared_ptr<RenderNode>& node, WindowID window_id, const string& parent_node, ConnectionID conn_id)
-	{
-		if (windows[window_id].get() == NULL)
-		{
-			throw std::runtime_error("Null window found in setParent.");
-		}
-		
-		if (parent_node == "window_center")
-		{
-			node->setParent(windows[window_id]->window->getWindowCenterNode());
-		}
-		else if (parent_node == "window_top_right")
-		{
-			node->setParent(windows[window_id]->window->getWindowTopRightNode());
-		}
-		else if (parent_node == "window_bottom_right")
-		{
-			node->setParent(windows[window_id]->window->getWindowBottomRightNode());
-		}
-		else if (parent_node == "window_top_left")
-		{
-			node->setParent(windows[window_id]->window->getWindowTopLeftNode());
-		}
-		else if (parent_node == "window_bottom_left")
-		{
-			node->setParent(windows[window_id]->window->getWindowBottomLeftNode());
-		}
-		else if (!parent_node.empty())
-		{
-			node->setParent(objects_by_id[(int64_t)std::stoi(parent_node)|(conn_id << 32)]);
-		}
-	}
-	
+
+    void setParent(const shared_ptr<RenderNode> &node,
+                   WindowID window_id,
+                   const string &parent_node,
+                   ConnectionID conn_id)
+    {
+        if (windows[window_id].get() == nullptr)
+        {
+            throw std::runtime_error("Null window found in setParent.");
+        }
+
+        if (parent_node == "window_top_left")
+        {
+            node->setParent(windows[window_id]->window->getWindowTopLeftNode());
+        }
+        else if (parent_node == "window_top")
+        {
+            node->setParent(windows[window_id]->window->getWindowTopNode());
+        }
+        else if (parent_node == "window_top_right")
+        {
+            node->setParent(windows[window_id]->window->getWindowTopRightNode());
+        }
+        else if (parent_node == "window_left")
+        {
+            node->setParent(windows[window_id]->window->getWindowLeftNode());
+        }
+        else if (parent_node == "window_center")
+        {
+            node->setParent(windows[window_id]->window->getWindowCenterNode());
+        }
+        else if (parent_node == "window_right")
+        {
+            node->setParent(windows[window_id]->window->getWindowRightNode());
+        }
+        else if (parent_node == "window_bottom_left")
+        {
+            node->setParent(windows[window_id]->window->getWindowBottomLeftNode());
+        }
+        else if (parent_node == "window_bottom")
+        {
+            node->setParent(windows[window_id]->window->getWindowBottomNode());
+        }
+        else if (parent_node == "window_bottom_right")
+        {
+            node->setParent(windows[window_id]->window->getWindowBottomRightNode());
+        }
+        else if (!parent_node.empty())
+        {
+            node->setParent(objects_by_id[static_cast<int64_t>(std::stoi(parent_node)) | (conn_id << 32)]);
+        }
+    }
+
 	void setupWindow(const json& data, ConnectionID conn_id, WindowID& window_id, bool& window_added, bool& window_closed)
 	{
 		window_added = false;

@@ -482,27 +482,45 @@ public:
 
     void onResize(const Vec2i &window_size)
     {
-        if (window_center_node != nullptr)
+        if (window_top_left_node != nullptr)
         {
-            window_center_node->setPos(
-                {static_cast<float>(window_size[0]) / 2.0F, static_cast<float>(window_size[1]) / 2.0F, 0.0F});
+            window_top_left_node->setPos({0.0F, static_cast<float>(window_size[1]), 0.0F});
+        }
+        if (window_top_node != nullptr)
+        {
+            window_top_node->setPos(
+                {static_cast<float>(window_size[0]) / 2.0F, static_cast<float>(window_size[1]), 0.0F});
         }
         if (window_top_right_node != nullptr)
         {
             window_top_right_node->setPos(
                 {static_cast<float>(window_size[0]), static_cast<float>(window_size[1]), 0.0F});
         }
-        if (window_bottom_right_node != nullptr)
+        if (window_left_node != nullptr)
         {
-            window_bottom_right_node->setPos({static_cast<float>(window_size[0]), 0.0F, 0.0F});
+            window_left_node->setPos({0.0F, static_cast<float>(window_size[1]) / 2.0F, 0.0F});
         }
-        if (window_top_left_node != nullptr)
+        if (window_center_node != nullptr)
         {
-            window_top_left_node->setPos({0.0F, static_cast<float>(window_size[1]), 0.0F});
+            window_center_node->setPos(
+                {static_cast<float>(window_size[0]) / 2.0F, static_cast<float>(window_size[1]) / 2.0F, 0.0F});
+        }
+        if (window_right_node != nullptr)
+        {
+            window_right_node->setPos(
+                {static_cast<float>(window_size[0]), static_cast<float>(window_size[1]) / 2.0F, 0.0F});
         }
         if (window_bottom_left_node != nullptr)
         {
             window_bottom_left_node->setPos({0.0F, 0.0F, 0.0F});
+        }
+        if (window_bottom_node != nullptr)
+        {
+            window_bottom_node->setPos({static_cast<float>(window_size[0]) / 2.0F, 0.0F, 0.0F});
+        }
+        if (window_bottom_right_node != nullptr)
+        {
+            window_bottom_right_node->setPos({static_cast<float>(window_size[0]), 0.0F, 0.0F});
         }
 
         resize_callback(this, window_size);
@@ -510,11 +528,15 @@ public:
 
 	Vec2 getContentScale() const {return content_scale;}
 
-    shared_ptr<TransformNode> getWindowCenterNode() const { return window_center_node; }
-    shared_ptr<TransformNode> getWindowTopRightNode() const { return window_top_right_node; }
-    shared_ptr<TransformNode> getWindowBottomRightNode() const { return window_bottom_right_node; }
     shared_ptr<TransformNode> getWindowTopLeftNode() const { return window_top_left_node; }
+	shared_ptr<TransformNode> getWindowTopNode() const { return window_top_node; }
+    shared_ptr<TransformNode> getWindowTopRightNode() const { return window_top_right_node; }
+	shared_ptr<TransformNode> getWindowLeftNode() const { return window_left_node; }
+    shared_ptr<TransformNode> getWindowCenterNode() const { return window_center_node; }
+	shared_ptr<TransformNode> getWindowRightNode() const { return window_right_node; }
     shared_ptr<TransformNode> getWindowBottomLeftNode() const { return window_bottom_left_node; }
+	shared_ptr<TransformNode> getWindowBottomNode() const { return window_bottom_node; }
+    shared_ptr<TransformNode> getWindowBottomRightNode() const { return window_bottom_right_node; }
 
 	void shutdown();
 
@@ -674,11 +696,16 @@ private:
         shared_ptr<T> obj;
     };
 
-    shared_ptr<TransformNode> window_center_node;
-	shared_ptr<TransformNode> window_top_right_node;
-	shared_ptr<TransformNode> window_bottom_right_node;
 	shared_ptr<TransformNode> window_top_left_node;
+	shared_ptr<TransformNode> window_top_node;
+	shared_ptr<TransformNode> window_top_right_node;
+	shared_ptr<TransformNode> window_left_node;
+    shared_ptr<TransformNode> window_center_node;
+	shared_ptr<TransformNode> window_right_node;
 	shared_ptr<TransformNode> window_bottom_left_node;
+	shared_ptr<TransformNode> window_bottom_node;
+	shared_ptr<TransformNode> window_bottom_right_node;
+
     vector<vector<shared_ptr<RenderNode>>> object_layers;
 	vector<vector<shared_ptr<RenderNode>>> overlay_object_layers;
 	vector<shared_ptr<RenderNode>> non_render_objects;
