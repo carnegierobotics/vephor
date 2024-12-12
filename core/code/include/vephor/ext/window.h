@@ -776,11 +776,7 @@ public:
     shared_ptr<TransformNode> getWindowBottomNode() const { return window_bottom_node; }
     shared_ptr<TransformNode> getWindowBottomRightNode() const { return window_bottom_right_node; }
 
-	void setPrintFlagNetworkUse(bool flag = true){print_flag_network_use = flag;}
-
 private:
-	bool print_flag_network_use = false;
-
 	int writeMessages(
 		const string& path, 
 		const vector<JSONBMessage>& messages_to_write, 
@@ -997,14 +993,26 @@ public:
 					if (network_use_time < 1.0f)
 						network_use_time = 1.0f;
 					v4print "Network use - Connection:", conn_id, 
+						"Window ID:", id,
+						"Waiting:", frame_messages_waiting,
 						"Time:", formatDecimal(network_use_time, 2),
 						"Data:", formatByteDisplay(msg_size), 
-						"Rate:", formatByteDisplay(total_network_use_bytes / network_use_time), "/ s";
+						"Rate:", formatByteDisplay(total_network_use_bytes / network_use_time), "/ s",
+						"Last msg delay:", last_message_delay_ms, "ms";
 				}
 
 				frame_messages_waiting++;
-				manager.net.sendJSONBMessage(conn_id, msg.header, msg.payloads, [&](const shared_ptr<JSONBMessage>& /*msg*/){
+				manager.net.sendJSONBMessage(conn_id, msg.header, msg.payloads, [&,conn_id](
+					const shared_ptr<JSONBMessage>& msg,
+					const std::chrono::time_point<std::chrono::steady_clock>& send_time){
 					frame_messages_waiting--;
+
+					if (print_flag_network_use)
+					{
+						auto now = std::chrono::steady_clock::now();
+						auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - send_time);
+						last_message_delay_ms = duration.count();
+					}
 				});
 
 				// Record after sending so time doesn't go out in the network message
@@ -1180,6 +1188,11 @@ public:
 			fs::remove_all(path+"/scene_assets");
 			fs::copy(temp_dir+"/scene_assets", path+"/scene_assets");
 		}
+	}
+
+	static void setPrintFlagNetworkUse(bool flag = true)
+	{
+		print_flag_network_use = flag;
 	}
 
 	static void setGlobalDefaultOpacity(float p_opacity)
@@ -1609,6 +1622,7 @@ private:
 	int frame_messages_waiting = 0;
 	int frame_skip_message_limit = 3;
 	int frame_message_skips = 0;
+	int last_message_delay_ms = 0;
 
     shared_ptr<TransformNode> window_top_left_node;
     shared_ptr<TransformNode> window_top_node;
@@ -1635,6 +1649,8 @@ private:
 	std::chrono::time_point<std::chrono::high_resolution_clock> network_use_start_time;
 	vector<JSONBMessage> recorded_messages_to_write;
 	float last_record_time = 0.0;
+
+	inline static bool print_flag_network_use = false;
 	inline static float default_opacity = 1.0f;
 	inline static unique_ptr<Process> server_proc;
 	inline static string record_path;

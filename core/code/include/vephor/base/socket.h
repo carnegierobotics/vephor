@@ -893,15 +893,22 @@ public:
 		ConnectionID conn_id, 
 		const json& header, 
 		const vector<vector<char>>& payloads,
-		const std::function<void(const shared_ptr<JSONBMessage>&)>& callback = NULL)
+		const std::function<void(
+			const shared_ptr<JSONBMessage>&,
+			const std::chrono::time_point<std::chrono::steady_clock>&)>& callback = NULL)
 	{
 		if (!find(conns, conn_id))
 			throw std::runtime_error("Attempt to send using invalid conn id: " + std::to_string(conn_id));
 
+		// Capture time before mutex to assist in measuring send delay
+		auto now = std::chrono::steady_clock::now();
+
 		std::lock_guard<std::mutex> lock(conns[conn_id]->out_msg_lock);
+
 		conns[conn_id]->outgoing_messages.push_back({
 			std::make_shared<JSONBMessage>(JSONBMessage{true, header, payloads}),
-			callback
+			callback,
+			now
 		});
 
 		return true;
@@ -966,7 +973,10 @@ private:
 	struct OutgoingMessage
 	{
 		shared_ptr<JSONBMessage> msg;
-		std::function<void(const shared_ptr<JSONBMessage>&)> callback;
+		std::function<void(
+			const shared_ptr<JSONBMessage>&,
+			const std::chrono::time_point<std::chrono::steady_clock>&)> callback;
+		std::chrono::time_point<std::chrono::steady_clock> send_time;
 	};
 
 	struct ConnRecord
@@ -1082,7 +1092,7 @@ private:
 
 				if (msg.callback)
 				{
-					msg.callback(msg.msg);
+					msg.callback(msg.msg, msg.send_time);
 				}
 			}
 			v4print "Ending outgoing connection thread for", id;
