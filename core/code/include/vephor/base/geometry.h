@@ -618,6 +618,54 @@ inline MeshData formCube()
 	return data;
 }
 
+inline MatX formCubeWireframe()
+{
+	MatX verts;
+
+	verts.resize(12*2,3);
+    verts << 
+		// X lines
+        -1.0f,-1.0f,-1.0f,
+		 1.0f,-1.0f,-1.0f,
+
+		-1.0f, 1.0f,-1.0f,
+		 1.0f, 1.0f,-1.0f,
+
+		-1.0f,-1.0f, 1.0f,
+		 1.0f,-1.0f, 1.0f,
+
+		-1.0f, 1.0f, 1.0f,
+		 1.0f, 1.0f, 1.0f,
+
+		// Y lines
+		-1.0f,-1.0f,-1.0f,
+		-1.0f, 1.0f,-1.0f,
+
+		 1.0f,-1.0f,-1.0f,
+		 1.0f, 1.0f,-1.0f,
+
+		-1.0f,-1.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f,
+
+		 1.0f,-1.0f, 1.0f,
+		 1.0f, 1.0f, 1.0f,
+
+		// Z lines
+		-1.0f,-1.0f,-1.0f,
+		-1.0f,-1.0f, 1.0f,
+
+		 1.0f,-1.0f,-1.0f,
+		 1.0f,-1.0f, 1.0f,
+
+		-1.0f, 1.0f,-1.0f,
+		-1.0f, 1.0f, 1.0f,
+
+		 1.0f, 1.0f,-1.0f,
+		 1.0f, 1.0f, 1.0f;
+
+	return verts;
+}
+
 inline MeshData formSphere(int slices, int stacks)
 {
 	MeshData data;
