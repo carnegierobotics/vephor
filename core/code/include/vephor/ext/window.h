@@ -1001,19 +1001,22 @@ public:
 						"Last msg delay:", last_message_delay_ms, "ms";
 				}
 
-				frame_messages_waiting++;
-				manager.net.sendJSONBMessage(conn_id, msg.header, msg.payloads, [&,conn_id](
-					const shared_ptr<JSONBMessage>& msg,
-					const std::chrono::time_point<std::chrono::steady_clock>& send_time){
-					frame_messages_waiting--;
+                frame_messages_waiting++;
+                manager.net.sendJSONBMessage(
+                    conn_id,
+                    msg.header,
+                    msg.payloads,
+                    [&](const shared_ptr<JSONBMessage> & /* msg */,
+                        const std::chrono::time_point<std::chrono::steady_clock> &send_time) {
+                        frame_messages_waiting--;
 
-					if (print_flag_network_use)
-					{
-						auto now = std::chrono::steady_clock::now();
-						auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - send_time);
-						last_message_delay_ms = duration.count();
-					}
-				});
+                        if (print_flag_network_use)
+                        {
+                            auto now = std::chrono::steady_clock::now();
+                            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - send_time);
+                            last_message_delay_ms = duration.count();
+                        }
+                    });
 
 				// Record after sending so time doesn't go out in the network message
 				if (!record_path.empty())
