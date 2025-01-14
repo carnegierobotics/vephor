@@ -23,6 +23,9 @@ inline MeshShader produceMeshShader(bool with_normal_map)
 {
     string vertexShader = R"(
         #version 430
+
+        #define MAX_POINT_LIGHTS 4
+
         layout(location = 0) in vec3 pos_in_model;
         layout(location = 1) in vec2 in_uv;
         layout(location = 2) in vec3 normal_in_model;
@@ -52,14 +55,15 @@ inline MeshShader produceMeshShader(bool with_normal_map)
     vertexShader += R"(
         out vec3 eye_dir_in_camera;
         out vec3 dir_light_dir_in_camera;
-        out vec3 point_light_dir_in_camera;
+        out vec3 point_light_dir_in_camera[MAX_POINT_LIGHTS];
         out vec2 uv;
         
         uniform mat4 proj_from_model;
         uniform mat4 cam_from_world;
         uniform mat4 world_from_model;
         uniform mat4 cam_from_model;
-        uniform vec3 point_light_pos_in_world;
+        uniform vec3 point_light_pos_in_world[MAX_POINT_LIGHTS];
+        uniform int num_point_lights;
         uniform vec3 dir_light_dir_in_world;
         
         void main()
@@ -74,9 +78,12 @@ inline MeshShader produceMeshShader(bool with_normal_map)
             vec3 pos_in_camera = ( cam_from_world * vec4(pos_in_world,1)).xyz;
             eye_dir_in_camera = vec3(0,0,0) - pos_in_camera;
 
-            // Vector that goes from the vertex to the light, in camera space.
-            vec3 point_light_pos_in_camera = ( cam_from_world * vec4(point_light_pos_in_world,1)).xyz;
-            point_light_dir_in_camera = point_light_pos_in_camera + eye_dir_in_camera;
+            for (int i = 0; i < num_point_lights; i++)
+            {
+                // Vector that goes from the vertex to the light, in camera space.
+                vec3 point_light_pos_in_camera = ( cam_from_world * vec4(point_light_pos_in_world[i],1)).xyz;
+                point_light_dir_in_camera[i] = point_light_pos_in_camera + eye_dir_in_camera;
+            }
 
             dir_light_dir_in_camera = ( cam_from_world * vec4(dir_light_dir_in_world,0) ).xyz;
             
@@ -101,6 +108,8 @@ inline MeshShader produceMeshShader(bool with_normal_map)
     string fragmentShader = R"(
         #version 430
 
+        #define MAX_POINT_LIGHTS 4
+
         in vec3 pos_in_world;
         in vec3 normal_in_camera;
     )";
@@ -116,7 +125,7 @@ inline MeshShader produceMeshShader(bool with_normal_map)
     fragmentShader += R"(
         in vec3 eye_dir_in_camera;
         in vec3 dir_light_dir_in_camera;
-        in vec3 point_light_dir_in_camera;
+        in vec3 point_light_dir_in_camera[MAX_POINT_LIGHTS];
         in vec2 uv;
 
         out vec4 color;
@@ -125,7 +134,8 @@ inline MeshShader produceMeshShader(bool with_normal_map)
         uniform vec3 ambient;
         uniform vec3 emissive;
         uniform float specular = 1.0f;
-        uniform vec3 point_light_pos_in_world;
+        uniform vec3 point_light_pos_in_world[MAX_POINT_LIGHTS];
+        uniform int num_point_lights;
         uniform sampler2D tex_sampler;
     )";
 
@@ -139,7 +149,7 @@ inline MeshShader produceMeshShader(bool with_normal_map)
     fragmentShader += R"(
         uniform vec3 ambient_light_strength = vec3(0,0,0);
         uniform float dir_light_strength = 0.0f;
-        uniform float point_light_strength = 0.0f;
+        uniform float point_light_strength[MAX_POINT_LIGHTS];
         uniform float opacity = 1.0f;
         uniform mat4 cam_from_model;
 
@@ -157,9 +167,6 @@ inline MeshShader produceMeshShader(bool with_normal_map)
             vec3 MaterialAmbientColor = tex_rgb * ambient;
             vec3 MaterialSpecularColor = vec3(0.3,0.3,0.3);
             vec3 MaterialEmissiveColor = tex_rgb * emissive;
-
-            // Distance to the light
-            float distance = length( point_light_pos_in_world - pos_in_world );
         )";
 
         if (with_normal_map)
@@ -177,35 +184,54 @@ inline MeshShader produceMeshShader(bool with_normal_map)
         }
 
         fragmentShader += R"(
-            // Direction of the light (from the fragment to the light)
-            vec3 l = normalize( point_light_dir_in_camera );
-            // Cosine of the angle between the normal and the light direction, 
-            // clamped above 0
-            //  - light is at the vertical of the triangle -> 1
-            //  - light is perpendicular to the triangle -> 0
-            //  - light is behind the triangle -> 0
-            float pointLightCosTheta = clamp( dot( n,l ), 0,1 );
 
-            float dirLightCosTheta = clamp( dot( n,dir_light_dir_in_camera ), 0,1 );
-            
             // Eye vector (towards the camera)
             vec3 E = normalize(eye_dir_in_camera);
-            // Direction in which the triangle reflects the light
-            vec3 pointR = reflect(-l,n);
-            // Cosine of the angle between the Eye vector and the Reflect vector,
-            // clamped to 0
-            //  - Looking into the reflection -> 1
-            //  - Looking elsewhere -> < 1
-            float point_specular_cos = clamp( dot( E,pointR ), 0,1 );
+
+            float specular_power = 5.0f;
+            vec3 total_diffuse_light = vec3(0,0,0);
+            vec3 total_specular_light = vec3(0,0,0);
+
+            for (int i = 0; i < num_point_lights; i++)
+            {
+                // Distance to the light
+                float distance = length(point_light_pos_in_world[i] - pos_in_world);
+
+                // Direction of the light (from the fragment to the light)
+                vec3 l = normalize(point_light_dir_in_camera[i]);
+                // Cosine of the angle between the normal and the light direction, 
+                // clamped above 0
+                //  - light is at the vertical of the triangle -> 1
+                //  - light is perpendicular to the triangle -> 0
+                //  - light is behind the triangle -> 0
+                float pointLightCosTheta = clamp(dot(n,l), 0, 1);
+
+                // Direction in which the triangle reflects the light
+                vec3 point_R = reflect(-l,n);
+                // Cosine of the angle between the Eye vector and the Reflect vector,
+                // clamped to 0
+                //  - Looking into the reflection -> 1
+                //  - Looking elsewhere -> < 1
+                float point_specular_cos = clamp(dot(E, point_R), 0, 1);
+
+                vec3 point_diffuse_light = point_light_color * point_light_strength[i] * pointLightCosTheta / (distance*distance);
+                vec3 point_specular_light = point_light_color * point_light_strength[i] * pow(point_specular_cos, specular_power) / (distance*distance) * specular;
+
+                total_diffuse_light += point_diffuse_light;
+                total_specular_light += point_specular_light;
+            }
+
+            float dirLightCosTheta = clamp(dot(n,dir_light_dir_in_camera), 0, 1);
 
             vec3 dir_R = reflect(-dir_light_dir_in_camera,n);
-            float dir_specular_cos = clamp( dot( E, dir_R ), 0,1 );
+            float dir_specular_cos = clamp(dot(E, dir_R), 0, 1);
             
             vec3 dir_diffuse_light = dir_light_color * dir_light_strength * dirLightCosTheta;
-            vec3 point_diffuse_light = point_light_color * point_light_strength * pointLightCosTheta / (distance*distance);
-
-            vec3 dir_specular_light = dir_light_color * dir_light_strength * pow(dir_specular_cos,5) * specular;
-            vec3 point_specular_light = point_light_color * point_light_strength * pow(point_specular_cos,5) / (distance*distance) * specular;
+            vec3 dir_specular_light = dir_light_color * dir_light_strength * pow(dir_specular_cos, specular_power) * specular;
+            
+            total_diffuse_light += dir_diffuse_light;
+            total_specular_light += dir_specular_light;
+            
 
             color.rgb = 
                 // Emissive: simulates produced light
@@ -213,9 +239,9 @@ inline MeshShader produceMeshShader(bool with_normal_map)
                 // Ambient : simulates indirect lighting
                 MaterialAmbientColor * ambient_light_strength +
                 // Diffuse : "color" of the object
-                MaterialDiffuseColor * (dir_diffuse_light + point_diffuse_light) +
+                MaterialDiffuseColor * total_diffuse_light +
                 // Specular : reflective highlight, like a mirror
-                MaterialSpecularColor * (dir_specular_light + point_specular_light);
+                MaterialSpecularColor * total_specular_light;
                 
             color.a = tex_rgba.a * opacity;
             
@@ -289,10 +315,16 @@ void Mesh::fillInCommonProps(MeshSettings& settings)
     settings.emissive_id = glGetUniformLocation(settings.program_id, "emissive");
     settings.specular_id = glGetUniformLocation(settings.program_id, "specular");
     settings.light_ambient_id = glGetUniformLocation(settings.program_id, "ambient_light_strength");
-    settings.light_pos_id = glGetUniformLocation(settings.program_id, "point_light_pos_in_world");
+    settings.num_point_lights_id = glGetUniformLocation(settings.program_id, "num_point_lights");
+
+    for (size_t i = 0; i < MAX_NUM_POINT_LIGHTS; i++)
+    {
+        settings.light_point_pos_id[i] = glGetUniformLocation(settings.program_id, ("point_light_pos_in_world["+std::to_string(i)+"]").c_str());
+        settings.light_point_strength_id[i] = glGetUniformLocation(settings.program_id, ("point_light_strength["+std::to_string(i)+"]").c_str());
+    }
+
     settings.light_dir_id = glGetUniformLocation(settings.program_id, "dir_light_dir_in_world");
     settings.light_dir_strength_id = glGetUniformLocation(settings.program_id, "dir_light_strength");
-    settings.light_point_strength_id = glGetUniformLocation(settings.program_id, "point_light_strength");
     settings.opacity_id = glGetUniformLocation(settings.program_id, "opacity");
     settings.tex_sampler_id  = glGetUniformLocation(settings.program_id, "tex_sampler");
 
@@ -498,11 +530,18 @@ void Mesh::renderOGLForSettings(Window* window, const TransformSim3& world_from_
 	Vec3 ambient_light_strength = window->getAmbientLight();
 	glUniform3fv(settings.light_ambient_id, 1, ambient_light_strength.data());
 
+    int num_point_lights = std::max((int)window->getPointLights().size(), (int)MAX_NUM_POINT_LIGHTS);
+    glUniform1i(settings.num_point_lights_id, num_point_lights);
+
+    size_t point_light_id = 0;
     for (const auto& point_light : window->getPointLights())
     {
-        glUniform3fv(settings.light_pos_id, 1, point_light.second.pos.data());
-        glUniform1f(settings.light_point_strength_id, point_light.second.strength);
-        break;
+        glUniform3fv(settings.light_point_pos_id[point_light_id], 1, point_light.second.pos.data());
+        glUniform1f(settings.light_point_strength_id[point_light_id], point_light.second.strength);
+        point_light_id++;
+
+        if (point_light_id >= num_point_lights)
+            break;
     }
 
     auto dir_light = window->getDirLight();

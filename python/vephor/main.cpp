@@ -916,7 +916,14 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("radius")=1.0
 		)
 		.def("rect", &Plot::rect)
-		// TODO: line
+		.def("line", [](Plot& p, const Vec2& start, const Vec2& end, const Vec3& color, float thickness){
+				p.line(start, end, color, thickness);
+			},
+			py::arg("start"),
+			py::arg("end"),
+			py::arg("color"),
+			py::arg("thickness")=0
+		)
 		.def("imshow", [](Plot& p,
 			py::buffer buf,
 			bool nearest,

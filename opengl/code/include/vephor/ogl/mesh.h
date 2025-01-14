@@ -54,6 +54,8 @@ public:
     void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
 	void onRemoveFromWindow(Window* window);
 private:
+    static const int MAX_NUM_POINT_LIGHTS = 4;
+
     struct MeshSettings
     {
         GLuint vao_id = std::numeric_limits<GLuint>::max();
@@ -74,13 +76,23 @@ private:
         GLuint emissive_id = std::numeric_limits<GLuint>::max();
         GLuint specular_id = std::numeric_limits<GLuint>::max();
         GLuint light_ambient_id = std::numeric_limits<GLuint>::max();
-        GLuint light_pos_id = std::numeric_limits<GLuint>::max();
+        GLuint num_point_lights_id = std::numeric_limits<GLuint>::max();
+        GLuint light_point_pos_id[MAX_NUM_POINT_LIGHTS];
+        GLuint light_point_strength_id[MAX_NUM_POINT_LIGHTS];
         GLuint light_dir_id = std::numeric_limits<GLuint>::max();
         GLuint light_dir_strength_id = std::numeric_limits<GLuint>::max();
-        GLuint light_point_strength_id = std::numeric_limits<GLuint>::max();
         GLuint opacity_id = std::numeric_limits<GLuint>::max();
         GLuint tex_sampler_id = std::numeric_limits<GLuint>::max();
         GLuint normal_sampler_id = std::numeric_limits<GLuint>::max();
+
+        MeshSettings()
+        {
+            for (size_t i = 0; i < MAX_NUM_POINT_LIGHTS; i++)
+            {
+                light_point_pos_id[i] = std::numeric_limits<GLuint>::max();
+                light_point_strength_id[i] = std::numeric_limits<GLuint>::max();
+            }
+        }
     };
 
     void fillInCommonProps(MeshSettings& settings);
