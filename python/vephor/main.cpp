@@ -98,6 +98,7 @@ PYBIND11_MODULE(_core, m) {
 	m.def("formPlane", &formPlane, py::arg("rads"));
 	m.def("formCircle", &formCircle, py::arg("rad"), py::arg("thickness"), py::arg("slices"));
 	m.def("formHeightMap", &formHeightMap, py::arg("heights"), py::arg("res"), py::arg("uv_callback")=NULL);
+	m.def("formWireframeBox", &formWireframeBox);
 
 	m.def("calcSurfaces", [](
 			py::buffer occupancy,
@@ -381,14 +382,6 @@ PYBIND11_MODULE(_core, m) {
 		.def(py::init<string,bool>(), py::arg("path"), py::arg("nearest")=false)
 		.def(py::init([](py::buffer buf, bool nearest){
 				py::buffer_info info = buf.request();
-				
-				// Image debug info
-				/*v4print info.ndim;
-				for (int i = 0; i < info.ndim; i++)
-				{
-					v4print "\t", info.shape[i], info.strides[i];
-				}
-				v4print info.itemsize, info.size, info.format;*/
 
 				int channels = 1;
 				if (info.shape.size() > 2)
@@ -421,16 +414,50 @@ PYBIND11_MODULE(_core, m) {
 
 	py::class_<Plane, shared_ptr<Plane>>(m, "Plane")
         .def(py::init<Vec2>(),py::arg("rads"))
-		.def("setColor",[](Plane& c, 
+		.def("setColor",[](Plane& p, 
 			const Vec3& rgb){
-				c.setColor(Color(rgb));
+				p.setColor(Color(rgb));
 			}, 
 			py::arg("rgb"))
-		.def("setColor",[](Plane& c, 
+		.def("setColor",[](Plane& p, 
 			const Vec4& rgba){
-				c.setColor(Color(rgba));
+				p.setColor(Color(rgba));
 			}, 
-			py::arg("rgba"));
+			py::arg("rgba"))
+		.def("setTexture",[](Plane& p, const std::string& path, bool nearest){
+				p.setTexture(path, nearest);
+			}, py::arg("path"), py::arg("nearest")=false)
+		.def("setTexture",[](Plane& p, py::buffer buf, bool nearest){
+				py::buffer_info info = buf.request();
+
+				int channels = 1;
+				if (info.shape.size() > 2)
+					channels = info.shape[2];
+				
+				Image<uint8_t> image(info.shape[1], info.shape[0], channels);
+				
+				if (info.format == py::format_descriptor<uint8_t>::format())
+					image.copyFromBuffer(reinterpret_cast<const char*>(info.ptr), info.size);
+				else if (info.format == py::format_descriptor<double>::format())
+				{
+					const double* ptr = reinterpret_cast<const double*>(info.ptr);
+					
+					for (int i = 0; i < info.shape[0]; i++)
+					{
+						for (int j = 0; j < info.shape[1]; j++)
+						{
+							const double* vec_ptr = ptr + i * info.shape[1] * info.shape[2] + j * info.shape[2];
+							image(j,i) = Vec3u(vec_ptr[0]*255, vec_ptr[1]*255, vec_ptr[2]*255);
+						}
+					}
+				}
+				else
+				{
+					throw std::runtime_error("Plane::setTexture only supports uint8 or double typed arrays.");
+				}
+
+				p.setTexture(image, nearest);
+			}, py::arg("buf"), py::arg("nearest")=false);
 
 	py::class_<AmbientLight, shared_ptr<AmbientLight>>(m, "AmbientLight")
         .def(py::init<Vec3>(),py::arg("strength"));
@@ -523,6 +550,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color_2"),
 			py::arg("n_cells")=Vec2i(8,8))
 		.def("setKeyPressCallback", &Window::setKeyPressCallback)
+		.def("setMouseClickCallback", &Window::setMouseClickCallback)
 		.def("setPlotMode", &Window::setPlotMode, py::arg("equal")=false)
 		.def("setOpacity", &Window::setOpacity)
 		.def("save", &Window::save)
@@ -968,7 +996,9 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("image"), py::arg("nearest")=false, py::arg("offset")=Vec2::Zero())
 		.def("show", &Plot::show, py::arg("wait_close")=true, py::arg("wait_key")=false)
 		.def("clear", &Plot::clear)
-		.def("save", &Plot::save);
+		.def("save", &Plot::save)
+		.def("setKeyPressCallback", &Plot::setKeyPressCallback)
+		.def("setMouseClickCallback", &Plot::setMouseClickCallback);
 
 	py::class_<Plot3D>(m, "Plot3D")
         .def(py::init<string,int,int>(),

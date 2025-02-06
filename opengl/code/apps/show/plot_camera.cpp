@@ -853,3 +853,37 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 		}
 	}
 }
+
+void PlotCamera::augmentInputEvent(Window& window, json& event_data)
+{
+	auto mouse_pos = window.getMousePos();
+	auto window_size = window.getSize();
+	
+	Vec3 curr_content_inner_min;
+	Vec3 curr_content_inner_max;
+	Vec3 curr_content_min;
+	Vec3 curr_content_max;
+	
+	calcEqualContentBounds(window, 
+		curr_content_inner_min, 
+		curr_content_inner_max,
+		curr_content_min, 
+		curr_content_max);
+
+	Vec2 inner_window_span(
+		window.getSize()[0] - (box_left_border + inner_border) - (box_border + inner_border),
+		window.getSize()[1] - (box_bottom_border + inner_border) - (box_border + inner_border)
+	);
+		
+	Vec2 tick_res(
+		findBestTickRes(curr_content_inner_max[0] - curr_content_inner_min[0], inner_window_span[0]),
+		findBestTickRes(curr_content_inner_max[1] - curr_content_inner_min[1], inner_window_span[1])
+	);
+	
+	Vec2 pos(
+		mouse_pos[0] / (float)window_size[0] * (curr_content_max[0] - curr_content_min[0]) + curr_content_min[0],
+		mouse_pos[1] / (float)window_size[1] * (curr_content_max[1] - curr_content_min[1]) + curr_content_min[1]
+	);
+
+	event_data["plot_pos"] = toJson(pos);
+}

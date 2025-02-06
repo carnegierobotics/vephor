@@ -1246,4 +1246,47 @@ inline void computeTangents(const MeshData& data, MatX& tangents, MatX& bitangen
 	}
 }
 
+inline MatX formWireframeBox(const Vec3& lower, const Vec3& upper)
+{
+	MatX verts(24,3);
+
+	verts.row(0) = Vec3(lower[0], lower[1], lower[2]);
+	verts.row(1) = Vec3(upper[0], lower[1], lower[2]);
+
+	verts.row(2) = Vec3(lower[0], lower[1], lower[2]);
+	verts.row(3) = Vec3(lower[0], upper[1], lower[2]);
+
+	verts.row(4) = Vec3(lower[0], lower[1], lower[2]);
+	verts.row(5) = Vec3(lower[0], lower[1], upper[2]);
+
+	verts.row(6) = Vec3(upper[0], lower[1], lower[2]);
+	verts.row(7) = Vec3(upper[0], upper[1], lower[2]);
+
+	verts.row(8) = Vec3(upper[0], lower[1], lower[2]);
+	verts.row(9) = Vec3(upper[0], lower[1], upper[2]);
+
+	verts.row(10) = Vec3(lower[0], upper[1], lower[2]);
+	verts.row(11) = Vec3(lower[0], upper[1], upper[2]);
+
+	verts.row(12) = Vec3(lower[0], upper[1], lower[2]);
+	verts.row(13) = Vec3(upper[0], upper[1], lower[2]);
+
+	verts.row(14) = Vec3(lower[0], lower[1], upper[2]);
+	verts.row(15) = Vec3(upper[0], lower[1], upper[2]);
+
+	verts.row(16) = Vec3(lower[0], lower[1], upper[2]);
+	verts.row(17) = Vec3(lower[0], upper[1], upper[2]);
+
+	verts.row(18) = Vec3(upper[0], upper[1], lower[2]);
+	verts.row(19) = Vec3(upper[0], upper[1], upper[2]);
+
+	verts.row(20) = Vec3(lower[0], upper[1], upper[2]);
+	verts.row(21) = Vec3(upper[0], upper[1], upper[2]);
+
+	verts.row(22) = Vec3(upper[0], lower[1], upper[2]);
+	verts.row(23) = Vec3(upper[0], upper[1], upper[2]);
+
+	return verts;
+}
+
 }

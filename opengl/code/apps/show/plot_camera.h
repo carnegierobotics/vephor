@@ -36,6 +36,7 @@ public:
 		serialization["orig_content_max"] = toJson(orig_content_max);
 		return serialization;
 	}
+	virtual void augmentInputEvent(Window& window, json& event_data) override;
 private:
 	void setupTitle(const string& title, Window& window);
 	void setupLegend(const json& label_data, Window& window, AssetManager& assets);

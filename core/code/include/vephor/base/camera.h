@@ -71,6 +71,8 @@ inline Transform3 makeLookAtTransform(const Vec3& look_at, const Vec3& look_from
     Vec3 right = forward.cross(up);
     right /= right.norm();
 
+    // Transform between these axes and the natural [right, up, back]
+
     Mat3 world_from_cam;
     world_from_cam.col(2) = -forward;
     world_from_cam.col(1) = up;

@@ -340,6 +340,7 @@ Window::Window(int p_width,
 	glEnable(GL_ALPHA_TEST);
 	glAlphaFunc(GL_GREATER,0.01f);
 
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	gl_from_world = Mat4::Identity();

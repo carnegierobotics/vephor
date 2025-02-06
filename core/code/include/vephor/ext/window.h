@@ -26,8 +26,16 @@ namespace vephor
 // header: void handleKeyPress(int key_code)
 using KeyActionCallback = std::function<void(int)>;
 
+// header: void handleKeyPressWithMessage(int key_code, const json& msg)
+using KeyActionWithMessageCallback = std::function<void(int, const json&)>;
+
+
 // header: void handleMouseClick(bool left, bool down, const Vec2& pos, const Vec2& window_size)
 using MouseClickActionCallback = std::function<void(bool, bool, const Vec2&, const Vec2&)>;
+
+// header: void handleMouseClickWithMessage(bool left, bool down, const Vec2& pos, const Vec2& window_size, const json& msg)
+using MouseClickActionWithMessageCallback = std::function<void(bool, bool, const Vec2&, const Vec2&, const json&)>;
+
 	
 // Key codes taken from GLFW
 // TODO: make these into constants
@@ -687,9 +695,19 @@ public:
         key_press_callback = p_callback;
     }
 
+	void setKeyPressWithMessageCallback(KeyActionWithMessageCallback p_callback)
+    {
+        key_press_with_message_callback = p_callback;
+    }
+
 	void setMouseClickCallback(MouseClickActionCallback p_callback)
     {
         mouse_click_callback = p_callback;
+    }
+
+	void setMouseClickWithMessageCallback(MouseClickActionWithMessageCallback p_callback)
+    {
+        mouse_click_with_message_callback = p_callback;
     }
 	
 	shared_ptr<RenderNode> add(
@@ -831,6 +849,11 @@ public:
 				{
 					key_press_callback(msg["key"]);
 				}
+
+				if (key_press_with_message_callback)
+				{
+					key_press_with_message_callback(msg["key"], msg);
+				}
 				
 				if (msg["key"] == KEY_ENTER)
 				{
@@ -847,6 +870,17 @@ public:
 						msg["state"] == "down", 
 						readVec2(msg["pos"]),
 						readVec2(msg["window_size"])
+					);
+				}
+				 
+				if (mouse_click_with_message_callback)
+				{
+					mouse_click_with_message_callback(
+						msg["button"] == "left", 
+						msg["state"] == "down", 
+						readVec2(msg["pos"]),
+						readVec2(msg["window_size"]),
+						msg
 					);
 				}
 			}
@@ -868,6 +902,8 @@ public:
 
 		if (shutdown)
 			return false;
+
+		bool hide_event = false;
 		
 		if (manager.mode == WindowManager::Mode::Record)	
 		{
@@ -1077,7 +1113,6 @@ public:
 			while (true)
 			{
 				bool key_event = false;
-				bool hide_event = false;
 				processEvents(key_event, hide_event);
 
 				if (wait_key && key_event)
@@ -1163,7 +1198,7 @@ public:
 		}
 		objects.resize(objects.size() - removed_objs);
 		
-		return !shutdown;
+		return !shutdown && !hide_event;
 	}
 
 	void save(string path)
@@ -1646,7 +1681,9 @@ private:
 	std::mutex recorded_messages_written_lock;
 	inline static unordered_map<ConnectionID, int> recorded_messages_written;
 	KeyActionCallback key_press_callback = NULL;
+	KeyActionWithMessageCallback key_press_with_message_callback = NULL;
 	MouseClickActionCallback mouse_click_callback = NULL;
+	MouseClickActionWithMessageCallback mouse_click_with_message_callback = NULL;
 	size_t total_network_use_bytes = 0;
 	bool network_use_start_time_set = false;
 	std::chrono::time_point<std::chrono::high_resolution_clock> network_use_start_time;

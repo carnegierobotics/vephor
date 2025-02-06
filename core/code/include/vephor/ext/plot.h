@@ -18,6 +18,12 @@
 namespace vephor
 {
 
+// header: void handlePlotKeyPress(int key_code, const Vec2& plot_pos)
+using PlotKeyActionCallback = std::function<void(int, const Vec2&)>;
+
+// header: void handlePlotMouseClick(bool left, bool down, const Vec2& pos, const Vec2& window_size, const Vec2& plot_pos)
+using PlotMouseClickActionCallback = std::function<void(bool, bool, const Vec2&, const Vec2&, const Vec2&)>;
+
 // string should be in #rrggbb format
 inline Vec3 convertStringToColor(const string& str)
 {
@@ -559,11 +565,26 @@ public:
 		color_index = 0;
 		plot_index = 0;
 	}
-	int take_next_plot_index()
+	int takeNextPlotIndex()
 	{
 		plot_index++;
 		return plot_index;
 	}
+
+	void setKeyPressCallback(PlotKeyActionCallback p_callback)
+    {
+		inner_window.setKeyPressWithMessageCallback([p_callback](int key_code, const json& msg){
+			p_callback(key_code, readVec2(msg["plot_pos"]));
+		});
+    }
+
+	void setMouseClickCallback(PlotMouseClickActionCallback p_callback)
+    {
+		inner_window.setMouseClickWithMessageCallback([p_callback](
+			bool left, bool down, const Vec2& pos, const Vec2& window_size, const json& msg){
+			p_callback(left, down, pos, window_size, readVec2(msg["plot_pos"]));
+		});
+    }
 private:
 	Window inner_window;
 	string base_asset_dir;

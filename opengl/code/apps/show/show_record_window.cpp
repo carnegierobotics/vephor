@@ -406,6 +406,7 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 				{"pos", toJson(window->getMousePos())},
 				{"window_size", toJson(window->getSize())},
 			};
+			camera->augmentInputEvent(*window, mouse_click);
 			net_manager->sendJSONBMessage(conn_id, mouse_click, {});
 		}
 	});
@@ -423,6 +424,7 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 				{"pos", toJson(window->getMousePos())},
 				{"window_size", toJson(window->getSize())},
 			};
+			camera->augmentInputEvent(*window, mouse_click);
 			net_manager->sendJSONBMessage(conn_id, mouse_click, {});
 		}
 	});
@@ -445,6 +447,7 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 				{"pos", toJson(window->getMousePos())},
 				{"window_size", toJson(window->getSize())},
 			};
+			camera->augmentInputEvent(*window, mouse_click);
 			net_manager->sendJSONBMessage(conn_id, mouse_click, {});
 		}
 	});
@@ -462,6 +465,7 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 				{"pos", toJson(window->getMousePos())},
 				{"window_size", toJson(window->getSize())},
 			};
+			camera->augmentInputEvent(*window, mouse_click);
 			net_manager->sendJSONBMessage(conn_id, mouse_click, {});
 		}
 	});
@@ -490,6 +494,7 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 				{"window", window_id},
 				{"key", key}
 			};
+			camera->augmentInputEvent(*window, key_press);
 			net_manager->sendJSONBMessage(conn_id, key_press, {});
 		}		
 	});
