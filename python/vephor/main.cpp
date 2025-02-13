@@ -383,6 +383,21 @@ PYBIND11_MODULE(_core, m) {
 		.def(py::init([](py::buffer buf, bool nearest){
 				py::buffer_info info = buf.request();
 
+				bool is_contiguous = true;
+				ssize_t expected_stride = info.itemsize;
+				for (ssize_t i = info.ndim - 1; i >= 0; --i) {
+					if (info.strides[i] != expected_stride) {
+						is_contiguous = false;
+						break;
+					}
+					expected_stride *= info.shape[i];
+				}
+
+				if (!is_contiguous)
+				{
+					throw std::runtime_error("Sprite only supports contiguous arrays.");
+				}
+
 				int channels = 1;
 				if (info.shape.size() > 2)
 					channels = info.shape[2];
@@ -399,7 +414,7 @@ PYBIND11_MODULE(_core, m) {
 					{
 						for (int j = 0; j < info.shape[1]; j++)
 						{
-							const double* vec_ptr = ptr + i * info.shape[1] * info.shape[2] + j * info.shape[2];
+							const double* vec_ptr = ptr + i * info.shape[1] * channels + j * channels;
 							image(j,i) = Vec3u(vec_ptr[0]*255, vec_ptr[1]*255, vec_ptr[2]*255);
 						}
 					}

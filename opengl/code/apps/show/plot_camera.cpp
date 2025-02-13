@@ -569,11 +569,10 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 		resizeWindow(window);
 		last_left_drag_on = false;
 	}
-	else
-		if (control_info.left_drag_on || 
-			control_info.right_drag_on || 
-			control_info.total_scroll_amount != 0.0f || 
-			control_info.key_motion != Vec3::Zero())
+	else if (control_info.left_drag_on || 
+		control_info.right_drag_on || 
+		control_info.total_scroll_amount != 0.0f || 
+		control_info.key_motion != Vec3::Zero())
 	{
 		Vec3 curr_content_inner_min;
 		Vec3 curr_content_inner_max;
@@ -633,16 +632,16 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 			content_min.head<2>() = center - span / 2.0f;
 			content_max.head<2>() = center + span / 2.0f;
 		}
-			else if (control_info.key_motion != Vec3::Zero())
-			{
-				Vec2 world_per_px(
-					(curr_content_max[0] - curr_content_min[0])/(float)window.getSize()[0], 
-					(curr_content_max[1] - curr_content_min[1])/(float)window.getSize()[1]
-				);
-				Vec2 content_delta = (-control_info.key_motion.head<2>().array() * world_per_px.array()) * 20;
-				content_min.head<2>() = pre_drag_content_min.head<2>() - content_delta;
-				content_max.head<2>() = pre_drag_content_max.head<2>() - content_delta;
-			}
+		else if (control_info.key_motion != Vec3::Zero())
+		{
+			Vec2 world_per_px(
+				(curr_content_max[0] - curr_content_min[0])/(float)window.getSize()[0], 
+				(curr_content_max[1] - curr_content_min[1])/(float)window.getSize()[1]
+			);
+			Vec2 content_delta = (-control_info.key_motion.head<2>().array() * world_per_px.array()) * 20;
+			content_min.head<2>() = pre_drag_content_min.head<2>() - content_delta;
+			content_max.head<2>() = pre_drag_content_max.head<2>() - content_delta;
+		}
 		else
 		{
 			Vec2 world_per_px(
