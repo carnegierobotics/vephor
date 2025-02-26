@@ -677,6 +677,7 @@ public:
 		string header_str = header.dump();
 		
 		uint64_t total_length = header_str.size() + sizeof(uint64_t) * (1 + payloads.size());
+
 		for (const auto& payload : payloads)
 		{
 			total_length += payload.size();
@@ -940,12 +941,7 @@ public:
 		bool any_success = false;
 		for (auto& conn : conns)
 		{
-			try {
-				conn.second->sock->sendJSONBMessage(header, payloads);
-			} catch (...)
-			{
-				continue;
-			}
+			sendJSONBMessage(conn.first, header, payloads);
 			any_success = true;
 		}
 		return any_success;
