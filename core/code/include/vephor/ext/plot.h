@@ -144,6 +144,10 @@ public:
 		inner_window.getCameraControlInfo()["orig_content_min"] = toJson(Vec3(min_x, min_y, 0));
 		inner_window.getCameraControlInfo()["orig_content_max"] = toJson(Vec3(max_x, max_y, 0));
 	}
+	void cursor_callout(bool enabled)
+	{
+		inner_window.getCameraControlInfo()["cursor_callout"] = enabled;
+	}
 
 	void plot(
 		const VecXRef& x, 

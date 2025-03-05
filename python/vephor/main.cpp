@@ -835,6 +835,7 @@ PYBIND11_MODULE(_core, m) {
 		.def("yflip", &Plot::yflip, py::arg("equal")=true)
 		.def("equal", &Plot::equal, py::arg("equal")=true)
 		.def("limits", &Plot::limits, py::arg("min_x"), py::arg("max_x"), py::arg("min_y"), py::arg("max_y"))
+		.def("cursor_callout", &Plot::cursor_callout, py::arg("enabled"))
 		.def("plot", [](Plot& p, 
 				const MatX& x, 
 				const MatX& y, 

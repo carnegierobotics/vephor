@@ -10,8 +10,6 @@
 
 #include "show_record_window.h"
 
-#include "trajectory_camera.h"
-
 void waitForMessages(NetworkManager* net_manager, std::deque<JSONBMessage>* messages, std::mutex* message_mutex, bool* shutdown)
 {
 	while (!*shutdown)
@@ -82,7 +80,7 @@ void ShowRecordWindow::update()
 	}
 
 	camera->update(*window.get(), dt, control_info);
-	control_info.total_scroll_amount = 0.0f;
+	control_info.onUpdate();
 }
 
 void ShowRecordWindow::close()
@@ -247,6 +245,8 @@ void ShowRecordWindow::setup(const json& data,
 	setupCamera(data, assets);
 	
 	setupInputHandlers(net_manager);
+
+	bound_mgr = std::make_unique<BoundManager>(window.get());
 }
 
 void ShowRecordWindow::update(const json& data, AssetManager& assets)
@@ -272,68 +272,13 @@ void ShowRecordWindow::update(const json& data, AssetManager& assets)
 	}
 }
 
-void ShowRecordWindow::addBoundPoint(const Vec3& pt, const TransformSim3& world_from_body)
-{
-	auto world_pt = world_from_body * pt;
-	auto cam_pt = window->getCamFromWorld() * world_pt;
-	
-	for (int i = 0; i < 3; i++)		
-	{
-		if (world_pt[i] < object_bound_in_world_min[i])
-			object_bound_in_world_min[i] = world_pt[i];
-		if (world_pt[i] > object_bound_in_world_max[i])
-			object_bound_in_world_max[i] = world_pt[i];
-	}
-}
-
-void ShowRecordWindow::addBoundVerts(const MatXRef& verts, const TransformSim3& world_from_body)
-{
-	if (verts.rows() == 0)
-		return;
-
-	Vec3 min, max;
-	for (int i = 0; i < 3; i++)
-	{
-		min[i] = verts.col(i).minCoeff();
-		max[i] = verts.col(i).maxCoeff();
-	}
-	
-	addBoundPoint(min, world_from_body);
-	addBoundPoint(Vec3(min[0],min[1],max[2]), world_from_body);
-	addBoundPoint(Vec3(min[0],max[1],min[2]), world_from_body);
-	addBoundPoint(Vec3(max[0],min[1],min[2]), world_from_body);
-	addBoundPoint(Vec3(max[0],max[1],min[2]), world_from_body);
-	addBoundPoint(Vec3(max[0],min[1],max[2]), world_from_body);
-	addBoundPoint(Vec3(min[0],max[1],max[2]), world_from_body);
-	addBoundPoint(max, world_from_body);
-}
-
-void ShowRecordWindow::addBoundSphere(float rad, const TransformSim3& world_from_body)
-{
-	addBoundPoint(Vec3(-rad,0,0), world_from_body);
-	addBoundPoint(Vec3(rad,0,0), world_from_body);
-	addBoundPoint(Vec3(0,-rad,0), world_from_body);
-	addBoundPoint(Vec3(0,rad,0), world_from_body);
-	addBoundPoint(Vec3(0,0,-rad), world_from_body);
-	addBoundPoint(Vec3(0,0,rad), world_from_body);
-}
-
 void ShowRecordWindow::positionCameraFromObjectBounds()
 {
-	if (object_bound_in_world_min[0] > object_bound_in_world_max[0])
+	auto camera_bound_points = bound_mgr->calcCameraBoundPoints();
+
+	if (camera_bound_points.empty())
 		return;
-	
-	vector<Vec3> camera_bound_points = {
-		Vec3(object_bound_in_world_min[0], object_bound_in_world_min[1], object_bound_in_world_min[2]),
-		Vec3(object_bound_in_world_min[0], object_bound_in_world_min[1], object_bound_in_world_max[2]),
-		Vec3(object_bound_in_world_min[0], object_bound_in_world_max[1], object_bound_in_world_min[2]),
-		Vec3(object_bound_in_world_max[0], object_bound_in_world_min[1], object_bound_in_world_min[2]),
-		Vec3(object_bound_in_world_max[0], object_bound_in_world_max[1], object_bound_in_world_min[2]),
-		Vec3(object_bound_in_world_max[0], object_bound_in_world_min[1], object_bound_in_world_max[2]),
-		Vec3(object_bound_in_world_min[0], object_bound_in_world_max[1], object_bound_in_world_max[2]),
-		Vec3(object_bound_in_world_max[0], object_bound_in_world_max[1], object_bound_in_world_max[2])
-	};
-	
+
 	camera->autoFitPoints(*window.get(), camera_bound_points);
 }
 
@@ -389,12 +334,7 @@ void ShowRecordWindow::setupCamera(const json& data, AssetManager& assets)
 void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 {
 	window->setLeftMouseButtonPressCallback([&, net_manager](){
-		Vec2 pos = window->getMousePos();
-
-		control_info.drag_start_mouse_pos = pos;
-		control_info.drag_cam_from_world = window->getCamFromWorld();
-
-		control_info.left_drag_on = true;
+		control_info.onLeftMouseButtonPress(*window);
 
 		if (net_manager)
 		{
@@ -412,7 +352,7 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 	});
 
 	window->setLeftMouseButtonReleaseCallback([&, net_manager](){
-		control_info.left_drag_on = false;
+		control_info.onLeftMouseButtonRelease();
 
 		if (net_manager)
 		{
@@ -430,12 +370,7 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 	});
 	
 	window->setRightMouseButtonPressCallback([&, net_manager](){
-		Vec2 pos = window->getMousePos();
-
-		control_info.drag_start_mouse_pos = pos;
-		control_info.drag_cam_from_world = window->getCamFromWorld();
-
-		control_info.right_drag_on = true;
+		control_info.onRightMouseButtonPress(*window);
 
 		if (net_manager)
 		{
@@ -453,7 +388,7 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 	});
 
 	window->setRightMouseButtonReleaseCallback([&, net_manager](){
-		control_info.right_drag_on = false;
+		control_info.onRightMouseButtonRelease();
 
 		if (net_manager)
 		{
@@ -471,8 +406,7 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 	});
 
 	window->setKeyPressCallback([&](int key){
-		control_info.key_down[key] = true;
-		refreshKeyMotion();
+		control_info.onKeyPress(key);
 
 		if (key == GLFW_KEY_V)
 		{
@@ -485,8 +419,8 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 		}
 	});
 	window->setKeyReleaseCallback([&, net_manager](int key){
-		control_info.key_down[key] = false;
-		refreshKeyMotion();
+		control_info.onKeyRelease(key);
+
 		if (net_manager)
 		{
 			json key_press = {
@@ -500,37 +434,8 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 	});
 
 	window->setScrollCallback([&](float amount){
-		control_info.total_scroll_amount += amount;
+		control_info.onScroll(amount);
 	});
-}
-
-void ShowRecordWindow::refreshKeyMotion()
-{
-	control_info.key_motion = Vec3::Zero();
-	if (control_info.key_down[GLFW_KEY_D])
-	{
-		control_info.key_motion[0] = 1;
-	}
-	if (control_info.key_down[GLFW_KEY_A])
-	{
-		control_info.key_motion[0] = -1;
-	}
-	if (control_info.key_down[GLFW_KEY_W])
-	{
-		control_info.key_motion[1] = 1;
-	}
-	if (control_info.key_down[GLFW_KEY_S])
-	{
-		control_info.key_motion[1] = -1;
-	}
-	if (control_info.key_down[GLFW_KEY_F])
-	{
-		control_info.key_motion[2] = 1;
-	}
-	if (control_info.key_down[GLFW_KEY_R])
-	{
-		control_info.key_motion[2] = -1;
-	}
 }
 
 shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vector<vector<char>>& bufs, AssetManager& assets, JSONBMessage& serialization)
@@ -574,7 +479,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		if (!overlay)
-			addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
+			bound_mgr->addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
 
 		return node;
 	}
@@ -603,7 +508,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		if (!overlay)
-			addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
+			bound_mgr->addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
 
 		return node;
 	}
@@ -647,7 +552,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		if (!overlay)
-			addBoundVerts(verts, node->getWorldTransform());
+			bound_mgr->addBoundVerts(verts, node->getWorldTransform());
 		return node;
 	}
 	else if (obj["type"] == "obj_mesh")
@@ -679,7 +584,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 			auto sub_node = window->add(draw_obj, TransformSim3(), overlay, layer);
 			sub_node->setParent(node);
 			if (!overlay)
-				addBoundVerts(part.geometry.verts, node->getWorldTransform());
+				bound_mgr->addBoundVerts(part.geometry.verts, node->getWorldTransform());
 		}
 		
 		return node;
@@ -696,7 +601,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		if (!overlay)
-			addBoundSphere(obj["rad"], node->getWorldTransform());
+			bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
 		return node;
 	}
 	else if (obj["type"] == "cylinder")
@@ -713,7 +618,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		if (!overlay)
-			addBoundSphere(std::max(rad, height/2), node->getWorldTransform());
+			bound_mgr->addBoundSphere(std::max(rad, height/2), node->getWorldTransform());
 		return node;
 	}
 	else if (obj["type"] == "cone")
@@ -730,7 +635,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		if (!overlay)
-			addBoundSphere(std::max(rad, height/2), node->getWorldTransform());
+			bound_mgr->addBoundSphere(std::max(rad, height/2), node->getWorldTransform());
 		return node;
 	}
 	else if (obj["type"] == "cube")
@@ -745,7 +650,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		if (!overlay)
-			addBoundSphere(obj["rad"], node->getWorldTransform());
+			bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
 		return node;
 	}
 	else if (obj["type"] == "plane")
@@ -774,10 +679,10 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		if (!overlay)
 		{
-			addBoundPoint(Vec3(-rads[0],-rads[1],0), node->getWorldTransform());
-			addBoundPoint(Vec3(rads[0],-rads[1],0), node->getWorldTransform());
-			addBoundPoint(Vec3(-rads[0],rads[1],0), node->getWorldTransform());
-			addBoundPoint(Vec3(rads[0],rads[1],0), node->getWorldTransform());
+			bound_mgr->addBoundPoint(Vec3(-rads[0],-rads[1],0), node->getWorldTransform());
+			bound_mgr->addBoundPoint(Vec3(rads[0],-rads[1],0), node->getWorldTransform());
+			bound_mgr->addBoundPoint(Vec3(-rads[0],rads[1],0), node->getWorldTransform());
+			bound_mgr->addBoundPoint(Vec3(rads[0],rads[1],0), node->getWorldTransform());
 		}
 		return node;
 	}
@@ -803,7 +708,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		// TODO: arrow offset?
 		if (!overlay)
-			addBoundSphere(std::max(rad, dist/2), node->getWorldTransform());
+			bound_mgr->addBoundSphere(std::max(rad, dist/2), node->getWorldTransform());
 		return node;
 	}
 	else if (obj["type"] == "axes")
@@ -825,7 +730,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		if (!overlay)
-			addBoundSphere(obj["size"], node->getWorldTransform());
+			bound_mgr->addBoundSphere(obj["size"], node->getWorldTransform());
 		return node;
 	}
 	else if (obj["type"] == "circle")
@@ -840,7 +745,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		if (!overlay)
-			addBoundSphere(obj["rad"], node->getWorldTransform());
+			bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
 		return node;
 	}
 	else if (obj["type"] == "grid")
@@ -866,10 +771,10 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto node = window->add(draw_obj, world_from_body, overlay, readDefault(obj, "layer", 0));
 		if (!overlay)
 		{
-			addBoundPoint( rad * forward + rad * right, node->getWorldTransform());
-			addBoundPoint( rad * forward - rad * right, node->getWorldTransform());
-			addBoundPoint(-rad * forward + rad * right, node->getWorldTransform());
-			addBoundPoint(-rad * forward - rad * right, node->getWorldTransform());
+			bound_mgr->addBoundPoint( rad * forward + rad * right, node->getWorldTransform());
+			bound_mgr->addBoundPoint( rad * forward - rad * right, node->getWorldTransform());
+			bound_mgr->addBoundPoint(-rad * forward + rad * right, node->getWorldTransform());
+			bound_mgr->addBoundPoint(-rad * forward - rad * right, node->getWorldTransform());
 		}
 		return node;
 	}
@@ -931,7 +836,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, overlay, readDefault(obj, "layer", 0));
 		if (!overlay)
-			addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
+			bound_mgr->addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
 		return node;
 	}
 	else if (obj["type"] == "sprite")
@@ -991,10 +896,10 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		
 		if (!overlay)
 		{
-			addBoundPoint(Vec3(-0.5*aspect,-0.5,0), node->getWorldTransform());
-			addBoundPoint(Vec3(-0.5*aspect, 0.5,0), node->getWorldTransform());
-			addBoundPoint(Vec3( 0.5*aspect, 0.5,0), node->getWorldTransform());
-			addBoundPoint(Vec3( 0.5*aspect,-0.5,0), node->getWorldTransform());
+			bound_mgr->addBoundPoint(Vec3(-0.5*aspect,-0.5,0), node->getWorldTransform());
+			bound_mgr->addBoundPoint(Vec3(-0.5*aspect, 0.5,0), node->getWorldTransform());
+			bound_mgr->addBoundPoint(Vec3( 0.5*aspect, 0.5,0), node->getWorldTransform());
+			bound_mgr->addBoundPoint(Vec3( 0.5*aspect,-0.5,0), node->getWorldTransform());
 		}
 		
 		return node;

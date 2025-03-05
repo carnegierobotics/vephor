@@ -14,13 +14,9 @@
 #include <mutex>
 #include <deque>
 
-#include "asset_manager.h"
-#include "show_camera.h"
-#include "static_camera.h"
-#include "spin_camera.h"
-#include "trackball_camera.h"
-#include "plot_camera.h"
-#include "plot3d_camera.h"
+#include "vephor_ogl.h"
+
+using namespace vephor;
 
 using WindowID = int64_t;
 using ObjectID = int64_t;
@@ -38,17 +34,8 @@ struct ShowRecordWindow
 	bool save_flag = false;
 	
 	// Camera controls
-	shared_ptr<ShowCamera> camera;
-	Vec3 object_bound_in_world_min = Vec3(
-		std::numeric_limits<float>::max(),
-		std::numeric_limits<float>::max(),
-		std::numeric_limits<float>::max()
-	);
-	Vec3 object_bound_in_world_max = Vec3(
-		std::numeric_limits<float>::lowest(),
-		std::numeric_limits<float>::lowest(),
-		std::numeric_limits<float>::lowest()
-	);
+	shared_ptr<CameraManager> camera;
+	unique_ptr<BoundManager> bound_mgr;
 
 	// Input handling
 	ControlInfo control_info;
@@ -70,13 +57,9 @@ struct ShowRecordWindow
 		AssetManager& assets, 
 		bool hide_windows);
 	void update(const json& data, AssetManager& assets);
-	void addBoundPoint(const Vec3& pt, const TransformSim3& world_from_body);
-	void addBoundVerts(const MatXRef& verts, const TransformSim3& world_from_body);
-	void addBoundSphere(float rad, const TransformSim3& world_from_body);
 	void positionCameraFromObjectBounds();
 	void setupCamera(const json& data, AssetManager& assets);
 	void setupInputHandlers(NetworkManager* net_manager);
-	void refreshKeyMotion();
 	shared_ptr<RenderNode> addFromJSON(const json& obj, const vector<vector<char>>& bufs, AssetManager& assets, JSONBMessage& serialization);
 	json produceSceneJSON(vector<vector<char>>* bufs = NULL);
 	shared_ptr<Texture> loadTexture(const string& path, bool nearest, AssetManager& assets);

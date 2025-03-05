@@ -62,17 +62,21 @@ write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
 
 add_library(vephor_opengl SHARED
 	src/ogl/window.cpp 
-	src/ogl/mesh.cpp 
-	src/ogl/lines.cpp
-	src/ogl/thick_lines.cpp	
+	src/ogl/draw/background.cpp	
+	src/ogl/draw/instanced_points.cpp
+	src/ogl/draw/light.cpp
+	src/ogl/draw/lines.cpp
+	src/ogl/draw/mesh.cpp 
+	src/ogl/draw/particle.cpp
+	src/ogl/draw/points.cpp
+	src/ogl/draw/sprite.cpp
+	src/ogl/draw/text.cpp
+	src/ogl/draw/thick_lines.cpp
+	src/ogl/camera/plot_camera.cpp
+	src/ogl/camera/plot3d_camera.cpp
+	src/ogl/camera/trackball_camera.cpp
+	src/ogl/camera/trajectory_camera.cpp
 	src/ogl/io.cpp
-	src/ogl/light.cpp
-	src/ogl/text.cpp
-	src/ogl/sprite.cpp
-	src/ogl/particle.cpp
-	src/ogl/points.cpp
-	src/ogl/instanced_points.cpp
-	src/ogl/background.cpp
 	src/verlet.cpp
 )
 target_link_libraries(vephor_opengl ${GRAPHICS_LIBS} vephor)
@@ -92,6 +96,7 @@ else (VEPHOR_BUILD_PYTHON_BINDINGS)
 		screenshot_test
 		sprites
 		thick_lines_test
+		trackball_camera_test
 		two_windows
 	)
 
@@ -104,10 +109,6 @@ endif (VEPHOR_BUILD_PYTHON_BINDINGS)
 
 add_executable (vephor_show 
 	apps/show/show.cpp 
-	apps/show/plot_camera.cpp 
-	apps/show/plot3d_camera.cpp 
-	apps/show/trackball_camera.cpp 
-	apps/show/trajectory_camera.cpp 
 	apps/show/show_record_window.cpp)
 include_directories(vephor_show include)
 target_link_libraries(vephor_show vephor_opengl)
