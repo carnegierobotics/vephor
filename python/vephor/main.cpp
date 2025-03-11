@@ -968,6 +968,26 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color"),
 			py::arg("thickness")=0
 		)
+		.def("line", [](Plot& p,
+				const MatX& verts,
+				const Vec3& color,
+				float thickness
+			){
+				if (verts.cols() != 2)
+				{
+					throw std::runtime_error("Line verts matrix must have 2 columns.");
+				}
+
+				vector<Vec2> inner_verts;
+				for (int r = 0; r < verts.rows(); r++)
+					inner_verts.push_back(verts.row(r));
+
+				p.line(inner_verts, color, thickness);
+			},
+			py::arg("verts"),
+			py::arg("color"),
+			py::arg("thickness")=0
+		)
 		.def("imshow", [](Plot& p,
 			py::buffer buf,
 			bool nearest,

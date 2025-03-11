@@ -272,6 +272,254 @@ struct ShowRecord
 			v4print "First message time:", first_message_time;
 		}
 	}
+	void handleMetadataMessage(const JSONBMessage& jsonb_message, ConnectionID conn_id)
+	{
+		const auto& message = jsonb_message.header;
+
+		if (!message["flags"].empty() && !find(control_window_per_conn,conn_id))
+		{
+			v4print "Setting up viz control window.";
+
+			const float flag_scale = 1.25f;
+			const int flag_offset = 32.5 * flag_scale;
+			const int flag_size = 20 * flag_scale;
+			const int flag_width = 200 * flag_scale;
+			const int flag_gap = 12.5 * flag_scale;
+			const int flags_per_col = 15;
+
+			int flag_window_width = (flag_width + flag_gap) * ceil((float)message["flags"].size()/flags_per_col) + flag_gap;
+			int flag_window_height = flag_offset*std::min((int)message["flags"].size(),flags_per_col) + flag_gap;
+
+			string name = "Viz Control";
+			string inner_name;
+			if (message.contains("name"))
+					inner_name = message["name"];
+			if (!inner_name.empty())
+				name = inner_name + " " + name;
+			WindowOptions control_window_opts;
+			control_window_opts.always_on_top = true;
+			auto control_window = make_shared<Window>(
+				flag_window_width,
+				flag_window_height,
+				name,
+				(WindowResizeCallback)NULL,
+				control_window_opts);
+			control_window->setIgnoreClose(true);
+			
+			text_tex = control_window->loadTexture(assets.getAssetPath("/assets/Holstein.png"));
+			
+			const float fps = 60.0f;
+			control_window->setFrameLock(fps);
+			
+			FlagsRecord flags_record;
+
+			vector<json> message_flags;
+			for (const auto& flag : message["flags"])
+			{
+				message_flags.push_back(flag);
+			}
+			std::sort(message_flags.begin(), message_flags.end(), [](const auto& l, const auto& r){
+				return l["name"] < r["name"];
+			});
+			
+			for (const auto& flag : message_flags)
+			{
+				float hpos = (int)(flags_record.flags.size()/flags_per_col)*(flag_width+flag_gap)+flag_gap;
+				float vpos = -((int)(flags_record.flags.size()%flags_per_col)+1)*flag_offset;
+
+				bool toggle = flag["toggle"];
+				
+				shared_ptr<RenderNode> on_back;
+				shared_ptr<RenderNode> off_back;
+
+				if (toggle)
+				{
+					{
+						MeshData mesh_data(6);
+						mesh_data.addQuad2D(Vec2(0,0), Vec2(flag_width,flag_size), Vec2(0,0), Vec2(1,1));
+						auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.2,0.5,0.2));
+						mesh->setCull(false);
+						on_back = control_window->add(mesh, Vec3(hpos, vpos, 0), true);
+						on_back->setParent(control_window->getWindowTopLeftNode());
+						on_back->setShow(false);
+					}
+
+					{
+						MeshData mesh_data(6);
+						mesh_data.addQuad2D(Vec2(0,0), Vec2(flag_width,flag_size), Vec2(0,0), Vec2(1,1));
+						auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.5,0.2,0.2));
+						mesh->setCull(false);
+						off_back = control_window->add(mesh, Vec3(hpos, vpos, 0), true);
+						off_back->setParent(control_window->getWindowTopLeftNode());
+					}
+				}
+				else
+				{
+					MeshData mesh_data(6);
+					mesh_data.addQuad2D(Vec2(0,0), Vec2(flag_width,flag_size), Vec2(0,0), Vec2(1,1));
+					auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.5,0.5,0.5));
+					mesh->setCull(false);
+					on_back = control_window->add(mesh, Vec3(hpos, vpos, 0), true);
+					on_back->setParent(control_window->getWindowTopLeftNode());
+				}
+
+				
+				auto text = make_shared<Text>(flag["name"], text_tex);
+				text->setColor(Vec3(1,1,1));
+				auto text_node = control_window->add(text, Vec3(hpos, vpos, 0), true, 1);
+				text_node->setScale(flag_size);
+				text_node->setParent(control_window->getWindowTopLeftNode());
+				
+				flags_record.flags.push_back({flag["name"], toggle, flag["state"], on_back, off_back});
+			}
+			flags_per_conn[conn_id] = flags_record;
+			
+			auto control_window_ptr = control_window.get();
+			
+			control_window->setLeftMouseButtonReleaseCallback([this, control_window_ptr, conn_id, flag_gap, flag_width, flag_offset, flag_size](){
+				v4print "(Control window) Left click @", control_window_ptr->getMousePos().transpose();
+				
+				auto& flags_record = flags_per_conn[conn_id];
+				
+				for (int i = 0; i < flags_record.flags.size(); i++)
+				{
+					Vec2 corner_rel_pos = control_window_ptr->getMousePos() - Vec2(0, control_window_ptr->getSize()[1]);
+					float hpos = (int)(i/flags_per_col)*(flag_width+flag_gap)+flag_gap;
+					float vpos = -(i%flags_per_col+1)*flag_offset;
+					corner_rel_pos[0] -= hpos;
+					corner_rel_pos[1] -= vpos;
+					
+					if (corner_rel_pos[0] >= 0 && corner_rel_pos[1] >= 0 &&
+						corner_rel_pos[0] <= flag_width && corner_rel_pos[1] <= flag_size)
+					{
+						v4print "Clicked", flags_record.flags[i].name;
+						if (flags_record.flags[i].toggle)
+						{
+							flags_record.flags[i].state = !flags_record.flags[i].state;
+
+							if (flags_record.flags[i].state)
+							{
+								flags_record.flags[i].on_back->setShow(true);
+								flags_record.flags[i].off_back->setShow(false);
+							}
+							else
+							{
+								flags_record.flags[i].on_back->setShow(false);
+								flags_record.flags[i].off_back->setShow(true);
+							}
+						}
+						else
+							flags_record.flags[i].state = true;
+					}
+				}
+			});
+
+			control_window_per_conn[conn_id] = control_window;
+			
+			flags_per_conn[conn_id].last_update = std::chrono::steady_clock::now();
+		}
+	}
+	bool handleSceneMessage(const JSONBMessage& jsonb_message, ConnectionID conn_id, bool verbose = false)
+	{
+		const auto& message = jsonb_message.header;
+
+		json data = message["data"];
+				
+		WindowID window_id;
+		bool window_added, window_closed;
+		setupWindow(data, conn_id, window_id, window_added, window_closed);
+		
+		if (window_closed)
+		{
+			if (network_mode)
+			{
+				json msg = {
+					{"type", "close"},
+					{"window", window_id}
+				};	
+				try {
+					net_manager.sendJSONBMessage(conn_id, msg, {});
+				} catch (...) {}
+			}
+
+			message_list.pop_front();
+			return false;
+		}
+	
+		for (const auto& obj : data["objects"])
+		{
+			ObjectID id = obj["id"];
+			id |= ((ObjectID)conn_id << 32);
+			
+			if (find(objects_by_id, id))
+			{
+				auto& render_obj = objects_by_id[id];
+				
+				if (obj.contains("pose"))
+					render_obj->setTransform(readTransform3(obj["pose"]));
+				
+				if (obj.contains("scale"))
+					render_obj->setScale(obj["scale"]);
+			
+				if (obj.contains("show"))
+					render_obj->setShow(obj["show"]);
+			
+				if (obj.contains("destroy") && obj["destroy"])
+				{
+					if (verbose)
+						v4print "Destroying object:", id;
+					render_obj->setDestroy();
+					objects_by_id.erase(id);
+				}
+				
+				continue;
+			}
+			
+			if (verbose)
+				v4print "Object:", id, obj["type"];
+
+			// Object starts destroyed, don't bother
+			if (obj.contains("destroy") && obj["destroy"])
+				continue;
+			
+			JSONBMessage serialization;
+			auto node = windows[window_id]->addFromJSON(obj, jsonb_message.payloads, assets, serialization);
+			node->setName(std::to_string(id));
+			objects_by_id[id] = node;
+
+			if (obj.contains("show"))
+				node->setShow(obj["show"]);
+			
+			node->setObjectSerialization(serialization);
+		}
+		
+		for (const auto& obj : data["objects"])
+		{
+			ObjectID id = obj["id"];
+			id |= ((ObjectID)conn_id << 32);
+			
+			if (find(objects_by_id, id))
+			{
+				auto& render_obj = objects_by_id[id];
+				
+				string parent;
+				if (obj.contains("pose_parent"))
+				{
+					parent = obj["pose_parent"];
+				}
+				setParent(render_obj, window_id, parent, conn_id);
+			}
+		}
+		
+		if (window_added)
+		{
+			windows[window_id]->positionCameraFromObjectBounds();
+			if (!keep_windows_hidden)
+				windows[window_id]->window->show();
+		}
+
+		return true;
+	}
 	void handleIncomingMessages(bool verbose = false)
 	{
 		// Check to see if additional messages have arrived
@@ -307,148 +555,7 @@ struct ShowRecord
 			
 			if (message["type"] == "metadata")
 			{
-				if (!message["flags"].empty() && !find(control_window_per_conn,conn_id))
-				{
-					v4print "Setting up viz control window.";
-
-					const float flag_scale = 1.25f;
-					const int flag_offset = 32.5 * flag_scale;
-					const int flag_size = 20 * flag_scale;
-					const int flag_width = 200 * flag_scale;
-					const int flag_gap = 12.5 * flag_scale;
-					const int flags_per_col = 15;
-
-					int flag_window_width = (flag_width + flag_gap) * ceil((float)message["flags"].size()/flags_per_col) + flag_gap;
-					int flag_window_height = flag_offset*std::min((int)message["flags"].size(),flags_per_col) + flag_gap;
-
-					string name = "Viz Control";
-					string inner_name;
-					if (message.contains("name"))
-						 inner_name = message["name"];
-					if (!inner_name.empty())
-						name = inner_name + " " + name;
-					WindowOptions control_window_opts;
-					control_window_opts.always_on_top = true;
-					auto control_window = make_shared<Window>(
-						flag_window_width,
-						flag_window_height,
-						name,
-						(WindowResizeCallback)NULL,
-						control_window_opts);
-					control_window->setIgnoreClose(true);
-					
-					text_tex = control_window->loadTexture(assets.getAssetPath("/assets/Holstein.png"));
-					
-					const float fps = 60.0f;
-					control_window->setFrameLock(fps);
-					
-					FlagsRecord flags_record;
-
-					vector<json> message_flags;
-					for (const auto& flag : message["flags"])
-					{
-						message_flags.push_back(flag);
-					}
-					std::sort(message_flags.begin(), message_flags.end(), [](const auto& l, const auto& r){
-						return l["name"] < r["name"];
-					});
-					
-					for (const auto& flag : message_flags)
-					{
-						float hpos = (int)(flags_record.flags.size()/flags_per_col)*(flag_width+flag_gap)+flag_gap;
-						float vpos = -((int)(flags_record.flags.size()%flags_per_col)+1)*flag_offset;
-
-						bool toggle = flag["toggle"];
-						
-						shared_ptr<RenderNode> on_back;
-						shared_ptr<RenderNode> off_back;
-
-						if (toggle)
-						{
-							{
-								MeshData mesh_data(6);
-								mesh_data.addQuad2D(Vec2(0,0), Vec2(flag_width,flag_size), Vec2(0,0), Vec2(1,1));
-								auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.2,0.5,0.2));
-								mesh->setCull(false);
-								on_back = control_window->add(mesh, Vec3(hpos, vpos, 0), true);
-								on_back->setParent(control_window->getWindowTopLeftNode());
-								on_back->setShow(false);
-							}
-
-							{
-								MeshData mesh_data(6);
-								mesh_data.addQuad2D(Vec2(0,0), Vec2(flag_width,flag_size), Vec2(0,0), Vec2(1,1));
-								auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.5,0.2,0.2));
-								mesh->setCull(false);
-								off_back = control_window->add(mesh, Vec3(hpos, vpos, 0), true);
-								off_back->setParent(control_window->getWindowTopLeftNode());
-							}
-						}
-						else
-						{
-							MeshData mesh_data(6);
-							mesh_data.addQuad2D(Vec2(0,0), Vec2(flag_width,flag_size), Vec2(0,0), Vec2(1,1));
-							auto mesh = make_shared<Mesh>(mesh_data, Vec3(0.5,0.5,0.5));
-							mesh->setCull(false);
-							on_back = control_window->add(mesh, Vec3(hpos, vpos, 0), true);
-							on_back->setParent(control_window->getWindowTopLeftNode());
-						}
-
-						
-						auto text = make_shared<Text>(flag["name"], text_tex);
-						text->setColor(Vec3(1,1,1));
-						auto text_node = control_window->add(text, Vec3(hpos, vpos, 0), true, 1);
-						text_node->setScale(flag_size);
-						text_node->setParent(control_window->getWindowTopLeftNode());
-						
-						flags_record.flags.push_back({flag["name"], toggle, flag["state"], on_back, off_back});
-					}
-					flags_per_conn[conn_id] = flags_record;
-					
-					auto control_window_ptr = control_window.get();
-					
-					control_window->setLeftMouseButtonReleaseCallback([this, control_window_ptr, conn_id, flag_gap, flag_width, flag_offset, flag_size](){
-						v4print "(Control window) Left click @", control_window_ptr->getMousePos().transpose();
-						
-						auto& flags_record = flags_per_conn[conn_id];
-						
-						for (int i = 0; i < flags_record.flags.size(); i++)
-						{
-							Vec2 corner_rel_pos = control_window_ptr->getMousePos() - Vec2(0, control_window_ptr->getSize()[1]);
-							float hpos = (int)(i/flags_per_col)*(flag_width+flag_gap)+flag_gap;
-							float vpos = -(i%flags_per_col+1)*flag_offset;
-							corner_rel_pos[0] -= hpos;
-							corner_rel_pos[1] -= vpos;
-							
-							if (corner_rel_pos[0] >= 0 && corner_rel_pos[1] >= 0 &&
-								corner_rel_pos[0] <= flag_width && corner_rel_pos[1] <= flag_size)
-							{
-								v4print "Clicked", flags_record.flags[i].name;
-								if (flags_record.flags[i].toggle)
-								{
-									flags_record.flags[i].state = !flags_record.flags[i].state;
-
-									if (flags_record.flags[i].state)
-									{
-										flags_record.flags[i].on_back->setShow(true);
-										flags_record.flags[i].off_back->setShow(false);
-									}
-									else
-									{
-										flags_record.flags[i].on_back->setShow(false);
-										flags_record.flags[i].off_back->setShow(true);
-									}
-								}
-								else
-									flags_record.flags[i].state = true;
-							}
-						}
-					});
-
-					control_window_per_conn[conn_id] = control_window;
-					
-					flags_per_conn[conn_id].last_update = std::chrono::steady_clock::now();
-				}
+				handleMetadataMessage(jsonb_message, conn_id);
 			}
 			else if (message["type"] == "file")
 			{
@@ -504,100 +611,8 @@ struct ShowRecord
 			}
 			else if (message["type"] == "scene")
 			{
-				json data = message["data"];
-				
-				WindowID window_id;
-				bool window_added, window_closed;
-				setupWindow(data, conn_id, window_id, window_added, window_closed);
-				
-				if (window_closed)
-				{
-					if (network_mode)
-					{
-						json msg = {
-							{"type", "close"},
-							{"window", window_id}
-						};	
-						try {
-							net_manager.sendJSONBMessage(conn_id, msg, {});
-						} catch (...) {}
-					}
-
-					message_list.pop_front();
+				if(!handleSceneMessage(jsonb_message, conn_id, verbose))
 					continue;
-				}
-			
-				for (const auto& obj : data["objects"])
-				{
-					ObjectID id = obj["id"];
-					id |= ((ObjectID)conn_id << 32);
-					
-					if (find(objects_by_id, id))
-					{
-						auto& render_obj = objects_by_id[id];
-						
-						if (obj.contains("pose"))
-							render_obj->setTransform(readTransform3(obj["pose"]));
-						
-						if (obj.contains("scale"))
-							render_obj->setScale(obj["scale"]);
-					
-						if (obj.contains("show"))
-							render_obj->setShow(obj["show"]);
-					
-						if (obj.contains("destroy") && obj["destroy"])
-						{
-							if (verbose)
-								v4print "Destroying object:", id;
-							render_obj->setDestroy();
-							objects_by_id.erase(id);
-						}
-						
-						continue;
-					}
-					
-					if (verbose)
-						v4print "Object:", id, obj["type"];
-
-					// Object starts destroyed, don't bother
-					if (obj.contains("destroy") && obj["destroy"])
-						continue;
-					
-					JSONBMessage serialization;
-					auto node = windows[window_id]->addFromJSON(obj, jsonb_message.payloads, assets, serialization);
-					node->setName(std::to_string(id));
-					objects_by_id[id] = node;
-
-					if (obj.contains("show"))
-						node->setShow(obj["show"]);
-					
-					node->setObjectSerialization(serialization);
-				}
-				
-				for (const auto& obj : data["objects"])
-				{
-					ObjectID id = obj["id"];
-					id |= ((ObjectID)conn_id << 32);
-					
-					if (find(objects_by_id, id))
-					{
-						auto& render_obj = objects_by_id[id];
-						
-						string parent;
-						if (obj.contains("pose_parent"))
-						{
-							parent = obj["pose_parent"];
-						}
-						setParent(render_obj, window_id, parent, conn_id);
-					}
-				}
-				
-				if (window_added)
-				{
-					windows[window_id]->positionCameraFromObjectBounds();
-					if (!keep_windows_hidden)
-						windows[window_id]->window->show();
-				}
 			}
 			else if (message["type"] == "wait")
 			{

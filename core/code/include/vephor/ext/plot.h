@@ -465,12 +465,15 @@ public:
 
 		if (thickness == 0) // A thin line
 		{
-			MatX pts(2, 3);
+			MatX pts(verts.size(), 3);
 
-			pts.row(0) = Vec3(verts[0][0], verts[0][1], 0);
-			pts.row(1) = Vec3(verts[1][0], verts[1][1], 0);
+			for (int p = 0; p < verts.size(); p++)
+			{
+				pts.row(p) = Vec3(verts[p][0], verts[p][1], 0);
+			}
 
 			auto lines = make_shared<Lines>(pts);
+			lines->setLineStrip(true);
 			lines->setColor(color);
 			inner_window.add(lines, Vec3(0,0,plot_index + 1));
 		}

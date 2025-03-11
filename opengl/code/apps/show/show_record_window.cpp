@@ -219,6 +219,8 @@ void ShowRecordWindow::setup(const json& data,
 
 	window->setHideOnClose(hide_windows);
 	window->setOpacity(opacity);
+
+	bound_mgr = std::make_unique<BoundManager>(window.get());
 	
 	text_tex = loadTexture("/assets/Holstein.png", false, assets);
 	
@@ -245,8 +247,6 @@ void ShowRecordWindow::setup(const json& data,
 	setupCamera(data, assets);
 	
 	setupInputHandlers(net_manager);
-
-	bound_mgr = std::make_unique<BoundManager>(window.get());
 }
 
 void ShowRecordWindow::update(const json& data, AssetManager& assets)
@@ -810,7 +810,17 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		readVertexData(obj["verts"], base_buf_index, bufs, verts_record, &serialization.header["verts"], &serialization.payloads);
 		
 		if (obj.contains("colors"))
+		{
 			readVertexData(obj["colors"], base_buf_index, bufs, colors_record, &serialization.header["colors"], &serialization.payloads);
+
+			if (verts_record.map.rows() != colors_record.map.rows() ||
+				verts_record.map.cols() != colors_record.map.cols())
+			{
+				v4print "Verts:", verts_record.map.rows(), verts_record.map.cols();
+				v4print "Colors:", colors_record.map.rows(), colors_record.map.cols();
+				throw std::runtime_error("Verts and colors must have same size.");
+			}
+		}
 
 		auto draw_obj = make_shared<InstancedPoints>(
 			verts_record.map.transpose(),
