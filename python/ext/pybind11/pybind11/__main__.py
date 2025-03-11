@@ -1,41 +1,35 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-
 # pylint: disable=missing-function-docstring
+from __future__ import annotations
 
 import argparse
+import re
 import sys
 import sysconfig
 
+from ._version import __version__
 from .commands import get_cmake_dir, get_include, get_pkgconfig_dir
+
+# This is the conditional used for os.path being posixpath
+if "posix" in sys.builtin_module_names:
+    from shlex import quote
+elif "nt" in sys.builtin_module_names:
+    # See https://github.com/mesonbuild/meson/blob/db22551ed9d2dd7889abea01cc1c7bba02bf1c75/mesonbuild/utils/universal.py#L1092-L1121
+    # and the original documents:
+    # https://docs.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments and
+    # https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/
+    UNSAFE = re.compile("[ \t\n\r]")
+
+    def quote(s: str) -> str:
+        if s and not UNSAFE.search(s):
+            return s
+
+        # Paths cannot contain a '"' on Windows, so we don't need to worry
+        # about nuanced counting here.
+        return f'"{s}\\"' if s.endswith("\\") else f'"{s}"'
+else:
+
+    def quote(s: str) -> str:
+        return s
 
 
 def print_includes() -> None:
@@ -51,12 +45,17 @@ def print_includes() -> None:
         if d and d not in unique_dirs:
             unique_dirs.append(d)
 
-    print(" ".join("-I" + d for d in unique_dirs))
+    print(" ".join(quote(f"-I{d}") for d in unique_dirs))
 
 
 def main() -> None:
-
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=__version__,
+        help="Print the version and exit.",
+    )
     parser.add_argument(
         "--includes",
         action="store_true",
@@ -72,15 +71,22 @@ def main() -> None:
         action="store_true",
         help="Print the pkgconfig directory, ideal for setting $PKG_CONFIG_PATH.",
     )
+    parser.add_argument(
+        "--extension-suffix",
+        action="store_true",
+        help="Print the extension for a Python module",
+    )
     args = parser.parse_args()
     if not sys.argv[1:]:
         parser.print_help()
     if args.includes:
         print_includes()
     if args.cmakedir:
-        print(get_cmake_dir())
+        print(quote(get_cmake_dir()))
     if args.pkgconfigdir:
-        print(get_pkgconfig_dir())
+        print(quote(get_pkgconfig_dir()))
+    if args.extension_suffix:
+        print(sysconfig.get_config_var("EXT_SUFFIX"))
 
 
 if __name__ == "__main__":

@@ -1,33 +1,4 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
 
 import pytest
 
@@ -37,6 +8,7 @@ from pybind11_tests import call_policies as m
 
 
 @pytest.mark.xfail("env.PYPY", reason="sometimes comes out 1 off on PyPy", strict=False)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_keep_alive_argument(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     with capture:
@@ -89,6 +61,7 @@ def test_keep_alive_argument(capture):
     assert str(excinfo.value) == "Could not activate keep_alive!"
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_keep_alive_return_value(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     with capture:
@@ -147,6 +120,7 @@ def test_keep_alive_return_value(capture):
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
 @pytest.mark.xfail("env.PYPY", reason="_PyObject_GetDictPtr is unimplemented")
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_alive_gc(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     p = m.ParentGC()
@@ -166,6 +140,7 @@ def test_alive_gc(capture):
     )
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_alive_gc_derived(capture):
     class Derived(m.Parent):
         pass
@@ -188,6 +163,7 @@ def test_alive_gc_derived(capture):
     )
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_alive_gc_multi_derived(capture):
     class Derived(m.Parent, m.Child):
         def __init__(self):
@@ -214,6 +190,7 @@ def test_alive_gc_multi_derived(capture):
     )
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_return_none(capture):
     n_inst = ConstructorStats.detail_reg_inst()
     with capture:
@@ -241,6 +218,7 @@ def test_return_none(capture):
     assert capture == "Releasing parent."
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_keep_alive_constructor(capture):
     n_inst = ConstructorStats.detail_reg_inst()
 

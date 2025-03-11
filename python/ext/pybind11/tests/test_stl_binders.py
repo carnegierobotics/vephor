@@ -1,33 +1,4 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
 
 import pytest
 
@@ -217,9 +188,9 @@ def test_map_string_double():
     um["ua"] = 1.1
     um["ub"] = 2.6
 
-    assert sorted(list(um)) == ["ua", "ub"]
+    assert sorted(um) == ["ua", "ub"]
     assert list(um.keys()) == list(um)
-    assert sorted(list(um.items())) == [("ua", 1.1), ("ub", 2.6)]
+    assert sorted(um.items()) == [("ua", 1.1), ("ub", 2.6)]
     assert list(zip(um.keys(), um.values())) == list(um.items())
     assert "UnorderedMapStringDouble" in str(um)
 
@@ -240,7 +211,7 @@ def test_map_string_double_const():
 def test_noncopyable_containers():
     # std::vector
     vnc = m.get_vnc(5)
-    for i in range(0, 5):
+    for i in range(5):
         assert vnc[i].value == i + 1
 
     for i, j in enumerate(vnc, start=1):
@@ -248,7 +219,7 @@ def test_noncopyable_containers():
 
     # std::deque
     dnc = m.get_dnc(5)
-    for i in range(0, 5):
+    for i in range(5):
         assert dnc[i].value == i + 1
 
     i = 1
@@ -283,7 +254,7 @@ def test_noncopyable_containers():
     # nested std::map<std::vector>
     nvnc = m.get_nvnc(5)
     for i in range(1, 6):
-        for j in range(0, 5):
+        for j in range(5):
             assert nvnc[i][j].value == j + 1
 
     # Note: maps do not have .values()
@@ -331,15 +302,34 @@ def test_map_delitem():
     assert list(mm) == ["b"]
     assert list(mm.items()) == [("b", 2.5)]
 
+    with pytest.raises(KeyError) as excinfo:
+        mm["a_long_key"]
+    assert "a_long_key" in str(excinfo.value)
+
+    with pytest.raises(KeyError) as excinfo:
+        del mm["a_long_key"]
+    assert "a_long_key" in str(excinfo.value)
+
+    cut_length = 100
+    k_very_long = "ab" * cut_length + "xyz"
+    with pytest.raises(KeyError) as excinfo:
+        mm[k_very_long]
+    assert k_very_long in str(excinfo.value)
+    k_very_long += "@"
+    with pytest.raises(KeyError) as excinfo:
+        mm[k_very_long]
+    k_repr = k_very_long[:cut_length] + "✄✄✄" + k_very_long[-cut_length:]
+    assert k_repr in str(excinfo.value)
+
     um = m.UnorderedMapStringDouble()
     um["ua"] = 1.1
     um["ub"] = 2.6
 
-    assert sorted(list(um)) == ["ua", "ub"]
-    assert sorted(list(um.items())) == [("ua", 1.1), ("ub", 2.6)]
+    assert sorted(um) == ["ua", "ub"]
+    assert sorted(um.items()) == [("ua", 1.1), ("ub", 2.6)]
     del um["ua"]
-    assert sorted(list(um)) == ["ub"]
-    assert sorted(list(um.items())) == [("ub", 2.6)]
+    assert sorted(um) == ["ub"]
+    assert sorted(um.items()) == [("ub", 2.6)]
 
 
 def test_map_view_types():
@@ -348,9 +338,9 @@ def test_map_view_types():
     map_string_double_const = m.MapStringDoubleConst()
     unordered_map_string_double_const = m.UnorderedMapStringDoubleConst()
 
-    assert map_string_double.keys().__class__.__name__ == "KeysView[str]"
-    assert map_string_double.values().__class__.__name__ == "ValuesView[float]"
-    assert map_string_double.items().__class__.__name__ == "ItemsView[str, float]"
+    assert map_string_double.keys().__class__.__name__ == "KeysView"
+    assert map_string_double.values().__class__.__name__ == "ValuesView"
+    assert map_string_double.items().__class__.__name__ == "ItemsView"
 
     keys_type = type(map_string_double.keys())
     assert type(unordered_map_string_double.keys()) is keys_type
@@ -366,3 +356,59 @@ def test_map_view_types():
     assert type(unordered_map_string_double.items()) is items_type
     assert type(map_string_double_const.items()) is items_type
     assert type(unordered_map_string_double_const.items()) is items_type
+
+    map_string_float = m.MapStringFloat()
+    unordered_map_string_float = m.UnorderedMapStringFloat()
+
+    assert type(map_string_float.keys()) is keys_type
+    assert type(unordered_map_string_float.keys()) is keys_type
+    assert type(map_string_float.values()) is values_type
+    assert type(unordered_map_string_float.values()) is values_type
+    assert type(map_string_float.items()) is items_type
+    assert type(unordered_map_string_float.items()) is items_type
+
+    map_pair_double_int_int32 = m.MapPairDoubleIntInt32()
+    map_pair_double_int_int64 = m.MapPairDoubleIntInt64()
+
+    assert type(map_pair_double_int_int32.values()) is values_type
+    assert type(map_pair_double_int_int64.values()) is values_type
+
+    map_int_object = m.MapIntObject()
+    map_string_object = m.MapStringObject()
+
+    assert type(map_int_object.keys()) is keys_type
+    assert type(map_string_object.keys()) is keys_type
+    assert type(map_int_object.items()) is items_type
+    assert type(map_string_object.items()) is items_type
+
+
+def test_recursive_vector():
+    recursive_vector = m.RecursiveVector()
+    recursive_vector.append(m.RecursiveVector())
+    recursive_vector[0].append(m.RecursiveVector())
+    recursive_vector[0].append(m.RecursiveVector())
+    # Can't use len() since test_stl_binders.cpp does not include stl.h,
+    # so the necessary conversion is missing
+    assert recursive_vector[0].count(m.RecursiveVector()) == 2
+
+
+def test_recursive_map():
+    recursive_map = m.RecursiveMap()
+    recursive_map[100] = m.RecursiveMap()
+    recursive_map[100][101] = m.RecursiveMap()
+    recursive_map[100][102] = m.RecursiveMap()
+    assert list(recursive_map[100].keys()) == [101, 102]
+
+
+def test_user_vector_like():
+    vec = m.UserVectorLike()
+    vec.append(2)
+    assert vec[0] == 2
+    assert len(vec) == 1
+
+
+def test_user_like_map():
+    map = m.UserMapLike()
+    map[33] = 44
+    assert map[33] == 44
+    assert len(map) == 1

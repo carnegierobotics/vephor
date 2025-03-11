@@ -1,33 +1,4 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
 
 import contextlib
 import os
@@ -38,7 +9,6 @@ import tarfile
 import zipfile
 
 # These tests must be run explicitly
-# They require CMake 3.15+ (--install)
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 MAIN_DIR = os.path.dirname(os.path.dirname(DIR))
@@ -66,6 +36,7 @@ main_headers = {
     "include/pybind11/eval.h",
     "include/pybind11/functional.h",
     "include/pybind11/gil.h",
+    "include/pybind11/gil_safe_call_once.h",
     "include/pybind11/iostream.h",
     "include/pybind11/numpy.h",
     "include/pybind11/operators.h",
@@ -74,19 +45,37 @@ main_headers = {
     "include/pybind11/pytypes.h",
     "include/pybind11/stl.h",
     "include/pybind11/stl_bind.h",
+    "include/pybind11/trampoline_self_life_support.h",
+    "include/pybind11/type_caster_pyobject_ptr.h",
+    "include/pybind11/typing.h",
+    "include/pybind11/warnings.h",
+}
+
+conduit_headers = {
+    "include/pybind11/conduit/README.txt",
+    "include/pybind11/conduit/pybind11_conduit_v1.h",
+    "include/pybind11/conduit/pybind11_platform_abi_id.h",
+    "include/pybind11/conduit/wrap_include_python_h.h",
 }
 
 detail_headers = {
     "include/pybind11/detail/class.h",
     "include/pybind11/detail/common.h",
+    "include/pybind11/detail/cpp_conduit.h",
     "include/pybind11/detail/descr.h",
+    "include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
+    "include/pybind11/detail/struct_smart_holder.h",
     "include/pybind11/detail/type_caster_base.h",
     "include/pybind11/detail/typeid.h",
+    "include/pybind11/detail/using_smart_holder.h",
+    "include/pybind11/detail/value_and_holder.h",
+    "include/pybind11/detail/exception_translation.h",
 }
 
 eigen_headers = {
+    "include/pybind11/eigen/common.h",
     "include/pybind11/eigen/matrix.h",
     "include/pybind11/eigen/tensor.h",
 }
@@ -100,6 +89,7 @@ cmake_files = {
     "share/cmake/pybind11/pybind11Common.cmake",
     "share/cmake/pybind11/pybind11Config.cmake",
     "share/cmake/pybind11/pybind11ConfigVersion.cmake",
+    "share/cmake/pybind11/pybind11GuessPythonExtSuffix.cmake",
     "share/cmake/pybind11/pybind11NewTools.cmake",
     "share/cmake/pybind11/pybind11Targets.cmake",
     "share/cmake/pybind11/pybind11Tools.cmake",
@@ -116,9 +106,11 @@ py_files = {
     "commands.py",
     "py.typed",
     "setup_helpers.py",
+    "share/__init__.py",
+    "share/pkgconfig/__init__.py",
 }
 
-headers = main_headers | detail_headers | eigen_headers | stl_headers
+headers = main_headers | conduit_headers | detail_headers | eigen_headers | stl_headers
 src_files = headers | cmake_files | pkgconfig_files
 all_files = src_files | py_files
 
@@ -127,6 +119,7 @@ sdist_files = {
     "pybind11",
     "pybind11/include",
     "pybind11/include/pybind11",
+    "pybind11/include/pybind11/conduit",
     "pybind11/include/pybind11/detail",
     "pybind11/include/pybind11/eigen",
     "pybind11/include/pybind11/stl",
@@ -141,6 +134,7 @@ sdist_files = {
     "MANIFEST.in",
     "README.rst",
     "PKG-INFO",
+    "SECURITY.md",
 }
 
 local_sdist_files = {
@@ -166,7 +160,6 @@ def normalize_line_endings(value: bytes) -> bytes:
 
 
 def test_build_sdist(monkeypatch, tmpdir):
-
     monkeypatch.chdir(MAIN_DIR)
 
     subprocess.run(
@@ -217,7 +210,6 @@ def test_build_sdist(monkeypatch, tmpdir):
 
 
 def test_build_global_dist(monkeypatch, tmpdir):
-
     monkeypatch.chdir(MAIN_DIR)
     monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
     subprocess.run(

@@ -1,33 +1,6 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
+
+import builtins
 
 import pytest
 
@@ -66,6 +39,9 @@ def test_reference_internal():
     assert str(b.get_a2()) == "A[43]"
     assert str(b.a2) == "A[43]"
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
+
     astats, bstats = ConstructorStats.get(ms.A), ConstructorStats.get(ms.B)
     assert astats.alive() == 2
     assert bstats.alive() == 1
@@ -92,7 +68,6 @@ def test_importing():
     from pybind11_tests.modules import OD
 
     assert OD is OrderedDict
-    assert str(OD([(1, "a"), (2, "b")])) == "OrderedDict([(1, 'a'), (2, 'b')])"
 
 
 def test_pydoc():
@@ -106,6 +81,13 @@ def test_pydoc():
     assert pydoc.text.docmodule(pybind11_tests)
 
 
+def test_module_handle_type_name():
+    assert (
+        m.def_submodule.__doc__
+        == "def_submodule(arg0: types.ModuleType, arg1: str) -> types.ModuleType\n"
+    )
+
+
 def test_duplicate_registration():
     """Registering two things with the same name"""
 
@@ -117,12 +99,7 @@ def test_builtin_key_type():
 
     Previous versions of pybind11 would add a unicode key in python 2.
     """
-    if hasattr(__builtins__, "keys"):
-        keys = __builtins__.keys()
-    else:  # this is to make pypy happy since builtins is different there.
-        keys = __builtins__.__dict__.keys()
-
-    assert {type(k) for k in keys} == {str}
+    assert all(type(k) == str for k in dir(builtins))
 
 
 @pytest.mark.xfail("env.PYPY", reason="PyModule_GetName()")
@@ -130,9 +107,9 @@ def test_def_submodule_failures():
     sm = m.def_submodule(m, b"ScratchSubModuleName")  # Using bytes to show it works.
     assert sm.__name__ == m.__name__ + "." + "ScratchSubModuleName"
     malformed_utf8 = b"\x80"
-    if env.PYPY:
+    if env.PYPY or env.GRAALPY:
         # It is not worth the effort finding a trigger for a failure when running with PyPy.
-        pytest.skip("Sufficiently exercised on platforms other than PyPy.")
+        pytest.skip("Sufficiently exercised on platforms other than PyPy/GraalPy.")
     else:
         # Meant to trigger PyModule_GetName() failure:
         sm_name_orig = sm.__name__

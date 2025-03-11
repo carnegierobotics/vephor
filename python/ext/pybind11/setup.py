@@ -1,37 +1,7 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-
 #!/usr/bin/env python3
 
 # Setup script for PyPI; use CMakeFile.txt to build extension modules
+from __future__ import annotations
 
 import contextlib
 import os
@@ -40,9 +10,9 @@ import shutil
 import string
 import subprocess
 import sys
+from collections.abc import Generator
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, Iterator, List, Union
 
 import setuptools.command.sdist
 
@@ -54,7 +24,7 @@ VERSION_FILE = Path("pybind11/_version.py")
 COMMON_FILE = Path("include/pybind11/detail/common.h")
 
 
-def build_expected_version_hex(matches: Dict[str, str]) -> str:
+def build_expected_version_hex(matches: dict[str, str]) -> str:
     patch_level_serial = matches["PATCH"]
     serial = None
     major = int(matches["MAJOR"])
@@ -95,7 +65,7 @@ to_src = (
 
 
 # Read the listed version
-loc: Dict[str, str] = {}
+loc: dict[str, str] = {}
 code = compile(VERSION_FILE.read_text(encoding="utf-8"), "pybind11/_version.py", "exec")
 exec(code, loc)
 version = loc["__version__"]
@@ -115,9 +85,7 @@ if version_hex != exp_version_hex:
 
 
 # TODO: use literals & overload (typing extensions or Python 3.8)
-def get_and_replace(
-    filename: Path, binary: bool = False, **opts: str
-) -> Union[bytes, str]:
+def get_and_replace(filename: Path, binary: bool = False, **opts: str) -> bytes | str:
     if binary:
         contents = filename.read_bytes()
         return string.Template(contents.decode()).substitute(opts).encode()
@@ -127,8 +95,8 @@ def get_and_replace(
 
 # Use our input files instead when making the SDist (and anything that depends
 # on it, like a wheel)
-class SDist(setuptools.command.sdist.sdist):  # type: ignore[misc]
-    def make_release_tree(self, base_dir: str, files: List[str]) -> None:
+class SDist(setuptools.command.sdist.sdist):
+    def make_release_tree(self, base_dir: str, files: list[str]) -> None:
         super().make_release_tree(base_dir, files)
 
         for to, src in to_src:
@@ -143,7 +111,7 @@ class SDist(setuptools.command.sdist.sdist):  # type: ignore[misc]
 
 # Remove the CMake install directory when done
 @contextlib.contextmanager
-def remove_output(*sources: str) -> Iterator[None]:
+def remove_output(*sources: str) -> Generator[None, None, None]:
     try:
         yield
     finally:
@@ -175,6 +143,10 @@ with remove_output("pybind11/include", "pybind11/share"):
             stdout=sys.stdout,
             stderr=sys.stderr,
         )
+
+    # pkgconf-pypi needs pybind11/share/pkgconfig to be importable
+    Path("pybind11/share/__init__.py").touch()
+    Path("pybind11/share/pkgconfig/__init__.py").touch()
 
     txt = get_and_replace(setup_py, version=version, extra_cmd=extra_cmd)
     code = compile(txt, setup_py, "exec")

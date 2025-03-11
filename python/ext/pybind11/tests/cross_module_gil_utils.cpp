@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 /*
     tests/cross_module_gil_utils.cpp -- tools for acquiring GIL from a different module
 
@@ -102,6 +92,9 @@ extern "C" PYBIND11_EXPORT PyObject *PyInit_cross_module_gil_utils() {
     if (m != nullptr) {
         static_assert(sizeof(&gil_acquire) == sizeof(void *),
                       "Function pointer must have the same size as void*");
+#ifdef Py_GIL_DISABLED
+        PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
+#endif
         ADD_FUNCTION("gil_acquire_funcaddr", gil_acquire)
         ADD_FUNCTION("gil_multi_acquire_release_funcaddr", gil_multi_acquire_release)
         ADD_FUNCTION("gil_acquire_inner_custom_funcaddr",

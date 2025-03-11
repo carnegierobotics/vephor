@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 /*
     tests/test_virtual_functions.cpp -- overriding virtual functions from Python
 
@@ -599,4 +589,4 @@ void initialize_inherited_virtuals(py::module_ &m) {
     // Fix issue #1454 (crash when acquiring/releasing GIL on another thread in Python 2.7)
     m.def("test_gil", &test_gil);
     m.def("test_gil_from_thread", &test_gil_from_thread);
-};
+}

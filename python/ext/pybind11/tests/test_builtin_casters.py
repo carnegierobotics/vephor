@@ -1,33 +1,4 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
 
 import sys
 
@@ -157,8 +128,8 @@ def test_bytes_to_string():
 
     assert m.strlen(b"hi") == 2
     assert m.string_length(b"world") == 5
-    assert m.string_length("a\x00b".encode()) == 3
-    assert m.strlen("a\x00b".encode()) == 1  # C-string limitation
+    assert m.string_length(b"a\x00b") == 3
+    assert m.strlen(b"a\x00b") == 1  # C-string limitation
 
     # passing in a utf8 encoded string should work
     assert m.string_length("💩".encode()) == 4
@@ -326,7 +297,7 @@ def test_int_convert():
     cant_convert(3.14159)
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
     # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
-    if (3, 8) <= sys.version_info < (3, 10) and env.CPYTHON:
+    if sys.version_info < (3, 10) and env.CPYTHON:
         with env.deprecated_call():
             assert convert(Int()) == 42
     else:
@@ -383,7 +354,7 @@ def test_tuple(doc):
     assert (
         doc(m.pair_passthrough)
         == """
-        pair_passthrough(arg0: Tuple[bool, str]) -> Tuple[str, bool]
+        pair_passthrough(arg0: tuple[bool, str]) -> tuple[str, bool]
 
         Return a pair in reversed order
     """
@@ -391,11 +362,13 @@ def test_tuple(doc):
     assert (
         doc(m.tuple_passthrough)
         == """
-        tuple_passthrough(arg0: Tuple[bool, str, int]) -> Tuple[int, str, bool]
+        tuple_passthrough(arg0: tuple[bool, str, int]) -> tuple[int, str, bool]
 
         Return a triple in reversed order
     """
     )
+
+    assert doc(m.empty_tuple) == """empty_tuple() -> tuple[()]"""
 
     assert m.rvalue_pair() == ("rvalue", "rvalue")
     assert m.lvalue_pair() == ("lvalue", "lvalue")
@@ -452,13 +425,15 @@ def test_reference_wrapper():
     a2 = m.refwrap_list(copy=True)
     assert [x.value for x in a1] == [2, 3]
     assert [x.value for x in a2] == [2, 3]
-    assert not a1[0] is a2[0] and not a1[1] is a2[1]
+    assert a1[0] is not a2[0]
+    assert a1[1] is not a2[1]
 
     b1 = m.refwrap_list(copy=False)
     b2 = m.refwrap_list(copy=False)
     assert [x.value for x in b1] == [1, 2]
     assert [x.value for x in b2] == [1, 2]
-    assert b1[0] is b2[0] and b1[1] is b2[1]
+    assert b1[0] is b2[0]
+    assert b1[1] is b2[1]
 
     assert m.refwrap_iiw(IncType(5)) == 5
     assert m.refwrap_call_iiw(IncType(10), m.refwrap_iiw) == [10, 10, 10, 10]

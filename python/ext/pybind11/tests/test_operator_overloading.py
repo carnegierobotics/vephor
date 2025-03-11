@@ -1,40 +1,13 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
 
 import pytest
 
+import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import operators as m
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_operator_overloading():
     v1 = m.Vector2(1, 2)
     v2 = m.Vector(3, -1)
@@ -78,6 +51,9 @@ def test_operator_overloading():
     v2 /= v1
     assert str(v2) == "[2.000000, 8.000000]"
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
+
     cstats = ConstructorStats.get(m.Vector2)
     assert cstats.alive() == 3
     del v1
@@ -112,6 +88,7 @@ def test_operator_overloading():
     assert cstats.move_assignments == 0
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_operators_notimplemented():
     """#393: need to return NotSupported to ensure correct arithmetic operator behavior"""
 
@@ -161,7 +138,6 @@ def test_nested():
 
 
 def test_overriding_eq_reset_hash():
-
     assert m.Comparable(15) is not m.Comparable(15)
     assert m.Comparable(15) == m.Comparable(15)
 

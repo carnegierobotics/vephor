@@ -1,36 +1,8 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
 
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import ConstructorStats
 
 np = pytest.importorskip("numpy")
@@ -123,19 +95,20 @@ def test_mutator_descriptors():
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_r(zc)
     assert (
-        "(arg0: numpy.ndarray[numpy.float32[5, 6],"
-        " flags.writeable, flags.c_contiguous]) -> None" in str(excinfo.value)
+        '(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[5, 6]",'
+        ' "flags.writeable", "flags.c_contiguous"]) -> None' in str(excinfo.value)
     )
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_c(zr)
     assert (
-        "(arg0: numpy.ndarray[numpy.float32[5, 6],"
-        " flags.writeable, flags.f_contiguous]) -> None" in str(excinfo.value)
+        '(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[5, 6]",'
+        ' "flags.writeable", "flags.f_contiguous"]) -> None' in str(excinfo.value)
     )
     with pytest.raises(TypeError) as excinfo:
         m.fixed_mutator_a(np.array([[1, 2], [3, 4]], dtype="float32"))
-    assert "(arg0: numpy.ndarray[numpy.float32[5, 6], flags.writeable]) -> None" in str(
-        excinfo.value
+    assert (
+        '(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[5, 6]", "flags.writeable"]) -> None'
+        in str(excinfo.value)
     )
     zr.flags.writeable = False
     with pytest.raises(TypeError):
@@ -229,7 +202,7 @@ def test_negative_stride_from_python(msg):
         msg(excinfo.value)
         == """
         double_threer(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: numpy.ndarray[numpy.float32[1, 3], flags.writeable]) -> None
+            1. (arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[1, 3]", "flags.writeable"]) -> None
 
         Invoked with: """
         + repr(np.array([5.0, 4.0, 3.0], dtype="float32"))
@@ -241,7 +214,7 @@ def test_negative_stride_from_python(msg):
         msg(excinfo.value)
         == """
         double_threec(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: numpy.ndarray[numpy.float32[3, 1], flags.writeable]) -> None
+            1. (arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]", "flags.writeable"]) -> None
 
         Invoked with: """
         + repr(np.array([7.0, 4.0, 1.0], dtype="float32"))
@@ -272,9 +245,9 @@ def test_eigen_ref_to_python():
     chols = [m.cholesky1, m.cholesky2, m.cholesky3, m.cholesky4]
     for i, chol in enumerate(chols, start=1):
         mymat = chol(np.array([[1.0, 2, 4], [2, 13, 23], [4, 23, 77]]))
-        assert np.all(
-            mymat == np.array([[1, 0, 0], [2, 3, 0], [4, 5, 6]])
-        ), f"cholesky{i}"
+        assert np.all(mymat == np.array([[1, 0, 0], [2, 3, 0], [4, 5, 6]])), (
+            f"cholesky{i}"
+        )
 
 
 def assign_both(a1, a2, r, c, v):
@@ -294,79 +267,96 @@ def test_eigen_return_references():
     primary = np.ones((10, 10))
     a = m.ReturnTester()
     a_get1 = a.get()
-    assert not a_get1.flags.owndata and a_get1.flags.writeable
+    assert not a_get1.flags.owndata
+    assert a_get1.flags.writeable
     assign_both(a_get1, primary, 3, 3, 5)
     a_get2 = a.get_ptr()
-    assert not a_get2.flags.owndata and a_get2.flags.writeable
+    assert not a_get2.flags.owndata
+    assert a_get2.flags.writeable
     assign_both(a_get1, primary, 2, 3, 6)
 
     a_view1 = a.view()
-    assert not a_view1.flags.owndata and not a_view1.flags.writeable
+    assert not a_view1.flags.owndata
+    assert not a_view1.flags.writeable
     with pytest.raises(ValueError):
         a_view1[2, 3] = 4
     a_view2 = a.view_ptr()
-    assert not a_view2.flags.owndata and not a_view2.flags.writeable
+    assert not a_view2.flags.owndata
+    assert not a_view2.flags.writeable
     with pytest.raises(ValueError):
         a_view2[2, 3] = 4
 
     a_copy1 = a.copy_get()
-    assert a_copy1.flags.owndata and a_copy1.flags.writeable
+    assert a_copy1.flags.owndata
+    assert a_copy1.flags.writeable
     np.testing.assert_array_equal(a_copy1, primary)
     a_copy1[7, 7] = -44  # Shouldn't affect anything else
     c1want = array_copy_but_one(primary, 7, 7, -44)
     a_copy2 = a.copy_view()
-    assert a_copy2.flags.owndata and a_copy2.flags.writeable
+    assert a_copy2.flags.owndata
+    assert a_copy2.flags.writeable
     np.testing.assert_array_equal(a_copy2, primary)
     a_copy2[4, 4] = -22  # Shouldn't affect anything else
     c2want = array_copy_but_one(primary, 4, 4, -22)
 
     a_ref1 = a.ref()
-    assert not a_ref1.flags.owndata and a_ref1.flags.writeable
+    assert not a_ref1.flags.owndata
+    assert a_ref1.flags.writeable
     assign_both(a_ref1, primary, 1, 1, 15)
     a_ref2 = a.ref_const()
-    assert not a_ref2.flags.owndata and not a_ref2.flags.writeable
+    assert not a_ref2.flags.owndata
+    assert not a_ref2.flags.writeable
     with pytest.raises(ValueError):
         a_ref2[5, 5] = 33
     a_ref3 = a.ref_safe()
-    assert not a_ref3.flags.owndata and a_ref3.flags.writeable
+    assert not a_ref3.flags.owndata
+    assert a_ref3.flags.writeable
     assign_both(a_ref3, primary, 0, 7, 99)
     a_ref4 = a.ref_const_safe()
-    assert not a_ref4.flags.owndata and not a_ref4.flags.writeable
+    assert not a_ref4.flags.owndata
+    assert not a_ref4.flags.writeable
     with pytest.raises(ValueError):
         a_ref4[7, 0] = 987654321
 
     a_copy3 = a.copy_ref()
-    assert a_copy3.flags.owndata and a_copy3.flags.writeable
+    assert a_copy3.flags.owndata
+    assert a_copy3.flags.writeable
     np.testing.assert_array_equal(a_copy3, primary)
     a_copy3[8, 1] = 11
     c3want = array_copy_but_one(primary, 8, 1, 11)
     a_copy4 = a.copy_ref_const()
-    assert a_copy4.flags.owndata and a_copy4.flags.writeable
+    assert a_copy4.flags.owndata
+    assert a_copy4.flags.writeable
     np.testing.assert_array_equal(a_copy4, primary)
     a_copy4[8, 4] = 88
     c4want = array_copy_but_one(primary, 8, 4, 88)
 
     a_block1 = a.block(3, 3, 2, 2)
-    assert not a_block1.flags.owndata and a_block1.flags.writeable
+    assert not a_block1.flags.owndata
+    assert a_block1.flags.writeable
     a_block1[0, 0] = 55
     primary[3, 3] = 55
     a_block2 = a.block_safe(2, 2, 3, 2)
-    assert not a_block2.flags.owndata and a_block2.flags.writeable
+    assert not a_block2.flags.owndata
+    assert a_block2.flags.writeable
     a_block2[2, 1] = -123
     primary[4, 3] = -123
     a_block3 = a.block_const(6, 7, 4, 3)
-    assert not a_block3.flags.owndata and not a_block3.flags.writeable
+    assert not a_block3.flags.owndata
+    assert not a_block3.flags.writeable
     with pytest.raises(ValueError):
         a_block3[2, 2] = -44444
 
     a_copy5 = a.copy_block(2, 2, 2, 3)
-    assert a_copy5.flags.owndata and a_copy5.flags.writeable
+    assert a_copy5.flags.owndata
+    assert a_copy5.flags.writeable
     np.testing.assert_array_equal(a_copy5, primary[2:4, 2:5])
     a_copy5[1, 1] = 777
     c5want = array_copy_but_one(primary[2:4, 2:5], 1, 1, 777)
 
     a_corn1 = a.corners()
-    assert not a_corn1.flags.owndata and a_corn1.flags.writeable
+    assert not a_corn1.flags.owndata
+    assert a_corn1.flags.writeable
     a_corn1 *= 50
     a_corn1[1, 1] = 999
     primary[0, 0] = 50
@@ -374,7 +364,8 @@ def test_eigen_return_references():
     primary[9, 0] = 50
     primary[9, 9] = 999
     a_corn2 = a.corners_const()
-    assert not a_corn2.flags.owndata and not a_corn2.flags.writeable
+    assert not a_corn2.flags.owndata
+    assert not a_corn2.flags.writeable
     with pytest.raises(ValueError):
         a_corn2[1, 0] = 51
 
@@ -405,6 +396,7 @@ def test_eigen_return_references():
     np.testing.assert_array_equal(a_copy5, c5want)
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def assert_keeps_alive(cl, method, *args):
     cstats = ConstructorStats.get(cl)
     start_with = cstats.alive()
@@ -420,6 +412,7 @@ def assert_keeps_alive(cl, method, *args):
     assert cstats.alive() == start_with
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_eigen_keepalive():
     a = m.ReturnTester()
     cstats = ConstructorStats.get(m.ReturnTester)
@@ -534,10 +527,14 @@ def test_numpy_ref_mutators():
 
     assert [zc[1, 2], zcro[1, 2], zr[1, 2], zrro[1, 2]] == [23] * 4
 
-    assert not zc.flags.owndata and zc.flags.writeable
-    assert not zr.flags.owndata and zr.flags.writeable
-    assert not zcro.flags.owndata and not zcro.flags.writeable
-    assert not zrro.flags.owndata and not zrro.flags.writeable
+    assert not zc.flags.owndata
+    assert zc.flags.writeable
+    assert not zr.flags.owndata
+    assert zr.flags.writeable
+    assert not zcro.flags.owndata
+    assert not zcro.flags.writeable
+    assert not zrro.flags.owndata
+    assert not zrro.flags.writeable
 
     zc[1, 2] = 99
     expect = np.array([[11.0, 12, 13], [21, 22, 99], [31, 32, 33]])
@@ -561,7 +558,8 @@ def test_numpy_ref_mutators():
     # the const should drop away)
     y1 = np.array(m.get_cm_const_ref())
 
-    assert y1.flags.owndata and y1.flags.writeable
+    assert y1.flags.owndata
+    assert y1.flags.writeable
     # We should get copies of the eigen data, which was modified above:
     assert y1[1, 2] == 99
     y1[1, 2] += 12
@@ -616,7 +614,9 @@ def test_both_ref_mutators():
 def test_nocopy_wrapper():
     # get_elem requires a column-contiguous matrix reference, but should be
     # callable with other types of matrix (via copying):
-    int_matrix_colmajor = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], order="F")
+    int_matrix_colmajor = np.array(
+        [[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype="l", order="F"
+    )
     dbl_matrix_colmajor = np.array(
         int_matrix_colmajor, dtype="double", order="F", copy=True
     )
@@ -634,38 +634,38 @@ def test_nocopy_wrapper():
     # All but the second should fail with m.get_elem_nocopy:
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(int_matrix_colmajor)
-    assert "get_elem_nocopy(): incompatible function arguments." in str(
-        excinfo.value
-    ) and ", flags.f_contiguous" in str(excinfo.value)
+    assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
+    assert ', "flags.f_contiguous"' in str(excinfo.value)
     assert m.get_elem_nocopy(dbl_matrix_colmajor) == 8
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(int_matrix_rowmajor)
-    assert "get_elem_nocopy(): incompatible function arguments." in str(
-        excinfo.value
-    ) and ", flags.f_contiguous" in str(excinfo.value)
+    assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
+    assert ', "flags.f_contiguous"' in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_nocopy(dbl_matrix_rowmajor)
-    assert "get_elem_nocopy(): incompatible function arguments." in str(
-        excinfo.value
-    ) and ", flags.f_contiguous" in str(excinfo.value)
+    assert "get_elem_nocopy(): incompatible function arguments." in str(excinfo.value)
+    assert ', "flags.f_contiguous"' in str(excinfo.value)
 
     # For the row-major test, we take a long matrix in row-major, so only the third is allowed:
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_rm_nocopy(int_matrix_colmajor)
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
-    ) and ", flags.c_contiguous" in str(excinfo.value)
+    )
+    assert ', "flags.c_contiguous"' in str(excinfo.value)
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_rm_nocopy(dbl_matrix_colmajor)
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
-    ) and ", flags.c_contiguous" in str(excinfo.value)
+    )
+    assert ', "flags.c_contiguous"' in str(excinfo.value)
     assert m.get_elem_rm_nocopy(int_matrix_rowmajor) == 8
     with pytest.raises(TypeError) as excinfo:
         m.get_elem_rm_nocopy(dbl_matrix_rowmajor)
     assert "get_elem_rm_nocopy(): incompatible function arguments." in str(
         excinfo.value
-    ) and ", flags.c_contiguous" in str(excinfo.value)
+    )
+    assert ', "flags.c_contiguous"' in str(excinfo.value)
 
 
 def test_eigen_ref_life_support():
@@ -701,27 +701,32 @@ def test_dense_signature(doc):
     assert (
         doc(m.double_col)
         == """
-        double_col(arg0: numpy.ndarray[numpy.float32[m, 1]]) -> numpy.ndarray[numpy.float32[m, 1]]
+        double_col(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]
     """
     )
     assert (
         doc(m.double_row)
         == """
-        double_row(arg0: numpy.ndarray[numpy.float32[1, n]]) -> numpy.ndarray[numpy.float32[1, n]]
+        double_row(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[1, n]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[1, n]"]
     """
     )
     assert doc(m.double_complex) == (
         """
-        double_complex(arg0: numpy.ndarray[numpy.complex64[m, 1]])"""
-        """ -> numpy.ndarray[numpy.complex64[m, 1]]
+        double_complex(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.complex64, "[m, 1]"])"""
+        """ -> typing.Annotated[numpy.typing.NDArray[numpy.complex64], "[m, 1]"]
     """
     )
     assert doc(m.double_mat_rm) == (
         """
-        double_mat_rm(arg0: numpy.ndarray[numpy.float32[m, n]])"""
-        """ -> numpy.ndarray[numpy.float32[m, n]]
+        double_mat_rm(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"])"""
+        """ -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]
     """
     )
+
+
+def test_defaults(doc):
+    assert "\n" not in str(doc(m.defaults_mat))
+    assert "\n" not in str(doc(m.defaults_vec))
 
 
 def test_named_arguments():
@@ -813,3 +818,22 @@ def test_custom_operator_new():
     o = m.CustomOperatorNew()
     np.testing.assert_allclose(o.a, 0.0)
     np.testing.assert_allclose(o.b.diagonal(), 1.0)
+
+
+def test_arraylike_signature(doc):
+    assert doc(m.round_trip_vector) == (
+        'round_trip_vector(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"])'
+        ' -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]'
+    )
+    assert doc(m.round_trip_dense) == (
+        'round_trip_dense(arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"])'
+        ' -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]'
+    )
+    assert doc(m.round_trip_dense_ref) == (
+        'round_trip_dense_ref(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]", "flags.writeable", "flags.c_contiguous"])'
+        ' -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]", "flags.writeable", "flags.c_contiguous"]'
+    )
+    m.round_trip_vector([1.0, 2.0])
+    m.round_trip_dense([[1.0, 2.0], [3.0, 4.0]])
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.round_trip_dense_ref([[1.0, 2.0], [3.0, 4.0]])

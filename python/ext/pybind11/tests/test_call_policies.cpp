@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 /*
     tests/test_call_policies.cpp -- keep_alive and call_guard
 
@@ -73,10 +63,8 @@ TEST_SUBMODULE(call_policies, m) {
         .def("returnNullChildKeepAliveParent", &Parent::returnNullChild, py::keep_alive<0, 1>())
         .def_static("staticFunction", &Parent::staticFunction, py::keep_alive<1, 0>());
 
-    m.def(
-        "free_function", [](Parent *, Child *) {}, py::keep_alive<1, 2>());
-    m.def(
-        "invalid_arg_index", [] {}, py::keep_alive<0, 1>());
+    m.def("free_function", [](Parent *, Child *) {}, py::keep_alive<1, 2>());
+    m.def("invalid_arg_index", [] {}, py::keep_alive<0, 1>());
 
 #if !defined(PYPY_VERSION)
     // test_alive_gc
@@ -107,8 +95,8 @@ TEST_SUBMODULE(call_policies, m) {
         },
         py::call_guard<DependentGuard, CustomGuard>());
 
-#if defined(WITH_THREAD) && !defined(PYPY_VERSION)
-    // `py::call_guard<py::gil_scoped_release>()` should work in PyPy as well,
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
+    // `py::call_guard<py::gil_scoped_release>()` should work in PyPy/GraalPy as well,
     // but it's unclear how to test it without `PyGILState_GetThisThreadState`.
     auto report_gil_status = []() {
         auto is_gil_held = false;

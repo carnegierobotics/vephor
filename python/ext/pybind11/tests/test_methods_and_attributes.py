@@ -1,39 +1,10 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
 
 import sys
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import methods_and_attributes as m
 
@@ -46,6 +17,13 @@ NO_SETTER_MSG = (
 NO_DELETER_MSG = (
     "can't delete attribute" if sys.version_info < (3, 11) else "object has no deleter"
 )
+
+
+def test_self_only_pos_only():
+    assert (
+        m.ExampleMandA.__str__.__doc__
+        == "__str__(self: pybind11_tests.methods_and_attributes.ExampleMandA, /) -> str\n"
+    )
 
 
 def test_methods_and_attributes():
@@ -96,6 +74,9 @@ def test_methods_and_attributes():
     assert instance1.value == 320
     instance1.value = 100
     assert str(instance1) == "ExampleMandA[value=100]"
+
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
 
     cstats = ConstructorStats.get(m.ExampleMandA)
     assert cstats.alive() == 2
@@ -214,9 +195,9 @@ def test_static_properties():
 
     # Only static attributes can be deleted
     del m.TestPropertiesOverride.def_readonly_static
+    assert hasattr(m.TestPropertiesOverride, "def_readonly_static")
     assert (
-        hasattr(m.TestPropertiesOverride, "def_readonly_static")
-        and m.TestPropertiesOverride.def_readonly_static
+        m.TestPropertiesOverride.def_readonly_static
         is m.TestProperties.def_readonly_static
     )
     assert "def_readonly_static" not in m.TestPropertiesOverride.__dict__
@@ -263,34 +244,35 @@ def test_no_mixed_overloads():
 
     with pytest.raises(RuntimeError) as excinfo:
         m.ExampleMandA.add_mixed_overloads1()
-    assert str(
-        excinfo.value
-    ) == "overloading a method with both static and instance methods is not supported; " + (
-        "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
-        if not detailed_error_messages_enabled
-        else "error while attempting to bind static method ExampleMandA.overload_mixed1"
-        "(arg0: float) -> str"
+    assert (
+        str(excinfo.value)
+        == "overloading a method with both static and instance methods is not supported; "
+        + (
+            "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
+            if not detailed_error_messages_enabled
+            else "error while attempting to bind static method ExampleMandA.overload_mixed1"
+            "(arg0: float) -> str"
+        )
     )
 
     with pytest.raises(RuntimeError) as excinfo:
         m.ExampleMandA.add_mixed_overloads2()
-    assert str(
-        excinfo.value
-    ) == "overloading a method with both static and instance methods is not supported; " + (
-        "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
-        if not detailed_error_messages_enabled
-        else "error while attempting to bind instance method ExampleMandA.overload_mixed2"
-        "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: int, arg1: int)"
-        " -> str"
+    assert (
+        str(excinfo.value)
+        == "overloading a method with both static and instance methods is not supported; "
+        + (
+            "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
+            if not detailed_error_messages_enabled
+            else "error while attempting to bind instance method ExampleMandA.overload_mixed2"
+            "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: int, arg1: int)"
+            " -> str"
+        )
     )
 
 
 @pytest.mark.parametrize("access", ["ro", "rw", "static_ro", "static_rw"])
 def test_property_return_value_policies(access):
-    if not access.startswith("static"):
-        obj = m.TestPropRVP()
-    else:
-        obj = m.TestPropRVP
+    obj = m.TestPropRVP() if not access.startswith("static") else m.TestPropRVP
 
     ref = getattr(obj, access + "_ref")
     assert ref.value == 1
@@ -344,6 +326,8 @@ def test_dynamic_attributes():
         instance.__dict__ = []
     assert str(excinfo.value) == "__dict__ must be set to a dictionary, not a 'list'"
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
     cstats = ConstructorStats.get(m.DynamicClass)
     assert cstats.alive() == 1
     del instance
@@ -365,6 +349,7 @@ def test_dynamic_attributes():
 
 # https://foss.heptapod.net/pypy/pypy/-/issues/2447
 @pytest.mark.xfail("env.PYPY")
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_cyclic_gc():
     # One object references itself
     instance = m.DynamicClass()
@@ -556,3 +541,12 @@ def test_rvalue_ref_param():
     assert r.func2("1234") == 4
     assert r.func3("12345") == 5
     assert r.func4("123456") == 6
+
+
+def test_is_setter():
+    fld = m.exercise_is_setter.Field()
+    assert fld.int_value == -99
+    setter_return = fld.int_value = 100
+    assert isinstance(setter_return, int)
+    assert setter_return == 100
+    assert fld.int_value == 100

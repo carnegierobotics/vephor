@@ -1,33 +1,4 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
 
 import contextlib
 import sys
@@ -46,7 +17,7 @@ def test_obj_class_name():
     assert m.obj_class_name([]) == "list"
 
 
-def test_handle_from_move_only_type_with_operator_PyObject():  # noqa: N802
+def test_handle_from_move_only_type_with_operator_PyObject():
     assert m.handle_from_move_only_type_with_operator_PyObject_ncnst()
     assert m.handle_from_move_only_type_with_operator_PyObject_const()
 
@@ -64,7 +35,7 @@ def test_iterator(doc):
 
 
 @pytest.mark.parametrize(
-    "pytype, from_iter_func",
+    ("pytype", "from_iter_func"),
     [
         (frozenset, m.get_frozenset_from_iterable),
         (list, m.get_list_from_iterable),
@@ -81,6 +52,11 @@ def test_from_iterable(pytype, from_iter_func):
 
 def test_iterable(doc):
     assert doc(m.get_iterable) == "get_iterable() -> Iterable"
+    lst = [1, 2, 3]
+    i = m.get_first_item_from_iterable(lst)
+    assert i == 1
+    i = m.get_second_item_from_iterable(lst)
+    assert i == 2
 
 
 def test_float(doc):
@@ -91,11 +67,13 @@ def test_list(capture, doc):
     assert m.list_no_args() == []
     assert m.list_ssize_t() == []
     assert m.list_size_t() == []
-    lins = [1, 2]
-    m.list_insert_ssize_t(lins)
-    assert lins == [1, 83, 2]
-    m.list_insert_size_t(lins)
-    assert lins == [1, 83, 2, 57]
+    lst = [1, 2]
+    m.list_insert_ssize_t(lst)
+    assert lst == [1, 83, 2]
+    m.list_insert_size_t(lst)
+    assert lst == [1, 83, 2, 57]
+    m.list_clear(lst)
+    assert lst == []
 
     with capture:
         lst = m.get_list()
@@ -118,7 +96,7 @@ def test_list(capture, doc):
     assert doc(m.print_list) == "print_list(arg0: list) -> None"
 
 
-def test_none(capture, doc):
+def test_none(doc):
     assert doc(m.get_none) == "get_none() -> None"
     assert doc(m.print_none) == "print_none(arg0: None) -> None"
 
@@ -152,7 +130,7 @@ def test_set(capture, doc):
     assert m.anyset_contains({"foo"}, "foo")
 
     assert doc(m.get_set) == "get_set() -> set"
-    assert doc(m.print_anyset) == "print_anyset(arg0: anyset) -> None"
+    assert doc(m.print_anyset) == "print_anyset(arg0: Union[set, frozenset]) -> None"
 
 
 def test_frozenset(capture, doc):
@@ -213,10 +191,10 @@ class CustomContains:
 
 
 @pytest.mark.parametrize(
-    "arg,func",
+    ("arg", "func"),
     [
         (set(), m.anyset_contains),
-        (dict(), m.dict_contains),
+        ({}, m.dict_contains),
         (CustomContains(), m.obj_contains),
     ],
 )
@@ -289,6 +267,7 @@ def test_str(doc):
         m.str_from_std_string_input,
     ],
 )
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
 def test_surrogate_pairs_unicode_error(func):
     input_str = "\ud83d\ude4f".encode("utf-8", "surrogatepass")
     with pytest.raises(UnicodeDecodeError):
@@ -304,7 +283,7 @@ def test_bytes(doc):
     assert doc(m.bytes_from_str) == "bytes_from_str() -> bytes"
 
 
-def test_bytearray(doc):
+def test_bytearray():
     assert m.bytearray_from_char_ssize_t().decode() == "$%"
     assert m.bytearray_from_char_size_t().decode() == "@$!"
     assert m.bytearray_from_string().decode() == "foo"
@@ -347,6 +326,19 @@ def test_capsule(capture):
         == """
         creating capsule
         destructing capsule: 1234
+    """
+    )
+
+    with capture:
+        a = m.return_capsule_with_destructor_3()
+        del a
+        pytest.gc_collect()
+    assert (
+        capture.unordered
+        == """
+        creating capsule
+        destructing capsule: 1233
+        original name: oname
     """
     )
 
@@ -416,7 +408,7 @@ def test_accessors():
     assert d["implicit_list"] == [1, 2, 3]
     assert all(x in TestObject.__dict__ for x in d["implicit_dict"])
 
-    assert m.tuple_accessor(tuple()) == (0, 1, 2)
+    assert m.tuple_accessor(()) == (0, 1, 2)
 
     d = m.accessor_assignment()
     assert d["get"] == 0
@@ -434,6 +426,7 @@ def test_accessor_moves():
         pytest.skip("Not defined: PYBIND11_HANDLE_REF_DEBUG")
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
 def test_constructors():
     """C++ default and converting constructors are equivalent to type calls in Python"""
     types = [bytes, bytearray, str, bool, int, float, tuple, list, dict, set]
@@ -506,7 +499,7 @@ def test_pybind11_str_raw_str():
     assert cvt({}) == "{}"
     assert cvt({3: 4}) == "{3: 4}"
     assert cvt(set()) == "set()"
-    assert cvt({3, 3}) == "{3}"
+    assert cvt({3}) == "{3}"
 
     valid_orig = "Ǳ"
     valid_utf8 = valid_orig.encode("utf-8")
@@ -567,7 +560,7 @@ def test_print(capture):
     assert str(excinfo.value) == "Unable to convert call argument " + (
         "'1' of type 'UnregisteredType' to Python object"
         if detailed_error_messages_enabled
-        else "to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
+        else "'1' to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
     )
 
 
@@ -624,7 +617,7 @@ def test_issue2361():
 
 
 @pytest.mark.parametrize(
-    "method, args, fmt, expected_view",
+    ("method", "args", "fmt", "expected_view"),
     [
         (m.test_memoryview_object, (b"red",), "B", b"red"),
         (m.test_memoryview_buffer_info, (b"green",), "B", b"green"),
@@ -649,7 +642,8 @@ def test_memoryview(method, args, fmt, expected_view):
     ],
 )
 def test_memoryview_refcount(method):
-    buf = b"\x0a\x0b\x0c\x0d"
+    # Avoiding a literal to avoid an immortal object in free-threaded builds
+    buf = "\x0a\x0b\x0c\x0d".encode("ascii")
     ref_before = sys.getrefcount(buf)
     view = method(buf)
     ref_after = sys.getrefcount(buf)
@@ -682,7 +676,7 @@ def test_memoryview_from_memory():
 
 
 def test_builtin_functions():
-    assert m.get_len([i for i in range(42)]) == 42
+    assert m.get_len(list(range(42))) == 42
     with pytest.raises(TypeError) as exc_info:
         m.get_len(i for i in range(42))
     assert str(exc_info.value) in [
@@ -725,8 +719,9 @@ def test_pass_bytes_or_unicode_to_string_types():
             m.pass_to_pybind11_str(malformed_utf8)
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 @pytest.mark.parametrize(
-    "create_weakref, create_weakref_with_callback",
+    ("create_weakref", "create_weakref_with_callback"),
     [
         (m.weakref_from_handle, m.weakref_from_handle_and_function),
         (m.weakref_from_object, m.weakref_from_object_and_function),
@@ -741,7 +736,7 @@ def test_weakref(create_weakref, create_weakref_with_callback):
 
     callback_called = False
 
-    def callback(wr):
+    def callback(_):
         nonlocal callback_called
         callback_called = True
 
@@ -761,7 +756,7 @@ def test_weakref(create_weakref, create_weakref_with_callback):
 
 
 @pytest.mark.parametrize(
-    "create_weakref, has_callback",
+    ("create_weakref", "has_callback"),
     [
         (m.weakref_from_handle, False),
         (m.weakref_from_object, False),
@@ -778,11 +773,11 @@ def test_weakref_err(create_weakref, has_callback):
 
     ob = C()
     # Should raise TypeError on CPython
-    with pytest.raises(TypeError) if not env.PYPY else contextlib.nullcontext():
-        if has_callback:
-            _ = create_weakref(ob, callback)
-        else:
-            _ = create_weakref(ob)
+    cm = pytest.raises(TypeError)
+    if env.PYPY or env.GRAALPY:
+        cm = contextlib.nullcontext()
+    with cm:
+        _ = create_weakref(ob, callback) if has_callback else create_weakref(ob)
 
 
 def test_cpp_iterators():
@@ -845,33 +840,36 @@ def test_populate_obj_str_attrs():
 
 
 @pytest.mark.parametrize(
-    "a,b", [("foo", "bar"), (1, 2), (1.0, 2.0), (list(range(3)), list(range(3, 6)))]
+    ("a", "b"),
+    [("foo", "bar"), (1, 2), (1.0, 2.0), (list(range(3)), list(range(3, 6)))],
 )
 def test_inplace_append(a, b):
     expected = a + b
     assert m.inplace_append(a, b) == expected
 
 
-@pytest.mark.parametrize("a,b", [(3, 2), (3.0, 2.0), (set(range(3)), set(range(2)))])
+@pytest.mark.parametrize(
+    ("a", "b"), [(3, 2), (3.0, 2.0), (set(range(3)), set(range(2)))]
+)
 def test_inplace_subtract(a, b):
     expected = a - b
     assert m.inplace_subtract(a, b) == expected
 
 
-@pytest.mark.parametrize("a,b", [(3, 2), (3.0, 2.0), ([1], 3)])
+@pytest.mark.parametrize(("a", "b"), [(3, 2), (3.0, 2.0), ([1], 3)])
 def test_inplace_multiply(a, b):
     expected = a * b
     assert m.inplace_multiply(a, b) == expected
 
 
-@pytest.mark.parametrize("a,b", [(6, 3), (6.0, 3.0)])
+@pytest.mark.parametrize(("a", "b"), [(6, 3), (6.0, 3.0)])
 def test_inplace_divide(a, b):
     expected = a / b
     assert m.inplace_divide(a, b) == expected
 
 
 @pytest.mark.parametrize(
-    "a,b",
+    ("a", "b"),
     [
         (False, True),
         (
@@ -888,7 +886,7 @@ def test_inplace_or(a, b):
 
 
 @pytest.mark.parametrize(
-    "a,b",
+    ("a", "b"),
     [
         (True, False),
         (
@@ -904,13 +902,428 @@ def test_inplace_and(a, b):
     assert m.inplace_and(a, b) == expected
 
 
-@pytest.mark.parametrize("a,b", [(8, 1), (-3, 2)])
+@pytest.mark.parametrize(("a", "b"), [(8, 1), (-3, 2)])
 def test_inplace_lshift(a, b):
     expected = a << b
     assert m.inplace_lshift(a, b) == expected
 
 
-@pytest.mark.parametrize("a,b", [(8, 1), (-2, 2)])
+@pytest.mark.parametrize(("a", "b"), [(8, 1), (-2, 2)])
 def test_inplace_rshift(a, b):
     expected = a >> b
     assert m.inplace_rshift(a, b) == expected
+
+
+def test_tuple_nonempty_annotations(doc):
+    assert (
+        doc(m.annotate_tuple_float_str)
+        == "annotate_tuple_float_str(arg0: tuple[float, str]) -> None"
+    )
+
+
+def test_tuple_empty_annotations(doc):
+    assert (
+        doc(m.annotate_tuple_empty) == "annotate_tuple_empty(arg0: tuple[()]) -> None"
+    )
+
+
+def test_tuple_variable_length_annotations(doc):
+    assert (
+        doc(m.annotate_tuple_variable_length)
+        == "annotate_tuple_variable_length(arg0: tuple[float, ...]) -> None"
+    )
+
+
+def test_dict_annotations(doc):
+    assert (
+        doc(m.annotate_dict_str_int)
+        == "annotate_dict_str_int(arg0: dict[str, int]) -> None"
+    )
+
+
+def test_list_annotations(doc):
+    assert doc(m.annotate_list_int) == "annotate_list_int(arg0: list[int]) -> None"
+
+
+def test_set_annotations(doc):
+    assert doc(m.annotate_set_str) == "annotate_set_str(arg0: set[str]) -> None"
+
+
+def test_iterable_annotations(doc):
+    assert (
+        doc(m.annotate_iterable_str)
+        == "annotate_iterable_str(arg0: Iterable[str]) -> None"
+    )
+
+
+def test_iterator_annotations(doc):
+    assert (
+        doc(m.annotate_iterator_int)
+        == "annotate_iterator_int(arg0: Iterator[int]) -> None"
+    )
+
+
+def test_fn_annotations(doc):
+    assert (
+        doc(m.annotate_fn)
+        == "annotate_fn(arg0: Callable[[list[str], str], int]) -> None"
+    )
+
+
+def test_fn_return_only(doc):
+    assert (
+        doc(m.annotate_fn_only_return)
+        == "annotate_fn_only_return(arg0: Callable[..., int]) -> None"
+    )
+
+
+def test_type_annotation(doc):
+    assert doc(m.annotate_type) == "annotate_type(arg0: type[int]) -> type"
+
+
+def test_union_annotations(doc):
+    assert (
+        doc(m.annotate_union)
+        == "annotate_union(arg0: list[Union[str, int, object]], arg1: str, arg2: int, arg3: object) -> list[Union[str, int, object]]"
+    )
+
+
+def test_union_typing_only(doc):
+    assert (
+        doc(m.union_typing_only)
+        == "union_typing_only(arg0: list[Union[str]]) -> list[Union[int]]"
+    )
+
+
+def test_union_object_annotations(doc):
+    assert (
+        doc(m.annotate_union_to_object)
+        == "annotate_union_to_object(arg0: Union[int, str]) -> object"
+    )
+
+
+def test_optional_annotations(doc):
+    assert (
+        doc(m.annotate_optional)
+        == "annotate_optional(arg0: list) -> list[Optional[str]]"
+    )
+
+
+def test_type_guard_annotations(doc):
+    assert (
+        doc(m.annotate_type_guard)
+        == "annotate_type_guard(arg0: object) -> TypeGuard[str]"
+    )
+
+
+def test_type_is_annotations(doc):
+    assert doc(m.annotate_type_is) == "annotate_type_is(arg0: object) -> TypeIs[str]"
+
+
+def test_no_return_annotation(doc):
+    assert doc(m.annotate_no_return) == "annotate_no_return() -> NoReturn"
+
+
+def test_never_annotation(doc):
+    assert doc(m.annotate_never) == "annotate_never() -> Never"
+
+
+def test_optional_object_annotations(doc):
+    assert (
+        doc(m.annotate_optional_to_object)
+        == "annotate_optional_to_object(arg0: Optional[int]) -> object"
+    )
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL,
+    reason="C++20 non-type template args feature not available.",
+)
+def test_literal(doc):
+    assert (
+        doc(m.annotate_literal)
+        == 'annotate_literal(arg0: Literal[26, 0x1A, "hello world", b"hello world", u"hello world", True, Color.RED, None]) -> object'
+    )
+    # The characters !, @, %, {, } and -> are used in the signature parser as special characters, but Literal should escape those for the parser to work.
+    assert (
+        doc(m.identity_literal_exclamation)
+        == 'identity_literal_exclamation(arg0: Literal["!"]) -> Literal["!"]'
+    )
+    assert (
+        doc(m.identity_literal_at)
+        == 'identity_literal_at(arg0: Literal["@"]) -> Literal["@"]'
+    )
+    assert (
+        doc(m.identity_literal_percent)
+        == 'identity_literal_percent(arg0: Literal["%"]) -> Literal["%"]'
+    )
+    assert (
+        doc(m.identity_literal_curly_open)
+        == 'identity_literal_curly_open(arg0: Literal["{"]) -> Literal["{"]'
+    )
+    assert (
+        doc(m.identity_literal_curly_close)
+        == 'identity_literal_curly_close(arg0: Literal["}"]) -> Literal["}"]'
+    )
+    assert (
+        doc(m.identity_literal_arrow_with_io_name)
+        == 'identity_literal_arrow_with_io_name(arg0: Literal["->"], arg1: Union[float, int]) -> Literal["->"]'
+    )
+    assert (
+        doc(m.identity_literal_arrow_with_callable)
+        == 'identity_literal_arrow_with_callable(arg0: Callable[[Literal["->"], Union[float, int]], float]) -> Callable[[Literal["->"], Union[float, int]], float]'
+    )
+    assert (
+        doc(m.identity_literal_all_special_chars)
+        == 'identity_literal_all_special_chars(arg0: Literal["!@!!->{%}"]) -> Literal["!@!!->{%}"]'
+    )
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL,
+    reason="C++20 non-type template args feature not available.",
+)
+def test_typevar(doc):
+    assert (
+        doc(m.annotate_generic_containers)
+        == "annotate_generic_containers(arg0: list[T]) -> list[V]"
+    )
+
+    assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
+
+    assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TEST_PYTYPES_HAS_RANGES,
+    reason="<ranges> not available.",
+)
+@pytest.mark.parametrize(
+    ("tested_tuple", "expected"),
+    [((1,), [2]), ((3, 4), [4, 5]), ((7, 8, 9), [8, 9, 10])],
+)
+def test_tuple_ranges(tested_tuple, expected):
+    assert m.tuple_iterator_default_initialization()
+    assert m.transform_tuple_plus_one(tested_tuple) == expected
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TEST_PYTYPES_HAS_RANGES,
+    reason="<ranges> not available.",
+)
+@pytest.mark.parametrize(
+    ("tested_list", "expected"), [([1], [2]), ([3, 4], [4, 5]), ([7, 8, 9], [8, 9, 10])]
+)
+def test_list_ranges(tested_list, expected):
+    assert m.list_iterator_default_initialization()
+    assert m.transform_list_plus_one(tested_list) == expected
+
+
+@pytest.mark.skipif(
+    not m.defined_PYBIND11_TEST_PYTYPES_HAS_RANGES,
+    reason="<ranges> not available.",
+)
+@pytest.mark.parametrize(
+    ("tested_dict", "expected"),
+    [
+        ({1: 2}, [(2, 3)]),
+        ({3: 4, 5: 6}, [(4, 5), (6, 7)]),
+        ({7: 8, 9: 10, 11: 12}, [(8, 9), (10, 11), (12, 13)]),
+    ],
+)
+def test_dict_ranges(tested_dict, expected):
+    assert m.dict_iterator_default_initialization()
+    assert m.transform_dict_plus_one(tested_dict) == expected
+
+
+# https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
+def get_annotations_helper(o):
+    if isinstance(o, type):
+        return o.__dict__.get("__annotations__", None)
+    return getattr(o, "__annotations__", None)
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_module_attribute_types() -> None:
+    module_annotations = get_annotations_helper(m)
+
+    assert module_annotations["list_int"] == "list[int]"
+    assert module_annotations["set_str"] == "set[str]"
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="get_annotations function does not exist until Python3.10",
+)
+def test_get_annotations_compliance() -> None:
+    from inspect import get_annotations
+
+    module_annotations = get_annotations(m)
+
+    assert module_annotations["list_int"] == "list[int]"
+    assert module_annotations["set_str"] == "set[str]"
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_class_attribute_types() -> None:
+    empty_annotations = get_annotations_helper(m.EmptyAnnotationClass)
+    static_annotations = get_annotations_helper(m.Static)
+    instance_annotations = get_annotations_helper(m.Instance)
+
+    assert empty_annotations is None
+    assert static_annotations["x"] == "ClassVar[float]"
+    assert static_annotations["dict_str_int"] == "ClassVar[dict[str, int]]"
+
+    assert m.Static.x == 1.0
+
+    m.Static.x = 3.0
+    static = m.Static()
+    assert static.x == 3.0
+
+    static.dict_str_int["hi"] = 3
+    assert m.Static().dict_str_int == {"hi": 3}
+
+    assert instance_annotations["y"] == "float"
+    instance1 = m.Instance()
+    instance1.y = 4.0
+
+    instance2 = m.Instance()
+    instance2.y = 5.0
+
+    assert instance1.y != instance2.y
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_redeclaration_attr_with_type_hint() -> None:
+    obj = m.Instance()
+    m.attr_with_type_hint_float_x(obj)
+    assert get_annotations_helper(obj)["x"] == "float"
+    with pytest.raises(
+        RuntimeError, match=r'^__annotations__\["x"\] was set already\.$'
+    ):
+        m.attr_with_type_hint_float_x(obj)
+
+
+@pytest.mark.skipif(
+    not m.defined___cpp_inline_variables,
+    reason="C++17 feature __cpp_inline_variables not available.",
+)
+def test_final_annotation() -> None:
+    module_annotations = get_annotations_helper(m)
+    assert module_annotations["CONST_INT"] == "Final[int]"
+
+
+def test_arg_return_type_hints(doc):
+    assert doc(m.half_of_number) == "half_of_number(arg0: Union[float, int]) -> float"
+    assert (
+        doc(m.half_of_number_convert)
+        == "half_of_number_convert(x: Union[float, int]) -> float"
+    )
+    assert (
+        doc(m.half_of_number_noconvert) == "half_of_number_noconvert(x: float) -> float"
+    )
+    assert m.half_of_number(2.0) == 1.0
+    assert m.half_of_number(2) == 1.0
+    assert m.half_of_number(0) == 0
+    assert isinstance(m.half_of_number(0), float)
+    assert not isinstance(m.half_of_number(0), int)
+    # std::vector<T>
+    assert (
+        doc(m.half_of_number_vector)
+        == "half_of_number_vector(arg0: list[Union[float, int]]) -> list[float]"
+    )
+    # Tuple<T, T>
+    assert (
+        doc(m.half_of_number_tuple)
+        == "half_of_number_tuple(arg0: tuple[Union[float, int], Union[float, int]]) -> tuple[float, float]"
+    )
+    # Tuple<T, ...>
+    assert (
+        doc(m.half_of_number_tuple_ellipsis)
+        == "half_of_number_tuple_ellipsis(arg0: tuple[Union[float, int], ...]) -> tuple[float, ...]"
+    )
+    # Dict<K, V>
+    assert (
+        doc(m.half_of_number_dict)
+        == "half_of_number_dict(arg0: dict[str, Union[float, int]]) -> dict[str, float]"
+    )
+    # List<T>
+    assert (
+        doc(m.half_of_number_list)
+        == "half_of_number_list(arg0: list[Union[float, int]]) -> list[float]"
+    )
+    # List<List<T>>
+    assert (
+        doc(m.half_of_number_nested_list)
+        == "half_of_number_nested_list(arg0: list[list[Union[float, int]]]) -> list[list[float]]"
+    )
+    # Set<T>
+    assert (
+        doc(m.identity_set)
+        == "identity_set(arg0: set[Union[float, int]]) -> set[float]"
+    )
+    # Iterable<T>
+    assert (
+        doc(m.identity_iterable)
+        == "identity_iterable(arg0: Iterable[Union[float, int]]) -> Iterable[float]"
+    )
+    # Iterator<T>
+    assert (
+        doc(m.identity_iterator)
+        == "identity_iterator(arg0: Iterator[Union[float, int]]) -> Iterator[float]"
+    )
+    # Callable<R(A)> identity
+    assert (
+        doc(m.identity_callable)
+        == "identity_callable(arg0: Callable[[Union[float, int]], float]) -> Callable[[Union[float, int]], float]"
+    )
+    # Callable<R(...)> identity
+    assert (
+        doc(m.identity_callable_ellipsis)
+        == "identity_callable_ellipsis(arg0: Callable[..., float]) -> Callable[..., float]"
+    )
+    # Nested Callable<R(A)> identity
+    assert (
+        doc(m.identity_nested_callable)
+        == "identity_nested_callable(arg0: Callable[[Callable[[Union[float, int]], float]], Callable[[Union[float, int]], float]]) -> Callable[[Callable[[Union[float, int]], float]], Callable[[Union[float, int]], float]]"
+    )
+    # Callable<R(A)>
+    assert (
+        doc(m.apply_callable)
+        == "apply_callable(arg0: Union[float, int], arg1: Callable[[Union[float, int]], float]) -> float"
+    )
+    # Callable<R(...)>
+    assert (
+        doc(m.apply_callable_ellipsis)
+        == "apply_callable_ellipsis(arg0: Union[float, int], arg1: Callable[..., float]) -> float"
+    )
+    # Union<T1, T2>
+    assert (
+        doc(m.identity_union)
+        == "identity_union(arg0: Union[Union[float, int], str]) -> Union[float, str]"
+    )
+    # Optional<T>
+    assert (
+        doc(m.identity_optional)
+        == "identity_optional(arg0: Optional[Union[float, int]]) -> Optional[float]"
+    )
+    # TypeGuard<T>
+    assert (
+        doc(m.check_type_guard)
+        == "check_type_guard(arg0: list[object]) -> TypeGuard[list[float]]"
+    )
+    # TypeIs<T>
+    assert doc(m.check_type_is) == "check_type_is(arg0: object) -> TypeIs[float]"

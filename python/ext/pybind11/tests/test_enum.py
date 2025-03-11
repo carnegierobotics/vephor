@@ -1,39 +1,15 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+# ruff: noqa: SIM201 SIM300 SIM202
+from __future__ import annotations
+
+import re
 
 import pytest
 
+import env  # noqa: F401
 from pybind11_tests import enums as m
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_unscoped_enum():
     assert str(m.UnscopedEnum.EOne) == "UnscopedEnum.EOne"
     assert str(m.UnscopedEnum.ETwo) == "UnscopedEnum.ETwo"
@@ -89,9 +65,7 @@ Members:
 
   ETwo : Docstring for ETwo
 
-  EThree : Docstring for EThree""".split(
-        "\n"
-    ):
+  EThree : Docstring for EThree""".split("\n"):
         assert docstring_line in m.UnscopedEnum.__doc__
 
     # Unscoped enums will accept ==/!= int comparisons
@@ -223,6 +197,7 @@ def test_implicit_conversion():
     assert repr(x) == "{<EMode.EFirstMode: 1>: 3, <EMode.ESecondMode: 2>: 4}"
 
 
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_binary_operators():
     assert int(m.Flags.Read) == 4
     assert int(m.Flags.Write) == 2
@@ -293,3 +268,66 @@ def test_docstring_signatures():
         for attr in enum_type.__dict__.values():
             # Issue #2623/PR #2637: Add argument names to enum_ methods
             assert "arg0" not in (attr.__doc__ or "")
+
+
+def test_str_signature():
+    for enum_type in [m.ScopedEnum, m.UnscopedEnum]:
+        assert enum_type.__str__.__doc__.startswith("__str__")
+
+
+def test_generated_dunder_methods_pos_only():
+    for enum_type in [m.ScopedEnum, m.UnscopedEnum]:
+        for binary_op in [
+            "__eq__",
+            "__ne__",
+            "__ge__",
+            "__gt__",
+            "__lt__",
+            "__le__",
+            "__and__",
+            "__rand__",
+            # "__or__",  # fail with some compilers (__doc__ = "Return self|value.")
+            # "__ror__",  # fail with some compilers (__doc__ = "Return value|self.")
+            "__xor__",
+            "__rxor__",
+            "__rxor__",
+        ]:
+            method = getattr(enum_type, binary_op, None)
+            if method is not None:
+                assert (
+                    re.match(
+                        rf"^{binary_op}\(self: [\w\.]+, other: [\w\.]+, /\)",
+                        method.__doc__,
+                    )
+                    is not None
+                )
+        for unary_op in [
+            "__int__",
+            "__index__",
+            "__hash__",
+            "__str__",
+            "__repr__",
+        ]:
+            method = getattr(enum_type, unary_op, None)
+            if method is not None:
+                assert (
+                    re.match(
+                        rf"^{unary_op}\(self: [\w\.]+, /\)",
+                        method.__doc__,
+                    )
+                    is not None
+                )
+        assert (
+            re.match(
+                r"^__getstate__\(self: [\w\.]+, /\)",
+                enum_type.__getstate__.__doc__,
+            )
+            is not None
+        )
+        assert (
+            re.match(
+                r"^__setstate__\(self: [\w\.]+, state: [\w\.]+, /\)",
+                enum_type.__setstate__.__doc__,
+            )
+            is not None
+        )

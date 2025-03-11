@@ -34,11 +34,18 @@ The binding code for ``Pet`` looks as follows:
             .def("getName", &Pet::getName);
     }
 
-:class:`class_` creates bindings for a C++ *class* or *struct*-style data
+``py::class_`` creates bindings for a C++ *class* or *struct*-style data
 structure. :func:`init` is a convenience function that takes the types of a
 constructor's parameters as template arguments and wraps the corresponding
-constructor (see the :ref:`custom_constructors` section for details). An
-interactive Python session demonstrating this example is shown below:
+constructor (see the :ref:`custom_constructors` section for details).
+
+.. note::
+
+    Starting with pybind11v3, it is recommended to include `py::smart_holder`
+    in most situations for safety, especially if you plan to support conversions
+    to C++ smart pointers. See :ref:`smart_holder` for more information.
+
+An interactive Python session demonstrating this example is shown below:
 
 .. code-block:: pycon
 
@@ -57,6 +64,16 @@ interactive Python session demonstrating this example is shown below:
 
     Static member functions can be bound in the same way using
     :func:`class_::def_static`.
+
+.. note::
+
+    Binding C++ types in unnamed namespaces (also known as anonymous namespaces)
+    works reliably on many platforms, but not all. The `XFAIL_CONDITION` in
+    tests/test_unnamed_namespace_a.py encodes the currently known conditions.
+    For background see `#4319 <https://github.com/pybind/pybind11/pull/4319>`_.
+    If portability is a concern, it is therefore not recommended to bind C++
+    types in unnamed namespaces. It will be safest to manually pick unique
+    namespace names.
 
 Keyword and default arguments
 =============================
@@ -248,7 +265,7 @@ inheritance relationship:
 
 There are two different ways of indicating a hierarchical relationship to
 pybind11: the first specifies the C++ base class as an extra template
-parameter of the :class:`class_`:
+parameter of the ``py::class_``:
 
 .. code-block:: cpp
 
@@ -262,7 +279,7 @@ parameter of the :class:`class_`:
         .def("bark", &Dog::bark);
 
 Alternatively, we can also assign a name to the previously bound ``Pet``
-:class:`class_` object and reference it when binding the ``Dog`` class:
+``py::class_`` object and reference it when binding the ``Dog`` class:
 
 .. code-block:: cpp
 
@@ -488,7 +505,7 @@ The binding code for this example looks as follows:
 
 
 To ensure that the nested types ``Kind`` and ``Attributes`` are created within the scope of ``Pet``, the
-``pet`` :class:`class_` instance must be supplied to the :class:`enum_` and :class:`class_`
+``pet`` ``py::class_`` instance must be supplied to the :class:`enum_` and ``py::class_``
 constructor. The :func:`enum_::export_values` function exports the enum entries
 into the parent scope, which should be skipped for newer C++11-style strongly
 typed enums.
@@ -539,3 +556,7 @@ The ``name`` property returns the name of the enum value as a unicode string.
            ...
 
     By default, these are omitted to conserve space.
+
+.. warning::
+
+    Contrary to Python customs, enum values from the wrappers should not be compared using ``is``, but with ``==`` (see `#1177 <https://github.com/pybind/pybind11/issues/1177>`_ for background).

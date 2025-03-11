@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 /*
     pybind11/attr.h: Infrastructure for processing custom
     type and function attributes
@@ -35,6 +25,9 @@ struct is_method {
     handle class_;
     explicit is_method(const handle &c) : class_(c) {}
 };
+
+/// Annotation for setters
+struct is_setter {};
 
 /// Annotation for operators
 struct is_operator {};
@@ -87,6 +80,10 @@ struct dynamic_attr {};
 
 /// Annotation which enables the buffer protocol for a type
 struct buffer_protocol {};
+
+/// Annotation which enables releasing the GIL before calling the C++ destructor of wrapped
+/// instances (pybind/pybind11#1446).
+struct release_gil_before_calling_cpp_dtor {};
 
 /// Annotation which requests that a special metaclass is created for a type
 struct metaclass {
@@ -198,8 +195,8 @@ struct argument_record {
 struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
-          is_operator(false), is_method(false), has_args(false), has_kwargs(false),
-          prepend(false) {}
+          is_operator(false), is_method(false), is_setter(false), has_args(false),
+          has_kwargs(false), prepend(false) {}
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -240,6 +237,9 @@ struct function_record {
     /// True if this is a method
     bool is_method : 1;
 
+    /// True if this is a setter
+    bool is_setter : 1;
+
     /// True if the function has a '*args' argument
     bool has_args : 1;
 
@@ -276,7 +276,7 @@ struct function_record {
 struct type_record {
     PYBIND11_NOINLINE type_record()
         : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
-          default_holder(true), module_local(false), is_final(false) {}
+          module_local(false), is_final(false), release_gil_before_calling_cpp_dtor(false) {}
 
     /// Handle to the parent scope
     handle scope;
@@ -326,14 +326,16 @@ struct type_record {
     /// Does the class implement the buffer protocol?
     bool buffer_protocol : 1;
 
-    /// Is the default (unique_ptr) holder type used?
-    bool default_holder : 1;
-
     /// Is the class definition local to the module shared object?
     bool module_local : 1;
 
     /// Is the class inheritable from python classes?
     bool is_final : 1;
+
+    /// Solves pybind/pybind11#1446
+    bool release_gil_before_calling_cpp_dtor : 1;
+
+    holder_enum_t holder_enum_v = holder_enum_t::undefined;
 
     PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *) ) {
         auto *base_info = detail::get_type_info(base, false);
@@ -344,18 +346,22 @@ struct type_record {
                           + "\" referenced unknown base type \"" + tname + "\"");
         }
 
-        if (default_holder != base_info->default_holder) {
+        // SMART_HOLDER_BAKEIN_FOLLOW_ON: Refine holder compatibility checks.
+        bool this_has_unique_ptr_holder = (holder_enum_v == holder_enum_t::std_unique_ptr);
+        bool base_has_unique_ptr_holder
+            = (base_info->holder_enum_v == holder_enum_t::std_unique_ptr);
+        if (this_has_unique_ptr_holder != base_has_unique_ptr_holder) {
             std::string tname(base.name());
             detail::clean_type_id(tname);
             pybind11_fail("generic_type: type \"" + std::string(name) + "\" "
-                          + (default_holder ? "does not have" : "has")
+                          + (this_has_unique_ptr_holder ? "does not have" : "has")
                           + " a non-default holder type while its base \"" + tname + "\" "
-                          + (base_info->default_holder ? "does not" : "does"));
+                          + (base_has_unique_ptr_holder ? "does not" : "does"));
         }
 
         bases.append((PyObject *) base_info->type);
 
-#if PY_VERSION_HEX < 0x030B0000
+#ifdef PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
         dynamic_attr |= base_info->type->tp_dictoffset != 0;
 #else
         dynamic_attr |= (base_info->type->tp_flags & Py_TPFLAGS_MANAGED_DICT) != 0;
@@ -434,6 +440,12 @@ struct process_attribute<is_method> : process_attribute_default<is_method> {
         r->is_method = true;
         r->scope = s.class_;
     }
+};
+
+/// Process an attribute which indicates that this function is a setter
+template <>
+struct process_attribute<is_setter> : process_attribute_default<is_setter> {
+    static void init(const is_setter &, function_record *r) { r->is_setter = true; }
 };
 
 /// Process an attribute which indicates the parent scope of a method
@@ -599,6 +611,14 @@ struct process_attribute<metaclass> : process_attribute_default<metaclass> {
 template <>
 struct process_attribute<module_local> : process_attribute_default<module_local> {
     static void init(const module_local &l, type_record *r) { r->module_local = l.value; }
+};
+
+template <>
+struct process_attribute<release_gil_before_calling_cpp_dtor>
+    : process_attribute_default<release_gil_before_calling_cpp_dtor> {
+    static void init(const release_gil_before_calling_cpp_dtor &, type_record *r) {
+        r->release_gil_before_calling_cpp_dtor = true;
+    }
 };
 
 /// Process a 'prepend' attribute, putting this at the beginning of the overload chain

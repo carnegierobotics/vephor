@@ -1,37 +1,10 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
+
+import sys
 
 import pytest
 
-import env  # noqa: F401
+import env
 
 m = pytest.importorskip("pybind11_tests.virtual_functions")
 from pybind11_tests import ConstructorStats  # noqa: E402
@@ -109,6 +82,9 @@ def test_override(capture, msg):
     """
     )
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
+
     cstats = ConstructorStats.get(m.ExampleVirt)
     assert cstats.alive() == 3
     del ex12, ex12p, ex12p2
@@ -118,6 +94,7 @@ def test_override(capture, msg):
     assert cstats.move_constructions >= 0
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_alias_delay_initialization1(capture):
     """`A` only initializes its trampoline class when we inherit from it
 
@@ -157,6 +134,7 @@ def test_alias_delay_initialization1(capture):
     )
 
 
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_alias_delay_initialization2(capture):
     """`A2`, unlike the above, is configured to always initialize the alias
 
@@ -215,7 +193,7 @@ def test_alias_delay_initialization2(capture):
 
 # PyPy: Reference count > 1 causes call with noncopyable instance
 # to fail in ncv1.print_nc()
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.xfail("env.PYPY or env.GRAALPY")
 @pytest.mark.skipif(
     not hasattr(m, "NCVirt"), reason="NCVirt does not work on Intel/PGI/NVCC compilers"
 )
@@ -223,8 +201,7 @@ def test_move_support():
     class NCVirtExt(m.NCVirt):
         def get_noncopyable(self, a, b):
             # Constructs and returns a new instance:
-            nc = m.NonCopyable(a * a, b * b)
-            return nc
+            return m.NonCopyable(a * a, b * b)
 
         def get_movable(self, a, b):
             # Return a referenced copy
@@ -287,7 +264,7 @@ def test_dispatch_issue(msg):
     assert m.dispatch_issue_go(b) == "Yay.."
 
 
-def test_recursive_dispatch_issue(msg):
+def test_recursive_dispatch_issue():
     """#3357: Recursive dispatch fails to find python function override"""
 
     class Data(m.Data):
@@ -300,7 +277,7 @@ def test_recursive_dispatch_issue(msg):
             # lambda is a workaround, which adds extra frame to the
             # current CPython thread. Removing lambda reveals the bug
             # [https://github.com/pybind/pybind11/issues/3357]
-            (lambda: visitor(Data(first.value + second.value)))()
+            (lambda: visitor(Data(first.value + second.value)))()  # noqa: PLC3002
 
     class StoreResultVisitor:
         def __init__(self):
@@ -465,6 +442,7 @@ def test_inherited_virtuals():
     assert obj.say_everything() == "BT -7"
 
 
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_issue_1454():
     # Fix issue #1454 (crash when acquiring/releasing GIL on another thread in Python 2.7)
     m.test_gil()

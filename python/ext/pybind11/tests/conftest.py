@@ -1,46 +1,17 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-
 """pytest configuration
 
 Extends output capture as needed by pybind11: ignore constructors, optional unordered lines.
 Adds docstring and exceptions message sanitizers.
 """
 
+from __future__ import annotations
+
 import contextlib
 import difflib
 import gc
 import multiprocessing
-import os
 import re
+import sys
 import textwrap
 import traceback
 
@@ -56,8 +27,9 @@ except Exception:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def always_forkserver_on_unix():
-    if os.name == "nt":
+def use_multiprocessing_forkserver_on_linux():
+    if sys.platform != "linux" or sys.implementation.name == "graalpy":
+        # The default on Windows, macOS and GraalPy is "spawn": If it's not broken, don't fix it.
         return
 
     # Full background: https://github.com/pybind/pybind11/issues/4105#issuecomment-1301004592
@@ -65,8 +37,6 @@ def always_forkserver_on_unix():
     # It is actually a well-known pitfall, unfortunately without guard rails.
     # "forkserver" is more performant than "spawn" (~9s vs ~13s for tests/test_gil_scoped.py,
     # visit the issuecomment link above for details).
-    # Windows does not have fork() and the associated pitfall, therefore it is best left
-    # running with defaults.
     multiprocessing.set_start_method("forkserver")
 
 
@@ -114,9 +84,8 @@ class Output:
         b = _strip_and_dedent(other).splitlines()
         if a == b:
             return True
-        else:
-            self.explanation = _make_explanation(a, b)
-            return False
+        self.explanation = _make_explanation(a, b)
+        return False
 
 
 class Unordered(Output):
@@ -127,9 +96,8 @@ class Unordered(Output):
         b = _split_and_sort(other)
         if a == b:
             return True
-        else:
-            self.explanation = _make_explanation(a, b)
-            return False
+        self.explanation = _make_explanation(a, b)
+        return False
 
 
 class Capture:
@@ -150,9 +118,8 @@ class Capture:
         b = other
         if a == b:
             return True
-        else:
-            self.explanation = a.explanation
-            return False
+        self.explanation = a.explanation
+        return False
 
     def __str__(self):
         return self.out
@@ -190,22 +157,19 @@ class SanitizedString:
         b = _strip_and_dedent(other)
         if a == b:
             return True
-        else:
-            self.explanation = _make_explanation(a.splitlines(), b.splitlines())
-            return False
+        self.explanation = _make_explanation(a.splitlines(), b.splitlines())
+        return False
 
 
 def _sanitize_general(s):
     s = s.strip()
     s = s.replace("pybind11_tests.", "m.")
-    s = _long_marker.sub(r"\1", s)
-    return s
+    return _long_marker.sub(r"\1", s)
 
 
 def _sanitize_docstring(thing):
     s = thing.__doc__
-    s = _sanitize_general(s)
-    return s
+    return _sanitize_general(s)
 
 
 @pytest.fixture
@@ -217,8 +181,7 @@ def doc():
 def _sanitize_message(thing):
     s = str(thing)
     s = _sanitize_general(s)
-    s = _hexadecimal.sub("0", s)
-    return s
+    return _hexadecimal.sub("0", s)
 
 
 @pytest.fixture
@@ -227,43 +190,36 @@ def msg():
     return SanitizedString(_sanitize_message)
 
 
-# noinspection PyUnusedLocal
-def pytest_assertrepr_compare(op, left, right):
+def pytest_assertrepr_compare(op, left, right):  # noqa: ARG001
     """Hook to insert custom failure explanation"""
     if hasattr(left, "explanation"):
         return left.explanation
-
-
-@contextlib.contextmanager
-def suppress(exception):
-    """Suppress the desired exception"""
-    try:
-        yield
-    except exception:
-        pass
+    return None
 
 
 def gc_collect():
-    """Run the garbage collector twice (needed when running
+    """Run the garbage collector three times (needed when running
     reference counting tests with PyPy)"""
+    gc.collect()
     gc.collect()
     gc.collect()
 
 
 def pytest_configure():
-    pytest.suppress = suppress
+    pytest.suppress = contextlib.suppress
     pytest.gc_collect = gc_collect
 
 
 def pytest_report_header(config):
     del config  # Unused.
-    assert (
-        pybind11_tests.compiler_info is not None
-    ), "Please update pybind11_tests.cpp if this assert fails."
+    assert pybind11_tests.compiler_info is not None, (
+        "Please update pybind11_tests.cpp if this assert fails."
+    )
     return (
         "C++ Info:"
         f" {pybind11_tests.compiler_info}"
         f" {pybind11_tests.cpp_std}"
         f" {pybind11_tests.PYBIND11_INTERNALS_ID}"
         f" PYBIND11_SIMPLE_GIL_MANAGEMENT={pybind11_tests.PYBIND11_SIMPLE_GIL_MANAGEMENT}"
+        f" PYBIND11_NUMPY_1_ONLY={pybind11_tests.PYBIND11_NUMPY_1_ONLY}"
     )

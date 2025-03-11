@@ -1,41 +1,13 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
 
 import sys
 
 import pytest
+from custom_exceptions import PythonMyException7
 
 import env
 import pybind11_cross_module_tests as cm
-import pybind11_tests  # noqa: F401
+import pybind11_tests
 from pybind11_tests import exceptions as m
 
 
@@ -104,7 +76,7 @@ def test_cross_module_exceptions(msg):
 
 # TODO: FIXME
 @pytest.mark.xfail(
-    "env.MACOS and (env.PYPY or pybind11_tests.compiler_info.startswith('Homebrew Clang'))",
+    "env.MACOS and env.PYPY",
     raises=RuntimeError,
     reason="See Issue #2847, PR #2999, PR #4324",
 )
@@ -125,36 +97,31 @@ def ignore_pytest_unraisable_warning(f):
     if hasattr(pytest, unraisable):  # Python >= 3.8 and pytest >= 6
         dec = pytest.mark.filterwarnings(f"ignore::pytest.{unraisable}")
         return dec(f)
-    else:
-        return f
+    return f
 
 
 # TODO: find out why this fails on PyPy, https://foss.heptapod.net/pypy/pypy/-/issues/3583
 @pytest.mark.xfail(env.PYPY, reason="Failure on PyPy 3.8 (7.3.7)", strict=False)
 @ignore_pytest_unraisable_warning
 def test_python_alreadyset_in_destructor(monkeypatch, capsys):
-    hooked = False
     triggered = False
 
-    if hasattr(sys, "unraisablehook"):  # Python 3.8+
-        hooked = True
-        # Don't take `sys.unraisablehook`, as that's overwritten by pytest
-        default_hook = sys.__unraisablehook__
+    # Don't take `sys.unraisablehook`, as that's overwritten by pytest
+    default_hook = sys.__unraisablehook__
 
-        def hook(unraisable_hook_args):
-            exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args
-            if obj == "already_set demo":
-                nonlocal triggered
-                triggered = True
-            default_hook(unraisable_hook_args)
-            return
+    def hook(unraisable_hook_args):
+        exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args
+        if obj == "already_set demo":
+            nonlocal triggered
+            triggered = True
+        default_hook(unraisable_hook_args)
+        return
 
-        # Use monkeypatch so pytest can apply and remove the patch as appropriate
-        monkeypatch.setattr(sys, "unraisablehook", hook)
+    # Use monkeypatch so pytest can apply and remove the patch as appropriate
+    monkeypatch.setattr(sys, "unraisablehook", hook)
 
     assert m.python_alreadyset_in_destructor("already_set demo") is True
-    if hooked:
-        assert triggered is True
+    assert triggered is True
 
     _, captured_stderr = capsys.readouterr()
     assert captured_stderr.startswith("Exception ignored in: 'already_set demo'")
@@ -171,7 +138,15 @@ def test_custom(msg):
     # Can we catch a MyException?
     with pytest.raises(m.MyException) as excinfo:
         m.throws1()
-    assert msg(excinfo.value) == "this error should go to a custom type"
+    assert msg(excinfo.value) == "this error should go to py::exception<MyException>"
+
+    # Can we catch a MyExceptionUseDeprecatedOperatorCall?
+    with pytest.raises(m.MyExceptionUseDeprecatedOperatorCall) as excinfo:
+        m.throws1d()
+    assert (
+        msg(excinfo.value)
+        == "this error should go to py::exception<MyExceptionUseDeprecatedOperatorCall>"
+    )
 
     # Can we translate to standard Python exceptions?
     with pytest.raises(RuntimeError) as excinfo:
@@ -214,14 +189,19 @@ def test_custom(msg):
         m.throws5_1()
     assert msg(excinfo.value) == "MyException5 subclass"
 
-    with pytest.raises(m.MyException5) as excinfo:
+    with pytest.raises(m.MyException5) as excinfo:  # noqa: PT012
         try:
             m.throws5()
         except m.MyException5_1 as err:
             raise RuntimeError("Exception error: caught child from parent") from err
     assert msg(excinfo.value) == "this is a helper-defined translated exception"
 
+    with pytest.raises(PythonMyException7) as excinfo:
+        m.throws7()
+    assert msg(excinfo.value) == "[PythonMyException7]: abc"
 
+
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
 def test_nested_throws(capture):
     """Tests nested (e.g. C++ -> Python -> C++) exception handling"""
 
@@ -243,7 +223,7 @@ def test_nested_throws(capture):
         m.try_catch(m.MyException5, throw_myex)
     assert str(excinfo.value) == "nested error"
 
-    def pycatch(exctype, f, *args):
+    def pycatch(exctype, f, *args):  # noqa: ARG001
         try:
             f(*args)
         except m.MyException as e:
@@ -272,6 +252,11 @@ def test_nested_throws(capture):
     assert str(excinfo.value) == "this is a helper-defined translated exception"
 
 
+# TODO: Investigate this crash, see pybind/pybind11#5062 for background
+@pytest.mark.skipif(
+    sys.platform.startswith("win32") and "Clang" in pybind11_tests.compiler_info,
+    reason="Started segfaulting February 2024",
+)
 def test_throw_nested_exception():
     with pytest.raises(RuntimeError) as excinfo:
         m.throw_nested_exception()
@@ -334,12 +319,12 @@ class FlakyException(Exception):
 
 
 @pytest.mark.parametrize(
-    "exc_type, exc_value, expected_what",
-    (
+    ("exc_type", "exc_value", "expected_what"),
+    [
         (ValueError, "plain_str", "ValueError: plain_str"),
         (ValueError, ("tuple_elem",), "ValueError: tuple_elem"),
         (FlakyException, ("happy",), "FlakyException: FlakyException.__str__"),
-    ),
+    ],
 )
 def test_error_already_set_what_with_happy_exceptions(
     exc_type, exc_value, expected_what
@@ -349,8 +334,7 @@ def test_error_already_set_what_with_happy_exceptions(
     assert what == expected_what
 
 
-@pytest.mark.skipif("env.PYPY", reason="PyErr_NormalizeException Segmentation fault")
-def test_flaky_exception_failure_point_init():
+def _test_flaky_exception_failure_point_init_before_py_3_12():
     with pytest.raises(RuntimeError) as excinfo:
         m.error_already_set_what(FlakyException, ("failure_point_init",))
     lines = str(excinfo.value).splitlines()
@@ -364,19 +348,44 @@ def test_flaky_exception_failure_point_init():
     # Checking the first two lines of the traceback as formatted in error_string():
     assert "test_exceptions.py(" in lines[3]
     assert lines[3].endswith("): __init__")
-    assert lines[4].endswith("): test_flaky_exception_failure_point_init")
+    assert lines[4].endswith(
+        "): _test_flaky_exception_failure_point_init_before_py_3_12"
+    )
 
 
+def _test_flaky_exception_failure_point_init_py_3_12():
+    # Behavior change in Python 3.12: https://github.com/python/cpython/issues/102594
+    what, py_err_set_after_what = m.error_already_set_what(
+        FlakyException, ("failure_point_init",)
+    )
+    assert not py_err_set_after_what
+    lines = what.splitlines()
+    assert lines[0].endswith("ValueError[WITH __notes__]: triggered_failure_point_init")
+    assert lines[1] == "__notes__ (len=1):"
+    assert "Normalization failed:" in lines[2]
+    assert "FlakyException" in lines[2]
+
+
+@pytest.mark.skipif(
+    "env.PYPY and sys.version_info[:2] < (3, 12)",
+    reason="PyErr_NormalizeException Segmentation fault",
+)
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
+def test_flaky_exception_failure_point_init():
+    if sys.version_info[:2] < (3, 12):
+        _test_flaky_exception_failure_point_init_before_py_3_12()
+    else:
+        _test_flaky_exception_failure_point_init_py_3_12()
+
+
+@pytest.mark.xfail("env.GRAALPY", reason="TODO should be fixed on GraalPy side")
 def test_flaky_exception_failure_point_str():
     what, py_err_set_after_what = m.error_already_set_what(
         FlakyException, ("failure_point_str",)
     )
     assert not py_err_set_after_what
     lines = what.splitlines()
-    if env.PYPY and len(lines) == 3:
-        n = 3  # Traceback is missing.
-    else:
-        n = 5
+    n = 3 if env.PYPY and len(lines) == 3 else 5
     assert (
         lines[:n]
         == [
@@ -412,3 +421,18 @@ def test_pypy_oserror_normalization():
     # https://github.com/pybind/pybind11/issues/4075
     what = m.test_pypy_oserror_normalization()
     assert "this_filename_must_not_exist" in what
+
+
+def test_fn_cast_int_exception():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.test_fn_cast_int(lambda: None)
+
+    assert str(excinfo.value).startswith(
+        "Unable to cast Python instance of type <class 'NoneType'> to C++ type"
+    )
+
+
+def test_return_exception_void():
+    with pytest.raises(TypeError) as excinfo:
+        m.return_exception_void()
+    assert "Exception" in str(excinfo.value)

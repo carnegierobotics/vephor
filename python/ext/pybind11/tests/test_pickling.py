@@ -1,33 +1,4 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
 
 import pickle
 import re
@@ -49,7 +20,7 @@ def test_pickle_simple_callable():
         # all C Python versions.
         with pytest.raises(TypeError) as excinfo:
             pickle.dumps(m.simple_callable)
-        assert re.search("can.*t pickle .*PyCapsule.* object", str(excinfo.value))
+        assert re.search("can.*t pickle .*[Cc]apsule.* object", str(excinfo.value))
 
 
 @pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])
@@ -122,3 +93,20 @@ def test_roundtrip_simple_cpp_derived():
     # Issue #3062: pickleable base C++ classes can incur object slicing
     #              if derived typeid is not registered with pybind11
     assert not m.check_dynamic_cast_SimpleCppDerived(p2)
+
+
+def test_new_style_pickle_getstate_pos_only():
+    assert (
+        re.match(
+            r"^__getstate__\(self: [\w\.]+, /\)", m.PickleableNew.__getstate__.__doc__
+        )
+        is not None
+    )
+    if hasattr(m, "PickleableWithDictNew"):
+        assert (
+            re.match(
+                r"^__getstate__\(self: [\w\.]+, /\)",
+                m.PickleableWithDictNew.__getstate__.__doc__,
+            )
+            is not None
+        )

@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 /*
     tests/test_opaque_types.cpp -- opaque types, passing void pointers
 
@@ -28,7 +18,7 @@
 // This also deliberately doesn't use the below StringList type alias to test
 // that MAKE_OPAQUE can handle a type containing a `,`.  (The `std::allocator`
 // bit is just the default `std::vector` allocator).
-PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>)
 
 using StringList = std::vector<std::string, std::allocator<std::string>>;
 
@@ -75,7 +65,7 @@ TEST_SUBMODULE(opaque_types, m) {
 
     m.def("return_unique_ptr", []() -> std::unique_ptr<StringList> {
         auto *result = new StringList();
-        result->push_back("some value");
+        result->emplace_back("some value");
         return std::unique_ptr<StringList>(result);
     });
 

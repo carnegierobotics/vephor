@@ -1,37 +1,3 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-
-# Built-in in CMake 3.5+
-include(CMakeParseArguments)
-
 add_custom_target(test_cmake_build)
 
 function(pybind11_add_build_test name)
@@ -39,9 +5,8 @@ function(pybind11_add_build_test name)
 
   set(build_options "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
 
+  list(APPEND build_options "-DPYBIND11_FINDPYTHON=${PYBIND11_FINDPYTHON}")
   if(PYBIND11_FINDPYTHON)
-    list(APPEND build_options "-DPYBIND11_FINDPYTHON=${PYBIND11_FINDPYTHON}")
-
     if(DEFINED Python_ROOT_DIR)
       list(APPEND build_options "-DPython_ROOT_DIR=${Python_ROOT_DIR}")
     endif()
@@ -90,8 +55,10 @@ possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
 
 pybind11_add_build_test(subdirectory_function)
 pybind11_add_build_test(subdirectory_target)
-if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy")
-  message(STATUS "Skipping embed test on PyPy")
+if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
+   OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
+   OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
+  message(STATUS "Skipping embed test on PyPy or GraalPy")
 else()
   pybind11_add_build_test(subdirectory_embed)
 endif()
@@ -101,10 +68,14 @@ if(PYBIND11_INSTALL)
     mock_install ${CMAKE_COMMAND} "-DCMAKE_INSTALL_PREFIX=${pybind11_BINARY_DIR}/mock_install" -P
                  "${pybind11_BINARY_DIR}/cmake_install.cmake")
 
-  pybind11_add_build_test(installed_function INSTALL)
+  if(NOT "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
+    pybind11_add_build_test(installed_function INSTALL)
+  endif()
   pybind11_add_build_test(installed_target INSTALL)
-  if(NOT ("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy" OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
-         ))
+  if(NOT
+     ("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
+      OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
+      OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy"))
     pybind11_add_build_test(installed_embed INSTALL)
   endif()
 endif()

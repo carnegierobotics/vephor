@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 /*
     pybind11/embed.h: Support for embedding the interpreter
 
@@ -113,19 +103,6 @@ inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
                                                 bool add_program_dir_to_path) {
     detail::precheck_interpreter();
     Py_InitializeEx(init_signal_handlers ? 1 : 0);
-#    if defined(WITH_THREAD) && PY_VERSION_HEX < 0x03070000
-    PyEval_InitThreads();
-#    endif
-
-    // Before it was special-cased in python 3.8, passing an empty or null argv
-    // caused a segfault, so we have to reimplement the special case ourselves.
-    bool special_case = (argv == nullptr || argc <= 0);
-
-    const char *const empty_argv[]{"\0"};
-    const char *const *safe_argv = special_case ? empty_argv : argv;
-    if (special_case) {
-        argc = 1;
-    }
 
     auto argv_size = static_cast<size_t>(argc);
     // SetArgv* on python 3 takes wchar_t, so we have to convert.
@@ -133,7 +110,7 @@ inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
     std::vector<std::unique_ptr<wchar_t[], detail::wide_char_arg_deleter>> widened_argv_entries;
     widened_argv_entries.reserve(argv_size);
     for (size_t ii = 0; ii < argv_size; ++ii) {
-        widened_argv_entries.emplace_back(detail::widen_chars(safe_argv[ii]));
+        widened_argv_entries.emplace_back(detail::widen_chars(argv[ii]));
         if (!widened_argv_entries.back()) {
             // A null here indicates a character-encoding failure or the python
             // interpreter out of memory. Give up.
@@ -208,9 +185,10 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
         init_signal_handlers, argc, argv, add_program_dir_to_path);
 #else
     PyConfig config;
-    PyConfig_InitIsolatedConfig(&config);
-    config.isolated = 0;
-    config.use_environment = 1;
+    PyConfig_InitPythonConfig(&config);
+    // See PR #4473 for background
+    config.parse_argv = 0;
+
     config.install_signal_handlers = init_signal_handlers ? 1 : 0;
     initialize_interpreter(&config, argc, argv, add_program_dir_to_path);
 #endif
@@ -252,16 +230,14 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 
  \endrst */
 inline void finalize_interpreter() {
-    handle builtins(PyEval_GetBuiltins());
-    const char *id = PYBIND11_INTERNALS_ID;
-
     // Get the internals pointer (without creating it if it doesn't exist).  It's possible for the
     // internals to be created during Py_Finalize() (e.g. if a py::capsule calls `get_internals()`
     // during destruction), so we get the pointer-pointer here and check it after Py_Finalize().
     detail::internals **internals_ptr_ptr = detail::get_internals_pp();
-    // It could also be stashed in builtins, so look there too:
-    if (builtins.contains(id) && isinstance<capsule>(builtins[id])) {
-        internals_ptr_ptr = capsule(builtins[id]);
+    // It could also be stashed in state_dict, so look there too:
+    if (object internals_obj
+        = get_internals_obj_from_state_dict(detail::get_python_state_dict())) {
+        internals_ptr_ptr = detail::get_internals_pp_from_capsule(internals_obj);
     }
     // Local internals contains data managed by the current interpreter, so we must clear them to
     // avoid undefined behaviors when initializing another interpreter

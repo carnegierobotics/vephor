@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 #pragma once
 #include "pybind11_tests.h"
 
@@ -66,13 +56,13 @@ private:
     std::string message = "";
 };
 
-PYBIND11_MAKE_OPAQUE(LocalVec);
-PYBIND11_MAKE_OPAQUE(LocalVec2);
-PYBIND11_MAKE_OPAQUE(LocalMap);
-PYBIND11_MAKE_OPAQUE(NonLocalVec);
-// PYBIND11_MAKE_OPAQUE(NonLocalVec2); // same type as LocalVec2
-PYBIND11_MAKE_OPAQUE(NonLocalMap);
-PYBIND11_MAKE_OPAQUE(NonLocalMap2);
+PYBIND11_MAKE_OPAQUE(LocalVec)
+PYBIND11_MAKE_OPAQUE(LocalVec2)
+PYBIND11_MAKE_OPAQUE(LocalMap)
+PYBIND11_MAKE_OPAQUE(NonLocalVec)
+// PYBIND11_MAKE_OPAQUE(NonLocalVec2) // same type as LocalVec2
+PYBIND11_MAKE_OPAQUE(NonLocalMap)
+PYBIND11_MAKE_OPAQUE(NonLocalMap2)
 
 // Simple bindings (used with the above):
 template <typename T, int Adjust = 0, typename... Args>
@@ -80,7 +70,7 @@ py::class_<T> bind_local(Args &&...args) {
     return py::class_<T>(std::forward<Args>(args)...).def(py::init<int>()).def("get", [](T &i) {
         return i.i + Adjust;
     });
-};
+}
 
 // Simulate a foreign library base class (to match the example in the docs):
 namespace pets {

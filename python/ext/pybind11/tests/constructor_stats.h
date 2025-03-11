@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 #pragma once
 /*
     tests/constructor_stats.h -- framework for printing and tracking object
@@ -200,7 +190,7 @@ public:
                     t1 = &p.first;
                 }
             }
-        } catch (const std::out_of_range &) {
+        } catch (const std::out_of_range &) { // NOLINT(bugprone-empty-catch)
         }
         if (!t1) {
             throw std::runtime_error("Unknown class passed to ConstructorStats::get()");
@@ -322,8 +312,16 @@ void print_created(T *inst, Values &&...values) {
 }
 template <class T, typename... Values>
 void print_destroyed(T *inst, Values &&...values) { // Prints but doesn't store given values
+    /*
+     * On GraalPy, destructors can trigger anywhere and this can cause random
+     * failures in unrelated tests.
+     */
+#if !defined(GRAALVM_PYTHON)
     print_constr_details(inst, "destroyed", values...);
     track_destroyed(inst);
+#else
+    py::detail::silence_unused_warnings(inst, values...);
+#endif
 }
 template <class T, typename... Values>
 void print_values(T *inst, Values &&...values) {

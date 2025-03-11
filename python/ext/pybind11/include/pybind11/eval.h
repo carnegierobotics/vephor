@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 /*
     pybind11/eval.h: Support for evaluating Python expressions and statements
     from strings and files
@@ -29,7 +19,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline void ensure_builtins_in_globals(object &global) {
-#if defined(PYPY_VERSION) || PY_VERSION_HEX < 0x03080000
+#if defined(PYPY_VERSION)
     // Running exec and eval adds `builtins` module under `__builtins__` key to
     // globals if not yet present.  Python 3.8 made PyRun_String behave
     // similarly. Let's also do that for older versions, for consistency. This
@@ -104,18 +94,18 @@ void exec(const char (&s)[N], object global = globals(), object local = object()
     eval<eval_statements>(s, std::move(global), std::move(local));
 }
 
-#if defined(PYPY_VERSION)
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
 template <eval_mode mode = eval_statements>
 object eval_file(str, object, object) {
-    pybind11_fail("eval_file not supported in PyPy3. Use eval");
+    pybind11_fail("eval_file not supported in this interpreter. Use eval");
 }
 template <eval_mode mode = eval_statements>
 object eval_file(str, object) {
-    pybind11_fail("eval_file not supported in PyPy3. Use eval");
+    pybind11_fail("eval_file not supported in this interpreter. Use eval");
 }
 template <eval_mode mode = eval_statements>
 object eval_file(str) {
-    pybind11_fail("eval_file not supported in PyPy3. Use eval");
+    pybind11_fail("eval_file not supported in this interpreter. Use eval");
 }
 #else
 template <eval_mode mode = eval_statements>

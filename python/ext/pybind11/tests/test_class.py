@@ -1,46 +1,17 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
+
+import sys
+from unittest import mock
 
 import pytest
 
 import env
-from pybind11_tests import ConstructorStats, UserType
+from pybind11_tests import PYBIND11_REFCNT_IMMORTAL, ConstructorStats, UserType
 from pybind11_tests import class_ as m
 
 
 def test_obj_class_name():
-    if env.PYPY:
-        expected_name = "UserType"
-    else:
-        expected_name = "pybind11_tests.UserType"
+    expected_name = "UserType" if env.PYPY else "pybind11_tests.UserType"
     assert m.obj_class_name(UserType(1)) == expected_name
     assert m.obj_class_name(UserType) == expected_name
 
@@ -57,18 +28,35 @@ def test_instance(msg):
 
     instance = m.NoConstructor.new_instance()
 
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
+
     cstats = ConstructorStats.get(m.NoConstructor)
     assert cstats.alive() == 1
     del instance
     assert cstats.alive() == 0
 
 
-def test_instance_new(msg):
+def test_instance_new():
     instance = m.NoConstructorNew()  # .__new__(m.NoConstructor.__class__)
+
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
+
     cstats = ConstructorStats.get(m.NoConstructorNew)
     assert cstats.alive() == 1
     del instance
     assert cstats.alive() == 0
+
+
+def test_pass_unique_ptr():
+    obj = m.ToBeHeldByUniquePtr()
+    with pytest.raises(RuntimeError) as execinfo:
+        m.pass_unique_ptr(obj)
+    assert str(execinfo.value).startswith(
+        "Passing `std::unique_ptr<T>` from Python to C++ requires `py::class_<T, py::smart_holder>` (with T = "
+    )
+    assert "ToBeHeldByUniquePtr" in str(execinfo.value)
 
 
 def test_type():
@@ -216,7 +204,6 @@ def test_inheritance(msg):
 
 
 def test_inheritance_init(msg):
-
     # Single base
     class Python(m.Pet):
         def __init__(self):
@@ -238,6 +225,18 @@ def test_inheritance_init(msg):
     assert msg(exc_info.value) == expected
 
 
+@pytest.mark.parametrize(
+    "mock_return_value", [None, (1, 2, 3), m.Pet("Polly", "parrot"), m.Dog("Molly")]
+)
+def test_mock_new(mock_return_value):
+    with mock.patch.object(
+        m.Pet, "__new__", return_value=mock_return_value
+    ) as mock_new:
+        obj = m.Pet("Noname", "Nospecies")
+    assert obj is mock_return_value
+    mock_new.assert_called_once_with(m.Pet, "Noname", "Nospecies")
+
+
 def test_automatic_upcasting():
     assert type(m.return_class_1()).__name__ == "DerivedClass1"
     assert type(m.return_class_2()).__name__ == "DerivedClass2"
@@ -253,7 +252,7 @@ def test_automatic_upcasting():
 
 
 def test_isinstance():
-    objects = [tuple(), dict(), m.Pet("Polly", "parrot")] + [m.Dog("Molly")] * 4
+    objects = [(), {}, m.Pet("Polly", "parrot")] + [m.Dog("Molly")] * 4
     expected = (True, True, True, True, True, False, False)
     assert m.check_instances(objects) == expected
 
@@ -380,7 +379,7 @@ def test_brace_initialization():
     assert b.vec == [123, 456]
 
 
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.xfail("env.PYPY or env.GRAALPY")
 def test_class_refcount():
     """Instances must correctly increase/decrease the reference count of their types (#1029)"""
     from sys import getrefcount
@@ -398,7 +397,9 @@ def test_class_refcount():
         refcount_3 = getrefcount(cls)
 
         assert refcount_1 == refcount_3
-        assert refcount_2 > refcount_1
+        assert (refcount_2 > refcount_1) or (
+            refcount_2 == refcount_1 == PYBIND11_REFCNT_IMMORTAL
+        )
 
 
 def test_reentrant_implicit_conversion_failure(msg):
@@ -459,7 +460,7 @@ def test_exception_rvalue_abort():
 
 
 # https://github.com/pybind/pybind11/issues/1568
-def test_multiple_instances_with_same_pointer(capture):
+def test_multiple_instances_with_same_pointer():
     n = 100
     instances = [m.SamePointer() for _ in range(n)]
     for i in range(n):
@@ -518,3 +519,31 @@ def test_pr4220_tripped_over_this():
         m.Empty0().get_msg()
         == "This is really only meant to exercise successful compilation."
     )
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+def test_all_type_info_multithreaded():
+    # See PR #5419 for background.
+    import threading
+
+    from pybind11_tests import TestContext
+
+    class Context(TestContext):
+        pass
+
+    num_runs = 10
+    num_threads = 4
+    barrier = threading.Barrier(num_threads)
+
+    def func():
+        barrier.wait()
+        with Context():
+            pass
+
+    for _ in range(num_runs):
+        threads = [threading.Thread(target=func) for _ in range(num_threads)]
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()

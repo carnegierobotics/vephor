@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 /*
     tests/test_tagbased_polymorphic.cpp -- test of polymorphic_type_hook
 
@@ -84,6 +74,7 @@ std::vector<std::unique_ptr<Animal>> create_zoo() {
     // simulate some new type of Dog that the Python bindings
     // haven't been updated for; it should still be considered
     // a Dog, not just an Animal.
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     ret.emplace_back(new Dog("Ginger", Dog::Kind(150)));
 
     ret.emplace_back(new Chihuahua("Hertzl"));
@@ -154,4 +145,4 @@ TEST_SUBMODULE(tagbased_polymorphic, m) {
         .def(py::init<std::string>())
         .def("purr", &Panther::purr);
     m.def("create_zoo", &create_zoo);
-};
+}

@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 /*
     tests/test_modules.cpp -- nested modules, importing modules, and
                             internal references
@@ -100,32 +90,32 @@ TEST_SUBMODULE(modules, m) {
         try {
             py::class_<Dupe1>(dm, "Dupe1");
             failures.append("Dupe1 class");
-        } catch (std::runtime_error &) {
+        } catch (std::runtime_error &) { // NOLINT(bugprone-empty-catch)
         }
         try {
             dm.def("Dupe1", []() { return Dupe1(); });
             failures.append("Dupe1 function");
-        } catch (std::runtime_error &) {
+        } catch (std::runtime_error &) { // NOLINT(bugprone-empty-catch)
         }
         try {
             py::class_<Dupe3>(dm, "dupe1_factory");
             failures.append("dupe1_factory");
-        } catch (std::runtime_error &) {
+        } catch (std::runtime_error &) { // NOLINT(bugprone-empty-catch)
         }
         try {
             py::exception<Dupe3>(dm, "Dupe2");
             failures.append("Dupe2");
-        } catch (std::runtime_error &) {
+        } catch (std::runtime_error &) { // NOLINT(bugprone-empty-catch)
         }
         try {
             dm.def("DupeException", []() { return 30; });
             failures.append("DupeException1");
-        } catch (std::runtime_error &) {
+        } catch (std::runtime_error &) { // NOLINT(bugprone-empty-catch)
         }
         try {
             py::class_<DupeException>(dm, "DupeException");
             failures.append("DupeException2");
-        } catch (std::runtime_error &) {
+        } catch (std::runtime_error &) { // NOLINT(bugprone-empty-catch)
         }
 
         return failures;

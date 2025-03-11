@@ -1,37 +1,8 @@
-#
-# Copyright 2023
-# Carnegie Robotics, LLC
-# 4501 Hatfield Street, Pittsburgh, PA 15201
-# https://www.carnegierobotics.com
-#
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Carnegie Robotics, LLC nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+from __future__ import annotations
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import multiple_inheritance as m
 
@@ -308,8 +279,9 @@ def test_mi_unaligned_base():
 
     c = m.I801C()
     d = m.I801D()
-    # + 4 below because we have the two instances, and each instance has offset base I801B2
-    assert ConstructorStats.detail_reg_inst() == n_inst + 4
+    if not env.GRAALPY:
+        # + 4 below because we have the two instances, and each instance has offset base I801B2
+        assert ConstructorStats.detail_reg_inst() == n_inst + 4
     b1c = m.i801b1_c(c)
     assert b1c is c
     b2c = m.i801b2_c(c)
@@ -318,6 +290,9 @@ def test_mi_unaligned_base():
     assert b1d is d
     b2d = m.i801b2_d(d)
     assert b2d is d
+
+    if env.GRAALPY:
+        pytest.skip("ConstructorStats is incompatible with GraalPy.")
 
     assert ConstructorStats.detail_reg_inst() == n_inst + 4  # no extra instances
     del c, b1c, b2c
@@ -341,7 +316,8 @@ def test_mi_base_return():
     assert d1.a == 1
     assert d1.b == 2
 
-    assert ConstructorStats.detail_reg_inst() == n_inst + 4
+    if not env.GRAALPY:
+        assert ConstructorStats.detail_reg_inst() == n_inst + 4
 
     c2 = m.i801c_b2()
     assert type(c2) is m.I801C
@@ -353,12 +329,13 @@ def test_mi_base_return():
     assert d2.a == 1
     assert d2.b == 2
 
-    assert ConstructorStats.detail_reg_inst() == n_inst + 8
+    if not env.GRAALPY:
+        assert ConstructorStats.detail_reg_inst() == n_inst + 8
 
-    del c2
-    assert ConstructorStats.detail_reg_inst() == n_inst + 6
-    del c1, d1, d2
-    assert ConstructorStats.detail_reg_inst() == n_inst
+        del c2
+        assert ConstructorStats.detail_reg_inst() == n_inst + 6
+        del c1, d1, d2
+        assert ConstructorStats.detail_reg_inst() == n_inst
 
     # Returning an unregistered derived type with a registered base; we won't
     # pick up the derived type, obviously, but should still work (as an object

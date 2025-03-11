@@ -1,13 +1,3 @@
-/**
- * Copyright 2023
- * Carnegie Robotics, LLC
- * 4501 Hatfield Street, Pittsburgh, PA 15201
- * https://www.carnegierobotics.com
- *
- * This code is provided under the terms of the Master Services Agreement (the Agreement).
- * This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-**/
-
 /*
     tests/test_constants_and_functions.cpp -- global constants and functions, enumerations, raw
     byte strings
@@ -64,7 +54,11 @@ int f2(int x) noexcept(true) { return x + 2; }
 int f3(int x) noexcept(false) { return x + 3; }
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated")
+#if defined(__clang_major__) && __clang_major__ >= 5
+PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-dynamic-exception-spec")
+#else
 PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated")
+#endif
 // NOLINTNEXTLINE(modernize-use-noexcept)
 int f4(int x) throw() { return x + 4; } // Deprecated equivalent to noexcept(true)
 PYBIND11_WARNING_POP
@@ -158,4 +152,7 @@ TEST_SUBMODULE(constants_and_functions, m) {
             py::arg_v("y", 42, "<the answer>"),
             py::arg_v("z", default_value));
     });
+
+    // test noexcept(true) lambda (#4565)
+    m.def("l1", []() noexcept(true) { return 0; });
 }
