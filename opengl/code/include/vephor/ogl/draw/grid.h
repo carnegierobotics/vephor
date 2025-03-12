@@ -25,9 +25,12 @@ public:
 		
 		Vec3 forward = right.cross(normal);
 		forward /= forward.norm();
+
+		Vec3 new_right = normal.cross(forward);
+		new_right /= new_right.norm();
 		
-		line_verts.push_back(-rad*right);
-		line_verts.push_back(rad*right);
+		line_verts.push_back(-rad*new_right);
+		line_verts.push_back(rad*new_right);
 		line_verts.push_back(-rad*forward);
 		line_verts.push_back(rad*forward);
 		
@@ -37,14 +40,14 @@ public:
 			if (shift > rad)
 				shift = rad;
 			
-			line_verts.push_back(-rad*right+shift*forward);
-			line_verts.push_back(rad*right+shift*forward);
-			line_verts.push_back(-rad*right+-shift*forward);
-			line_verts.push_back(rad*right-shift*forward);
-			line_verts.push_back(-rad*forward+shift*right);
-			line_verts.push_back(rad*forward+shift*right);
-			line_verts.push_back(-rad*forward-shift*right);
-			line_verts.push_back(rad*forward-shift*right);
+			line_verts.push_back(-rad*new_right+shift*forward);
+			line_verts.push_back(rad*new_right+shift*forward);
+			line_verts.push_back(-rad*new_right+-shift*forward);
+			line_verts.push_back(rad*new_right-shift*forward);
+			line_verts.push_back(-rad*forward+shift*new_right);
+			line_verts.push_back(rad*forward+shift*new_right);
+			line_verts.push_back(-rad*forward-shift*new_right);
+			line_verts.push_back(rad*forward-shift*new_right);
 			
 			if (shift >= rad)
 				break;
