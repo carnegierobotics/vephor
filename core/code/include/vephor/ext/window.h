@@ -971,10 +971,10 @@ public:
 
 				manager.updateMetadata();
 
-				if (frame_skip_message_limit >= 0)
+				if (frame_skip_message_limit > 0)
 				{
 					int q_size = manager.net.getJSONBOutgoingQueueSize(conn_id);
-					if (frame_message_info.waiting > frame_skip_message_limit)
+					if (frame_message_info.waiting >= frame_skip_message_limit)
 					{
 						if (frame_message_info.skips % 100 == 0)
 							v4print "Skipping frame - Window:", id, 
@@ -1674,7 +1674,7 @@ private:
 
 	unordered_map<ConnectionID, FrameMessageInfo> frame_message_infos;
 
-	int frame_skip_message_limit = 3;
+	int frame_skip_message_limit = 1;
 	int last_message_delay_ms = 0;
 
     shared_ptr<TransformNode> window_top_left_node;

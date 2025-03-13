@@ -815,8 +815,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		{
 			readVertexData(obj["colors"], base_buf_index, bufs, colors_record, &serialization.header["colors"], &serialization.payloads);
 
-			if (verts_record.map.rows() != colors_record.map.rows() ||
-				verts_record.map.cols() != colors_record.map.cols())
+			if (verts_record.map.cols() != colors_record.map.cols())
 			{
 				v4print "Verts:", verts_record.map.rows(), verts_record.map.cols();
 				v4print "Colors:", colors_record.map.rows(), colors_record.map.cols();
