@@ -179,7 +179,6 @@ void PlotCamera::setupLegend(const json& label_data, Window& window, AssetManage
 	if (legend_node)
 		legend_node->setDestroy();
 
-	v4print "Legend";
 	legend_node = window.add(TransformSim3());
 	
 	vector<shared_ptr<RenderNode>> legend_text_nodes;
@@ -188,7 +187,6 @@ void PlotCamera::setupLegend(const json& label_data, Window& window, AssetManage
 	float y_shift = 0.0f;
 	for (const auto& label : label_data)
 	{
-		v4print "Label:", label["text"];
 		auto text = make_shared<Text>(label["text"], text_tex, fore_color);
 		text->setAnchorTopLeft();
 		auto node = window.add(text, Vec3(0, y_shift, 0), true, 2);

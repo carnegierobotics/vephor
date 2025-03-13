@@ -439,6 +439,13 @@ struct WindowManager
 	}
 };
 
+struct FrameMessageInfo
+{
+	int waiting = 0;
+	int skips = 0;
+	int sent = 0;
+};
+
 class Window {
 public:
     explicit Window(float p_width = -1, float p_height = -1, const string &p_title = "show")
@@ -960,17 +967,23 @@ public:
 			
 			for (auto conn_id : manager.net.getConnectionIdList())
 			{
-				manager.updateMetadata();
+				auto& frame_message_info = frame_message_infos[conn_id];
 
+				manager.updateMetadata();
 
 				if (frame_skip_message_limit >= 0)
 				{
 					int q_size = manager.net.getJSONBOutgoingQueueSize(conn_id);
-					if (frame_messages_waiting > frame_skip_message_limit)
+					if (frame_message_info.waiting > frame_skip_message_limit)
 					{
-						if (frame_message_skips % 100 == 0)
-							v4print "Skipping frame due to unsent outgoing messages - Window:", id, "Title:", title, "Conn:", conn_id, "Queue Size:", q_size, "Frame Messages Waiting:", frame_messages_waiting;
-						frame_message_skips++;
+						if (frame_message_info.skips % 100 == 0)
+							v4print "Skipping frame - Window:", id, 
+								"Title:", title, 
+								"Conn:", conn_id, 
+								"Q Size:", q_size, 
+								"Waiting:", frame_message_info.waiting,
+								"Sent:", frame_message_info.sent;
+						frame_message_info.skips++;
 						continue;
 					}
 				}
@@ -1030,21 +1043,22 @@ public:
 						network_use_time = 1.0f;
 					v4print "Network use - Connection:", conn_id, 
 						"Window ID:", id,
-						"Waiting:", frame_messages_waiting,
+						"Waiting:", frame_message_info.waiting,
 						"Time:", formatDecimal(network_use_time, 2),
 						"Data:", formatByteDisplay(msg_size), 
 						"Rate:", formatByteDisplay(total_network_use_bytes / network_use_time), "/ s",
 						"Last msg delay:", last_message_delay_ms, "ms";
 				}
 
-                frame_messages_waiting++;
+                frame_message_info.waiting++;
                 manager.net.sendJSONBMessage(
                     conn_id,
                     msg.header,
                     msg.payloads,
-                    [&](const shared_ptr<JSONBMessage> & /* msg */,
+                    [&,conn_id](const shared_ptr<JSONBMessage> & /* msg */,
                         const std::chrono::time_point<std::chrono::steady_clock> &send_time) {
-                        frame_messages_waiting--;
+                        frame_message_infos[conn_id].waiting--;
+						frame_message_infos[conn_id].sent++;
 
                         if (print_flag_network_use)
                         {
@@ -1657,9 +1671,10 @@ private:
 	string title;
 	float fps = 30.0f;
 	float opacity;
-	int frame_messages_waiting = 0;
+
+	unordered_map<ConnectionID, FrameMessageInfo> frame_message_infos;
+
 	int frame_skip_message_limit = 3;
-	int frame_message_skips = 0;
 	int last_message_delay_ms = 0;
 
     shared_ptr<TransformNode> window_top_left_node;

@@ -35,6 +35,8 @@ void ShowRecordWindow::update()
 	//if (!window->isShow())
 	//	return;
 
+	bool showing_before = window->isShow();
+
 	shutdown = !window->render();
 
 	if (!video_path.empty())
@@ -61,7 +63,7 @@ void ShowRecordWindow::update()
 		
 		return;
 	}
-	else if (!window->isShow()) // Window was just hidden
+	else if (showing_before && !window->isShow()) // Window was just hidden
 	{
 		v4print "Hiding window:", window_id;
 		
