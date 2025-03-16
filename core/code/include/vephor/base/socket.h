@@ -807,6 +807,32 @@ public:
 		}
 		return true;
 	}
+	bool prepareServerMode(int port = VEPHOR_DEFAULT_PORT)
+	{
+		if (server_mode)
+			throw std::runtime_error("Server mode already active");
+		if (client_mode)
+			throw std::runtime_error("Can't use server and client mode at the same time.");
+
+		if (!bind_and_listen(port))
+			return false;
+
+		server_mode = true;
+
+		return true;
+	}
+	void connectPreparedServer()
+	{
+		v4print "(connectPreparedServer) Waiting for server connection...";
+		shared_ptr<TCPSocket> sock;
+		while (true)
+		{
+			sock = listen_sock->accept(-1);
+			if (sock)
+				break;
+		}
+		addConn(sock);
+	}
 	bool connectServer(bool wait_for_connection = true, int port = VEPHOR_DEFAULT_PORT)
 	{
 		if (server_mode)
@@ -819,7 +845,7 @@ public:
 
 		if (wait_for_connection)
 		{
-			v4print "Waiting for server connection...";
+			v4print "(connectServer) Waiting for server connection...";
 			shared_ptr<TCPSocket> sock;
 			while (true)
 			{
@@ -833,7 +859,7 @@ public:
 		{
 			waiting_for_connections = true;
 			conn_wait_thread = std::thread([&,port](){
-				v4print "Waiting for server connection in background.";
+				v4print "(connectServer) Waiting for server connection in background.";
 				while (!shutdown)
 				{
 					shared_ptr<TCPSocket> sock;

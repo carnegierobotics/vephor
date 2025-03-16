@@ -903,7 +903,11 @@ public:
 			}
 		}
 	}
-	bool render(bool wait_close = true, bool wait_key = false, float time_increment_s = 0.0f)
+	bool render(
+		bool wait_close = true, 
+		bool wait_key = false, 
+		float time_increment_s = 0.0f,
+		const std::function<void()>& wait_callback = NULL)
 	{
 		manager.first_render = true;
 
@@ -1126,6 +1130,9 @@ public:
 			}
 			while (true)
 			{
+				if (wait_callback)
+					wait_callback();
+
 				bool key_event = false;
 				processEvents(key_event, hide_event);
 
@@ -1460,7 +1467,7 @@ public:
 			port = port_dist(rng);
 			v4print "Using port:", port;
 
-			if (manager.net.connectServer(false, port))
+			if (manager.net.prepareServerMode(port))
 				break;
 
 			v4print "Bind failed, tryin another port.";
@@ -1477,10 +1484,7 @@ public:
 		
 		manager.network_mode = true;
 		
-		while (manager.net.getConnectionIdList().empty())
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		}
+		manager.net.connectPreparedServer();
 
 		if (p_record_also)
 		{
@@ -1689,7 +1693,6 @@ private:
 
 	vector<shared_ptr<RenderNode>> objects;
 	inline static WindowManager manager;
-	std::thread server_message_thread;
 	bool shutdown = false;
 	json camera_control;
 	unordered_map<ConnectionID, bool> camera_up_to_date;

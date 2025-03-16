@@ -73,7 +73,10 @@ PYBIND11_MODULE(_core, m) {
 		.def("getDestroy", &RenderNode::getDestroy);
 	py::class_<MeshData>(m, "MeshData")
 		.def(py::init<>())
-		.def(py::init<const MatX&, const MatX&, const MatX&>());
+		.def(py::init<const MatX&, const MatX&, const MatX&>())
+		.def_readwrite("verts", &MeshData::verts)
+		.def_readwrite("uvs", &MeshData::uvs)
+		.def_readwrite("norms", &MeshData::norms);
 	py::class_<Color>(m, "Color")
 		.def(py::init<float,float,float,float>(),py::arg("r"),py::arg("g"),py::arg("b"),py::arg("a")=1.0)
 		.def(py::init<const Vec3&>())
@@ -487,7 +490,12 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("height")=-1,
 			py::arg("name")="show")
 		.def("clear", &Window::clear)
-        .def("render", &Window::render, py::arg("wait_close")=true, py::arg("wait_key")=false, py::arg("time_increment_s")=0.0f)
+        .def("render", [](Window& w, bool wait_close, bool wait_key, float time_increment_s){
+			return w.render(wait_close, wait_key, time_increment_s, [](){
+				if (PyErr_CheckSignals() != 0)
+                	throw py::error_already_set();
+			});
+		}, py::arg("wait_close")=true, py::arg("wait_key")=false, py::arg("time_increment_s")=0.0f)
 		.def("layoutAbsolute", &Window::layoutAbsolute, 
 			py::arg("width"), 
 			py::arg("height"), 
@@ -1030,7 +1038,12 @@ PYBIND11_MODULE(_core, m) {
 				p.imshow(image, nearest, offset);
 			},
 			py::arg("image"), py::arg("nearest")=false, py::arg("offset")=Vec2::Zero())
-		.def("show", &Plot::show, py::arg("wait_close")=true, py::arg("wait_key")=false)
+		.def("show", [](Plot& p, bool wait_close, bool wait_key){
+			return p.show(wait_close, wait_key, [](){
+				if (PyErr_CheckSignals() != 0)
+                	throw py::error_already_set();
+			});
+		}, py::arg("wait_close")=true, py::arg("wait_key")=false)
 		.def("clear", &Plot::clear)
 		.def("save", &Plot::save)
 		.def("setKeyPressCallback", &Plot::setKeyPressCallback)
@@ -1090,7 +1103,12 @@ PYBIND11_MODULE(_core, m) {
 		.def("xlabel", &Plot3D::xlabel)
 		.def("ylabel", &Plot3D::ylabel)
 		.def("zlabel", &Plot3D::zlabel)
-		.def("show", &Plot3D::show, py::arg("wait_close")=true, py::arg("wait_key")=false)
+		.def("show", [](Plot3D& p, bool wait_close, bool wait_key){
+			return p.show(wait_close, wait_key, [](){
+				if (PyErr_CheckSignals() != 0)
+                	throw py::error_already_set();
+			});
+		}, py::arg("wait_close")=true, py::arg("wait_key")=false)
 		.def("clear", &Plot3D::clear)
 		.def("save", &Plot3D::save);
 

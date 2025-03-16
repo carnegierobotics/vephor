@@ -556,9 +556,9 @@ public:
 	{
 		return inner_window;
 	}
-	bool show(bool wait_close = true, bool wait_key = false)
+	bool show(bool wait_close = true, bool wait_key = false, const std::function<void()>& wait_callback = NULL)
 	{
-		return inner_window.render(wait_close, wait_key);
+		return inner_window.render(wait_close, wait_key, 0.0, wait_callback);
 	}
 	void save(const string& path)
 	{
