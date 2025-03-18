@@ -46,17 +46,21 @@ public:
 	{
 		inner_window.setTitle(title_text);
 	}
-	void back_color(const Color& color)
+	void backColor(const Color& color)
 	{
 		inner_window.getCameraControlInfo()["back_color"] = toJson(color.getRGB());
 	}
-	void fore_color(const Color& color)
+	void foreColor(const Color& color)
 	{
 		inner_window.getCameraControlInfo()["fore_color"] = toJson(color.getRGB());
 	}
-	void grid_color(const Color& color)
+	void gridColor(const Color& color)
 	{
 		inner_window.getCameraControlInfo()["grid_color"] = toJson(color.getRGB());
+	}
+	Vec3 colorCycle(int index)
+	{
+		return color_cycle[index % color_cycle.size()];
 	}
 	void xlabel(const string& text)
 	{

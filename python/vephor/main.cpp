@@ -103,6 +103,8 @@ PYBIND11_MODULE(_core, m) {
 	m.def("formHeightMap", &formHeightMap, py::arg("heights"), py::arg("res"), py::arg("uv_callback")=NULL);
 	m.def("formWireframeBox", &formWireframeBox);
 
+	m.def("convertStringToColor", &convertStringToColor);
+
 	m.def("calcSurfaces", [](
 			py::buffer occupancy,
 			float thresh, 
@@ -823,27 +825,29 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("height")=800)
 		.def("window", &Plot::window, py::return_value_policy::reference)
 		.def("title", &Plot::title)
-		.def("back_color", [](Plot& p, const Vec3& color){
-				p.back_color(color);
+		.def("backColor", [](Plot& p, const Vec3& color){
+				p.backColor(color);
 			},
 			py::arg("color")
 		)
-		.def("fore_color", [](Plot& p, const Vec3& color){
-				p.fore_color(color);
+		.def("foreColor", [](Plot& p, const Vec3& color){
+				p.foreColor(color);
 			},
 			py::arg("color")
 		)
-		.def("grid_color", [](Plot& p, const Vec3& color){
-				p.grid_color(color);
+		.def("gridColor", [](Plot& p, const Vec3& color){
+				p.gridColor(color);
 			},
 			py::arg("color")
 		)
+		.def("darkMode", &Plot::darkMode)
+		.def("colorCycle", &Plot::colorCycle)
 		.def("xlabel", &Plot::xlabel)
 		.def("ylabel", &Plot::ylabel)
 		.def("yflip", &Plot::yflip, py::arg("equal")=true)
 		.def("equal", &Plot::equal, py::arg("equal")=true)
 		.def("limits", &Plot::limits, py::arg("min_x"), py::arg("max_x"), py::arg("min_y"), py::arg("max_y"))
-		.def("cursor_callout", &Plot::cursor_callout, py::arg("enabled"))
+		.def("cursorCallout", &Plot::cursorCallout, py::arg("enabled"))
 		.def("plot", [](Plot& p, 
 				const MatX& x, 
 				const MatX& y, 
@@ -999,7 +1003,8 @@ PYBIND11_MODULE(_core, m) {
 		.def("imshow", [](Plot& p,
 			py::buffer buf,
 			bool nearest,
-			const Vec2& offset){
+			const Vec2& offset,
+			float scale){
 				py::buffer_info info = buf.request();
 				
 				// Image debug info
@@ -1035,9 +1040,9 @@ PYBIND11_MODULE(_core, m) {
 					throw std::runtime_error("imshow only supports uint8 or double typed arrays.");
 				}
 				
-				p.imshow(image, nearest, offset);
+				p.imshow(image, nearest, offset, scale);
 			},
-			py::arg("image"), py::arg("nearest")=false, py::arg("offset")=Vec2::Zero())
+			py::arg("image"), py::arg("nearest")=false, py::arg("offset")=Vec2::Zero(), py::arg("scale")=1.0)
 		.def("show", [](Plot& p, bool wait_close, bool wait_key){
 			return p.show(wait_close, wait_key, [](){
 				if (PyErr_CheckSignals() != 0)
@@ -1056,18 +1061,18 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("height")=800)
 		.def("window", &Plot3D::window, py::return_value_policy::reference)
 		.def("title", &Plot3D::title)
-		.def("back_color", [](Plot3D& p, const Vec3& color){
-				p.back_color(color);
+		.def("backColor", [](Plot3D& p, const Vec3& color){
+				p.backColor(color);
 			},
 			py::arg("color")
 		)
-		.def("fore_color", [](Plot3D& p, const Vec3& color){
-				p.fore_color(color);
+		.def("foreColor", [](Plot3D& p, const Vec3& color){
+				p.foreColor(color);
 			},
 			py::arg("color")
 		)
-		.def("grid_color", [](Plot3D& p, const Vec3& color){
-				p.grid_color(color);
+		.def("gridColor", [](Plot3D& p, const Vec3& color){
+				p.gridColor(color);
 			},
 			py::arg("color")
 		)
@@ -1100,6 +1105,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("linestyle") = "",
 			py::arg("thickness") = 0,
 			py::arg("label") = "")
+		.def("colorCycle", &Plot3D::colorCycle)
 		.def("xlabel", &Plot3D::xlabel)
 		.def("ylabel", &Plot3D::ylabel)
 		.def("zlabel", &Plot3D::zlabel)

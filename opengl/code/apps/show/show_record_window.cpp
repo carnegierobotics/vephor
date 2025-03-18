@@ -480,7 +480,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 			bound_mgr->addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
 
 		return node;
@@ -509,7 +509,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 			bound_mgr->addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
 
 		return node;
@@ -553,7 +553,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 			bound_mgr->addBoundVerts(verts, node->getWorldTransform());
 		return node;
 	}
@@ -585,7 +585,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 			
 			auto sub_node = window->add(draw_obj, TransformSim3(), overlay, layer);
 			sub_node->setParent(node);
-			if (!overlay)
+			if (!overlay && readDefault(obj, "bounds", true))
 				bound_mgr->addBoundVerts(part.geometry.verts, node->getWorldTransform());
 		}
 		
@@ -602,7 +602,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 			bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
 		return node;
 	}
@@ -619,7 +619,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 			bound_mgr->addBoundSphere(std::max(rad, height/2), node->getWorldTransform());
 		return node;
 	}
@@ -636,7 +636,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 			bound_mgr->addBoundSphere(std::max(rad, height/2), node->getWorldTransform());
 		return node;
 	}
@@ -651,7 +651,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 			bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
 		return node;
 	}
@@ -679,7 +679,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 		{
 			bound_mgr->addBoundPoint(Vec3(-rads[0],-rads[1],0), node->getWorldTransform());
 			bound_mgr->addBoundPoint(Vec3(rads[0],-rads[1],0), node->getWorldTransform());
@@ -709,7 +709,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		// TODO: arrow offset?
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 			bound_mgr->addBoundSphere(std::max(rad, dist/2), node->getWorldTransform());
 		return node;
 	}
@@ -731,7 +731,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 			bound_mgr->addBoundSphere(obj["size"], node->getWorldTransform());
 		return node;
 	}
@@ -746,7 +746,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 			bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
 		return node;
 	}
@@ -771,7 +771,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, overlay, readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 		{
 			bound_mgr->addBoundPoint( rad * forward + rad * right, node->getWorldTransform());
 			bound_mgr->addBoundPoint( rad * forward - rad * right, node->getWorldTransform());
@@ -846,7 +846,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, overlay, readDefault(obj, "layer", 0));
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 			bound_mgr->addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
 		return node;
 	}
@@ -905,7 +905,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		
 		float aspect = (float)tex->size()[0] / tex->size()[1];
 		
-		if (!overlay)
+		if (!overlay && readDefault(obj, "bounds", true))
 		{
 			bound_mgr->addBoundPoint(Vec3(-0.5*aspect,-0.5,0), node->getWorldTransform());
 			bound_mgr->addBoundPoint(Vec3(-0.5*aspect, 0.5,0), node->getWorldTransform());

@@ -108,17 +108,27 @@ public:
 	{
 		inner_window.setTitle(title_text);
 	}
-	void back_color(const Color& color)
+	void backColor(const Color& color)
 	{
 		inner_window.getCameraControlInfo()["back_color"] = toJson(color.getRGB());
 	}
-	void fore_color(const Color& color)
+	void foreColor(const Color& color)
 	{
 		inner_window.getCameraControlInfo()["fore_color"] = toJson(color.getRGB());
 	}
-	void grid_color(const Color& color)
+	void gridColor(const Color& color)
 	{
 		inner_window.getCameraControlInfo()["grid_color"] = toJson(color.getRGB());
+	}
+	void darkMode()
+	{
+		backColor(Vec3(0,0,0));
+		foreColor(Vec3(1,1,1));
+		gridColor(Vec3(0.75,0.75,0.75));
+	}
+	Vec3 colorCycle(int index)
+	{
+		return color_cycle[index % color_cycle.size()];
 	}
 	void xlabel(const string& text)
 	{
@@ -144,7 +154,7 @@ public:
 		inner_window.getCameraControlInfo()["orig_content_min"] = toJson(Vec3(min_x, min_y, 0));
 		inner_window.getCameraControlInfo()["orig_content_max"] = toJson(Vec3(max_x, max_y, 0));
 	}
-	void cursor_callout(bool enabled)
+	void cursorCallout(bool enabled)
 	{
 		inner_window.getCameraControlInfo()["cursor_callout"] = enabled;
 	}
@@ -538,16 +548,16 @@ public:
               /* color */ color,
               /* radius */ radius);
     }
-	void imshow(const Image<uint8_t>& p_image, bool p_filter_nearest = false, const Vec2& offset = Vec2(0,0))
+	void imshow(const Image<uint8_t>& p_image, bool p_filter_nearest = false, const Vec2& offset = Vec2(0,0), float scale=1.0)
 	{
 		shared_ptr<Sprite> sprite;
 		sprite = make_shared<Sprite>(p_image, p_filter_nearest);
 		sprite->setFlip(false, true);
 		auto node = inner_window.add(sprite, Vec3(
-			p_image.getSize()[0]/2.0f+offset[0],
-			p_image.getSize()[1]/2.0f+offset[1],
+			p_image.getSize()[0]/2.0f*scale+offset[0],
+			p_image.getSize()[1]/2.0f*scale+offset[1],
 			0.5), false, 0);
-		node->setScale(p_image.getSize()[1]);
+		node->setScale(p_image.getSize()[1]*scale);
 		
 		inner_window.getCameraControlInfo()["equal"] = true;
 		inner_window.getCameraControlInfo()["y_flip"] = true;

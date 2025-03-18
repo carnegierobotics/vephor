@@ -39,9 +39,9 @@ int main()
     Window::setServerModeBYOC();
 
     Plot plt;
-    plt.back_color(Vec3(0,0,0));
-    plt.fore_color(Vec3(0.5,0.5,0.5));
-    plt.grid_color(Vec3(0,0,0));
+    plt.backColor(Vec3(0,0,0));
+    plt.foreColor(Vec3(0.5,0.5,0.5));
+    plt.gridColor(Vec3(0,0,0));
 
     const int N_CELLS = 20;
 

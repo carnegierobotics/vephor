@@ -312,10 +312,25 @@ public:
 		}
 		return true;
 	}
+
+	// TODO: these functions can't take effect after the object first is passed to show, enforce this
+	void enableOverlay()
+	{
+		on_overlay = true;
+	}
+	void setLayer(int p_layer)
+	{
+		layer = p_layer;
+	}
+	void disableBounds()
+	{
+		include_in_bounds = false;
+	}
 private:
 	ObjectID id = -1;
-	bool on_overlay;
-	int layer;
+	bool on_overlay = false;
+	int layer = 0;
+	bool include_in_bounds = true;
 	shared_ptr<TransformNode> node;
 	
 	bool show = true;
@@ -1555,6 +1570,7 @@ private:
 				datum["show"] = obj->show;
 				datum["overlay"] = obj->on_overlay;
 				datum["layer"] = obj->layer;
+				datum["bounds"] = obj->include_in_bounds;
 				scene["objects"].push_back(datum);
 
 				continue;
@@ -1584,6 +1600,7 @@ private:
 			{
 				datum["overlay"] = obj->on_overlay;
 				datum["layer"] = obj->layer;
+				datum["bounds"] = obj->include_in_bounds;
 			}
 			scene["objects"].push_back(datum);
 			
