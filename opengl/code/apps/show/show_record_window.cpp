@@ -480,8 +480,23 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay && readDefault(obj, "bounds", true))
-			bound_mgr->addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
+		if (!overlay)
+		{
+			if(readDefault(obj, "bounds", true))
+				bound_mgr->addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
+
+			if(readDefault(obj, "selectable", false))
+			{
+				Vec3 centroid = verts_record.map.transpose().colwise().mean();
+				MatX centered = verts_record.map.transpose().rowwise() - centroid.transpose();
+				VecX norms = centered.rowwise().norm();
+
+				camera->addSelectionWidget(
+					world_from_body.translation() + centroid, 
+					norms.maxCoeff()*world_from_body.scale,
+					node);
+			}
+		}
 
 		return node;
 	}
@@ -509,8 +524,23 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay && readDefault(obj, "bounds", true))
-			bound_mgr->addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
+		if (!overlay)
+		{	
+			if (readDefault(obj, "bounds", true))
+				bound_mgr->addBoundVerts(verts_record.map.transpose(), node->getWorldTransform());
+
+			if(readDefault(obj, "selectable", false))
+			{
+				Vec3 centroid = verts_record.map.transpose().colwise().mean();
+				MatX centered = verts_record.map.transpose().rowwise() - centroid.transpose();
+				VecX norms = centered.rowwise().norm();
+
+				camera->addSelectionWidget(
+					world_from_body.translation() + centroid, 
+					norms.maxCoeff()*world_from_body.scale,
+					node);
+			}
+		}
 
 		return node;
 	}
@@ -553,8 +583,23 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay && readDefault(obj, "bounds", true))
-			bound_mgr->addBoundVerts(verts, node->getWorldTransform());
+		if (!overlay)
+		{
+			if (readDefault(obj, "bounds", true))
+				bound_mgr->addBoundVerts(verts, node->getWorldTransform());
+
+			if(readDefault(obj, "selectable", false))
+			{
+				Vec3 centroid = verts.colwise().mean();
+				MatX centered = verts.rowwise() - centroid.transpose();
+				VecX norms = centered.rowwise().norm();
+
+				camera->addSelectionWidget(
+					world_from_body.translation() + centroid, 
+					norms.maxCoeff()*world_from_body.scale,
+					node);
+			}
+		}
 		return node;
 	}
 	else if (obj["type"] == "obj_mesh")
@@ -585,8 +630,23 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 			
 			auto sub_node = window->add(draw_obj, TransformSim3(), overlay, layer);
 			sub_node->setParent(node);
-			if (!overlay && readDefault(obj, "bounds", true))
-				bound_mgr->addBoundVerts(part.geometry.verts, node->getWorldTransform());
+			if (!overlay)
+			{
+				if (readDefault(obj, "bounds", true))
+					bound_mgr->addBoundVerts(part.geometry.verts, node->getWorldTransform());
+
+				if(readDefault(obj, "selectable", false))
+				{
+					Vec3 centroid = part.geometry.verts.colwise().mean();
+					MatX centered = part.geometry.verts.rowwise() - centroid.transpose();
+					VecX norms = centered.rowwise().norm();
+
+					camera->addSelectionWidget(
+						world_from_body.translation() + centroid, 
+						norms.maxCoeff()*world_from_body.scale,
+						sub_node);
+				}
+			}
 		}
 		
 		return node;
@@ -602,8 +662,19 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay && readDefault(obj, "bounds", true))
-			bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
+		if (!overlay)
+		{
+			if (readDefault(obj, "bounds", true))
+				bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
+
+			if(readDefault(obj, "selectable", false))
+			{
+				camera->addSelectionWidget(
+					world_from_body.translation(), 
+					(float)(obj["rad"])*world_from_body.scale,
+					node);
+			}
+		}
 		return node;
 	}
 	else if (obj["type"] == "cylinder")
@@ -619,8 +690,19 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay && readDefault(obj, "bounds", true))
-			bound_mgr->addBoundSphere(std::max(rad, height/2), node->getWorldTransform());
+		if (!overlay)
+		{
+			if (readDefault(obj, "bounds", true))
+				bound_mgr->addBoundSphere(std::max(rad, height/2), node->getWorldTransform());
+
+			if(readDefault(obj, "selectable", false))
+			{
+				camera->addSelectionWidget(
+					world_from_body.translation(), 
+					std::max(rad, height/2)*world_from_body.scale,
+					node);
+			}
+		}
 		return node;
 	}
 	else if (obj["type"] == "cone")
@@ -636,8 +718,19 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay && readDefault(obj, "bounds", true))
-			bound_mgr->addBoundSphere(std::max(rad, height/2), node->getWorldTransform());
+		if (!overlay)
+		{
+			if (readDefault(obj, "bounds", true))
+				bound_mgr->addBoundSphere(std::max(rad, height/2), node->getWorldTransform());
+
+			if(readDefault(obj, "selectable", false))
+			{
+				camera->addSelectionWidget(
+					world_from_body.translation(), 
+					std::max(rad, height/2)*world_from_body.scale,
+					node);
+			}
+		}
 		return node;
 	}
 	else if (obj["type"] == "cube")
@@ -651,8 +744,19 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay && readDefault(obj, "bounds", true))
-			bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
+		if (!overlay)
+		{
+			if (readDefault(obj, "bounds", true))
+				bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
+
+			if(readDefault(obj, "selectable", false))
+			{
+				camera->addSelectionWidget(
+					world_from_body.translation(), 
+					(float)(obj["rad"])*world_from_body.scale,
+					node);
+			}
+		}
 		return node;
 	}
 	else if (obj["type"] == "plane")
@@ -679,12 +783,23 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay && readDefault(obj, "bounds", true))
+		if (!overlay)
 		{
-			bound_mgr->addBoundPoint(Vec3(-rads[0],-rads[1],0), node->getWorldTransform());
-			bound_mgr->addBoundPoint(Vec3(rads[0],-rads[1],0), node->getWorldTransform());
-			bound_mgr->addBoundPoint(Vec3(-rads[0],rads[1],0), node->getWorldTransform());
-			bound_mgr->addBoundPoint(Vec3(rads[0],rads[1],0), node->getWorldTransform());
+			if (readDefault(obj, "bounds", true))
+			{
+				bound_mgr->addBoundPoint(Vec3(-rads[0],-rads[1],0), node->getWorldTransform());
+				bound_mgr->addBoundPoint(Vec3(rads[0],-rads[1],0), node->getWorldTransform());
+				bound_mgr->addBoundPoint(Vec3(-rads[0],rads[1],0), node->getWorldTransform());
+				bound_mgr->addBoundPoint(Vec3(rads[0],rads[1],0), node->getWorldTransform());
+			}
+
+			if(readDefault(obj, "selectable", false))
+			{
+				camera->addSelectionWidget(
+					world_from_body.translation(), 
+					rads.maxCoeff()*world_from_body.scale,
+					node);
+			}
 		}
 		return node;
 	}
@@ -709,8 +824,19 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		// TODO: arrow offset?
-		if (!overlay && readDefault(obj, "bounds", true))
-			bound_mgr->addBoundSphere(std::max(rad, dist/2), node->getWorldTransform());
+		if (!overlay)
+		{
+			if (readDefault(obj, "bounds", true))
+				bound_mgr->addBoundSphere(std::max(rad, dist/2), node->getWorldTransform());
+
+			if(readDefault(obj, "selectable", false))
+			{
+				camera->addSelectionWidget(
+					world_from_body.translation(), 
+					std::max(rad, dist/2)*world_from_body.scale,
+					node);
+			}
+		}
 		return node;
 	}
 	else if (obj["type"] == "axes")
@@ -731,8 +857,19 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
-		if (!overlay && readDefault(obj, "bounds", true))
-			bound_mgr->addBoundSphere(obj["size"], node->getWorldTransform());
+		if (!overlay)
+		{
+			if (readDefault(obj, "bounds", true))
+				bound_mgr->addBoundSphere(obj["size"], node->getWorldTransform());
+
+			if(readDefault(obj, "selectable", false))
+			{
+				camera->addSelectionWidget(
+					world_from_body.translation(), 
+					(float)(obj["size"])*world_from_body.scale,
+					node);
+			}
+		}
 		return node;
 	}
 	else if (obj["type"] == "circle")

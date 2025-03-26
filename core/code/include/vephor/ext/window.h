@@ -314,23 +314,32 @@ public:
 	}
 
 	// TODO: these functions can't take effect after the object first is passed to show, enforce this
-	void enableOverlay()
+	RenderNode* enableOverlay()
 	{
 		on_overlay = true;
+		return this;
 	}
-	void setLayer(int p_layer)
+	RenderNode* setLayer(int p_layer)
 	{
 		layer = p_layer;
+		return this;
 	}
-	void disableBounds()
+	RenderNode* disableBounds()
 	{
 		include_in_bounds = false;
+		return this;
+	}
+	RenderNode* setSelectable()
+	{
+		selectable = true;
+		return this;
 	}
 private:
 	ObjectID id = -1;
 	bool on_overlay = false;
 	int layer = 0;
 	bool include_in_bounds = true;
+	bool selectable = false;
 	shared_ptr<TransformNode> node;
 	
 	bool show = true;
@@ -995,7 +1004,7 @@ public:
 					int q_size = manager.net.getJSONBOutgoingQueueSize(conn_id);
 					if (frame_message_info.waiting >= frame_skip_message_limit)
 					{
-						if (frame_message_info.skips % 100 == 0)
+						if (frame_message_info.skips % 100 == 0 && frame_message_info.waiting > 1)
 							v4print "Skipping frame - Window:", id, 
 								"Title:", title, 
 								"Conn:", conn_id, 
@@ -1571,6 +1580,7 @@ private:
 				datum["overlay"] = obj->on_overlay;
 				datum["layer"] = obj->layer;
 				datum["bounds"] = obj->include_in_bounds;
+				datum["selectable"] = obj->selectable;
 				scene["objects"].push_back(datum);
 
 				continue;
@@ -1601,6 +1611,7 @@ private:
 				datum["overlay"] = obj->on_overlay;
 				datum["layer"] = obj->layer;
 				datum["bounds"] = obj->include_in_bounds;
+				datum["selectable"] = obj->selectable;
 			}
 			scene["objects"].push_back(datum);
 			

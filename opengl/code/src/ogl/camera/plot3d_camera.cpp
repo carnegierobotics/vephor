@@ -396,7 +396,7 @@ void Plot3DCamera::update(Window& window, float dt, const ControlInfo& control_i
 		orbit_point_render->setShow(false);
 	}
 
-	if (control_info.left_drag_on)
+	if (control_info.right_drag_on)
 	{
 		Vec2 mouse_delta = window.getMousePos() - control_info.drag_start_mouse_pos;
 
@@ -459,23 +459,23 @@ void Plot3DCamera::update(Window& window, float dt, const ControlInfo& control_i
 		moveGrid(window);
 	}
 
-	if (control_info.right_drag_on)
+	if (control_info.left_drag_on)
 	{
 		Transform3 cam_from_world = window.getCamFromWorld();
 		Transform3 world_from_cam = cam_from_world.inverse();
 		Vec3 offset = world_from_cam.translation() - trackball_to;
 
-		if (right_drag_off)
+		if (pan_drag_off)
 		{
 			Vec3 drag_origin, drag_ray;
 			window.getWorldRayForMousePos(control_info.drag_start_mouse_pos, drag_origin, drag_ray);
 
-			right_drag_off = false;
-			right_world_point = drag_origin + drag_ray * (offset.dot(drag_ray));
+			pan_drag_off = false;
+			pan_world_point = drag_origin + drag_ray * (offset.dot(drag_ray));
 
 			scene_scale = offset.norm();
 			drag_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
-			drag_point_render->setPos(right_world_point);
+			drag_point_render->setPos(pan_world_point);
 			drag_point_render->setShow(true);
 		}
 
@@ -485,16 +485,16 @@ void Plot3DCamera::update(Window& window, float dt, const ControlInfo& control_i
 		window.getWorldRayForMousePos(window.getMousePos(), curr_origin, curr_ray);
 
 		// Find the shift in position where this ray points at the given world point, but only move the camera along lateral axes
-		// We need to move curr_origin to to somewhere on the line (right_world_point - curr_ray * lambda)
+		// We need to move curr_origin to to somewhere on the line (pan_world_point - curr_ray * lambda)
 		// We then apply that same shift to the current camera position
 		// target = curr_origin + shift
-		// target = right_world_point - curr_ray * lambda
+		// target = pan_world_point - curr_ray * lambda
 		// (target - cam_origin) * camera_dir = 0
 		// Plane line intersection
-		// lambda = camera_dir * (cam_origin - right_world_point) / (camera_dir * -curr_ray)
+		// lambda = camera_dir * (cam_origin - pan_world_point) / (camera_dir * -curr_ray)
 		Vec3 camera_dir = offset / offset.norm();
-		float lambda = camera_dir.dot(world_from_cam.translation() - right_world_point) / camera_dir.dot(-curr_ray);
-		trackball_from += right_world_point - curr_ray * lambda - curr_origin;
+		float lambda = camera_dir.dot(world_from_cam.translation() - pan_world_point) / camera_dir.dot(-curr_ray);
+		trackball_from += pan_world_point - curr_ray * lambda - curr_origin;
 		trackball_to = trackball_from - offset;
 
 		orbit_point_render->setPos(trackball_to);
@@ -507,10 +507,10 @@ void Plot3DCamera::update(Window& window, float dt, const ControlInfo& control_i
 	{
 		drag_point_render->setShow(false);
 
-		right_drag_off = true;
+		pan_drag_off = true;
 	}
 
-	if (!control_info.left_drag_on)
+	if (!control_info.right_drag_on)
 	{
 		if (control_info.total_scroll_amount != 0.0f)
 		{

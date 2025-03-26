@@ -24,6 +24,10 @@ public:
 	virtual void setup(const json& data, Window& window, AssetManager& assets) override;
 	virtual void autoFitPoints(Window& window, const vector<Vec3>& pts) override;
 	virtual void update(Window& window, float dt, const ControlInfo& control_info) override;
+	virtual void addSelectionWidget(const Vec3& center, float radius, shared_ptr<RenderNode>& node) override
+	{
+		selection_widgets.push_back({center, radius, node});
+	}
 	virtual json serialize() override
 	{
 		return {
@@ -40,6 +44,7 @@ private:
 	float scene_scale = 12.0f;
 	shared_ptr<RenderNode> orbit_point_render;
 	shared_ptr<RenderNode> drag_point_render;
+	shared_ptr<RenderNode> selection_widget_render;
 	const float orbit_point_scene_scale_mult = 1.0f / 100.0f;
 	bool trackball_3d = true;
 	Vec3 trackball_to;
@@ -52,8 +57,10 @@ private:
 	float curr_far_z = 100.0f;
 	bool auto_fit = true;
 
-	bool right_drag_off = true;
-	Vec3 right_world_point;
+	bool pan_drag_off = true;
+	Vec3 pan_world_point;
+	std::vector<SelectionWidget> selection_widgets;
+	bool widget_click = false;
 };
 
 }

@@ -64,8 +64,8 @@ private:
 	bool auto_fit = true;
 	float zoom = 40.0f;
 
-	bool right_drag_off = true;
-	Vec3 right_world_point;
+	bool pan_drag_off = true;
+	Vec3 pan_world_point;
 };
 
 }

@@ -70,7 +70,11 @@ PYBIND11_MODULE(_core, m) {
 		.def("setShow", &RenderNode::setShow)
 		.def("getShow", &RenderNode::getShow)
 		.def("setDestroy", &RenderNode::setDestroy)
-		.def("getDestroy", &RenderNode::getDestroy);
+		.def("getDestroy", &RenderNode::getDestroy)
+		.def("enableOverlay", &RenderNode::enableOverlay)
+		.def("setLayer", &RenderNode::setLayer)
+		.def("disableBounds", &RenderNode::disableBounds)
+		.def("setSelectable", &RenderNode::setSelectable);
 	py::class_<MeshData>(m, "MeshData")
 		.def(py::init<>())
 		.def(py::init<const MatX&, const MatX&, const MatX&>())

@@ -20,6 +20,10 @@ struct ControlInfo
 {
 	bool left_drag_on = false;
 	bool right_drag_on = false;
+	bool left_press = false;
+	bool left_release = false;
+	bool right_press = false;
+	bool right_release = false;
 	unordered_map<int, bool> key_down;
 	Vec3 key_motion = Vec3::Zero();
 	float total_scroll_amount = 0.0f;
@@ -32,10 +36,12 @@ struct ControlInfo
 		drag_start_mouse_pos = pos;
 		drag_cam_from_world = window.getCamFromWorld();
 		left_drag_on = true;
+		left_press = true;
 	}
 	void onLeftMouseButtonRelease()
 	{
 		left_drag_on = false;
+		left_release = true;
 	}
 	void onRightMouseButtonPress(const Window& window)
 	{
@@ -43,10 +49,12 @@ struct ControlInfo
 		drag_start_mouse_pos = pos;
 		drag_cam_from_world = window.getCamFromWorld();
 		right_drag_on = true;
+		right_press = true;
 	}
 	void onRightMouseButtonRelease()
 	{
 		right_drag_on = false;
+		right_release = true;
 	}
 
 	void refreshKeyMotion()
@@ -96,6 +104,10 @@ struct ControlInfo
 	void onUpdate()
 	{
 		total_scroll_amount = 0.0f;
+		left_press = false;
+		left_release = false;
+		right_press = false;
+		right_release = false;
 	}
 };
 
@@ -181,6 +193,13 @@ private:
 	);
 };
 
+struct SelectionWidget
+{
+	Vec3 center;
+	float radius;
+	shared_ptr<RenderNode> node;
+};
+
 class CameraManager
 {
 public:
@@ -195,7 +214,8 @@ public:
 	virtual void update(Window& window, float dt, const ControlInfo& control_info){}
 	virtual json serialize() = 0;
 	virtual void augmentInputEvent(Window& window, json& event_data){}
-
+	virtual void addSelectionWidget(const Vec3& center, float radius, shared_ptr<RenderNode>& node){}
+	
 	shared_ptr<Texture> text_tex;
 };
 

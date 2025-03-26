@@ -39,6 +39,16 @@ void TrackballCamera::setup(const json& data, Window& window, AssetManager& asse
 	drag_point_render->setShow(false);
 
 	drag_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
+
+
+	auto selection_sphere = make_shared<Mesh>(orbit_sphere, Vec3(1,1,1));
+	selection_sphere->setOpacity(0.25);
+	selection_widget_render = window.add(
+		selection_sphere, 
+		Transform3(),
+		false /*overlay*/,
+		1 /*layer*/);
+	selection_widget_render->setShow(false);
 	
 	
 	trackball_to = readVec3(data["to"]);
@@ -95,7 +105,6 @@ void TrackballCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 	
 	auto world_from_cam = window.getCamFromWorld().inverse();
 	
-	Vec3 up = world_from_cam * Vec3(0,1,0);
 	Vec3 offset = world_from_cam.translation() - trackball_to;
 	float offset_mag = offset.norm();
 	if (offset_mag > 1e-3)
@@ -151,7 +160,7 @@ void TrackballCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 	
 	trackball_from = trackball_to + offset;
 	window.setCamFromWorld(makeLookAtTransform(
-		trackball_to, trackball_from, up
+		trackball_to, trackball_from, trackball_up
 	));
 
 	for (const auto& pt : pts)
@@ -180,7 +189,60 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 		orbit_point_render->setShow(false);
 	}
 
-	if (control_info.left_drag_on)
+	std::vector<SelectionWidget> remaining_widgets;
+	for (const auto& widget : selection_widgets)
+	{
+		if (widget.node->checkDestroy())
+			continue;
+
+		remaining_widgets.push_back(widget);
+	}
+	selection_widgets = remaining_widgets;
+
+	Vec3 origin, ray;
+	window.getWorldRayForMousePos(window.getMousePos(), origin, ray);
+	float best_dist = 1e9;
+	const SelectionWidget* best_widget = NULL;
+	for (const auto& widget : selection_widgets)
+	{
+		float dist_along = (widget.center - origin).dot(ray);
+		Vec3 closest_pt = origin + ray * dist_along;
+		float dist_from = (closest_pt - widget.center).norm();
+		if (dist_from < widget.radius && dist_from < best_dist)
+		{
+			best_dist = dist_from;
+			best_widget = &widget;
+		}
+	}
+	if (best_widget != NULL)
+	{
+		selection_widget_render->setScale(best_widget->radius);
+		selection_widget_render->setPos(best_widget->center);
+		selection_widget_render->setShow(true);
+
+		if (control_info.left_press)
+		{
+			Transform3 cam_from_world = window.getCamFromWorld();
+			Transform3 world_from_cam = cam_from_world.inverse();
+			Vec3 offset = world_from_cam.translation() - trackball_to;
+
+			trackball_from = best_widget->center + offset;
+			trackball_to = best_widget->center;
+
+			orbit_point_render->setPos(trackball_to); 
+
+			world_from_cam.setTranslation(trackball_from);
+			window.setCamFromWorld(world_from_cam.inverse());
+
+			widget_click = true;
+		}
+	}
+	else
+	{
+		selection_widget_render->setShow(false);
+	}
+
+	if (control_info.right_drag_on)
 	{
 		Vec2 mouse_delta = window.getMousePos() - control_info.drag_start_mouse_pos;
 
@@ -241,23 +303,23 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 		}
 	}
 
-	if (control_info.right_drag_on)
+	if (control_info.left_drag_on && !widget_click)
 	{
 		Transform3 cam_from_world = window.getCamFromWorld();
 		Transform3 world_from_cam = cam_from_world.inverse();
 		Vec3 offset = world_from_cam.translation() - trackball_to;
 
-		if (right_drag_off)
+		if (pan_drag_off)
 		{
 			Vec3 drag_origin, drag_ray;
 			window.getWorldRayForMousePos(control_info.drag_start_mouse_pos, drag_origin, drag_ray);
 
-			right_drag_off = false;
-			right_world_point = drag_origin + drag_ray * (-offset.dot(drag_ray));
+			pan_drag_off = false;
+			pan_world_point = drag_origin + drag_ray * (-offset.dot(drag_ray));
 
 			scene_scale = offset.norm();
 			drag_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
-			drag_point_render->setPos(right_world_point);
+			drag_point_render->setPos(pan_world_point);
 			drag_point_render->setShow(true);
 		}
 
@@ -267,31 +329,32 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 		window.getWorldRayForMousePos(window.getMousePos(), curr_origin, curr_ray);
 
 		// Find the shift in position where this ray points at the given world point, but only move the camera along lateral axes
-		// We need to move curr_origin to to somewhere on the line (right_world_point - curr_ray * lambda)
+		// We need to move curr_origin to to somewhere on the line (pan_world_point - curr_ray * lambda)
 		// We then apply that same shift to the current camera position
 		// target = curr_origin + shift
-		// target = right_world_point - curr_ray * lambda
+		// target = pan_world_point - curr_ray * lambda
 		// (target - cam_origin) * camera_dir = 0
 		// Plane line intersection
-		// lambda = camera_dir * (cam_origin - right_world_point) / (camera_dir * -curr_ray)
+		// lambda = camera_dir * (cam_origin - pan_world_point) / (camera_dir * -curr_ray)
 		Vec3 camera_dir = offset / offset.norm();
-		float lambda = camera_dir.dot(world_from_cam.translation() - right_world_point) / camera_dir.dot(-curr_ray);
-		trackball_from = right_world_point - curr_ray * lambda;
+		float lambda = camera_dir.dot(world_from_cam.translation() - pan_world_point) / camera_dir.dot(-curr_ray);
+		trackball_from = pan_world_point - curr_ray * lambda;
 		trackball_to = trackball_from - offset;
 
-		orbit_point_render->setPos(trackball_to);
+		orbit_point_render->setPos(trackball_to); 
 
 		world_from_cam.setTranslation(trackball_from);
 		window.setCamFromWorld(world_from_cam.inverse());
 	}
-	else
-	{
-		drag_point_render->setShow(false);
-
-		right_drag_off = true;
-	}
 
 	if (!control_info.left_drag_on)
+	{
+		drag_point_render->setShow(false);
+		pan_drag_off = true;
+		widget_click = false;
+	}
+
+	if (!control_info.right_drag_on)
 	{
 		if (control_info.total_scroll_amount != 0.0f)
 		{
