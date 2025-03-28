@@ -409,6 +409,14 @@ struct WindowManager
 	bool first_render = false;
 	ShowMetadata show_metadata;
 	unordered_map<ConnectionID, bool> metadata_up_to_date;
+	bool any_window_closed = false;
+	bool any_window_key = false;
+
+	void clearAnyWindowEvents()
+	{
+		any_window_closed = false;
+		any_window_key = false;
+	}
 	
 	void checkIncomingMessages()
 	{
@@ -430,6 +438,19 @@ struct WindowManager
 						}
 					}
 					continue;
+				}
+
+				if (msg.header["type"] == "hide" || msg.header["type"] == "close")
+				{
+					any_window_closed = true;
+				}
+
+				if (msg.header["type"] == "key_press")
+				{	
+					if (msg.header["key"] == KEY_ENTER)
+					{
+						any_window_key = true;
+					}
 				}
 				
 				WindowID window_id = 0;
@@ -479,6 +500,7 @@ public:
                      /* p_y_position */ -1,
                      /* p_title */ p_title)
     {
+		canary = std::make_shared<bool>(true);
 	}
 
     Window(float p_width,
@@ -488,6 +510,8 @@ public:
            const string &p_title = "show")
             : width(p_width), height(p_height), x_position(p_x_position), y_position(p_y_position), title(p_title)
 	{
+		canary = std::make_shared<bool>(true);
+
 		opacity = default_opacity;
 		
 		id = manager.next_window_id;
@@ -531,7 +555,10 @@ public:
 		};
 	}
 
-    ~Window() = default;
+    ~Window()
+	{
+		*canary = false;
+	}
 
 	void layoutAbsolute(
 		float p_width,
@@ -859,10 +886,10 @@ private:
 	}
 
 public:
-	void processEvents(bool& key_event, bool& hide_event, bool verbose = false)
+	void processEvents(bool& key_event, bool& close_event, bool verbose = false)
 	{
 		key_event = false;
-		hide_event = false;
+		close_event = false;
 
 		if (!manager.network_mode)
 			return;
@@ -915,15 +942,10 @@ public:
 					);
 				}
 			}
-			else if (msg["type"] == "close")
+			else if (msg["type"] == "hide" || msg["type"] == "close")
 			{
 				v4print "Close message received for window:", id;
-				shutdown = true;
-			}\
-			else if (msg["type"] == "hide")
-			{
-				v4print "Hide message received for window:", id;
-				hide_event = true;
+				close_event = true;
 			}
 		}
 	}
@@ -938,7 +960,7 @@ public:
 		if (shutdown)
 			return false;
 
-		bool hide_event = false;
+		bool close_event = false;
 		
 		if (manager.mode == WindowManager::Mode::Record)	
 		{
@@ -1083,8 +1105,13 @@ public:
                     conn_id,
                     msg.header,
                     msg.payloads,
-                    [&,conn_id](const shared_ptr<JSONBMessage> & /* msg */,
+                    [&,conn_id,window_canary = this->canary](const shared_ptr<JSONBMessage> & /* msg */,
                         const std::chrono::time_point<std::chrono::steady_clock> &send_time) {
+
+						// If the underlying window has shut down, skip this
+						if (!(*window_canary))
+							return;
+
                         frame_message_infos[conn_id].waiting--;
 						frame_message_infos[conn_id].sent++;
 
@@ -1151,6 +1178,7 @@ public:
 			if (wait_close || wait_key)
 			{
 				keep_waiting = true;
+				manager.clearAnyWindowEvents();
 			}
 			while (true)
 			{
@@ -1158,12 +1186,12 @@ public:
 					wait_callback();
 
 				bool key_event = false;
-				processEvents(key_event, hide_event);
+				processEvents(key_event, close_event);
 
-				if (wait_key && key_event)
+				if (wait_key && manager.any_window_key)
 					keep_waiting = false;
 
-				if (wait_close && hide_event)
+				if (wait_close && manager.any_window_closed)
 					keep_waiting = false;
 				
 				if (!keep_waiting || shutdown)
@@ -1243,7 +1271,7 @@ public:
 		}
 		objects.resize(objects.size() - removed_objs);
 		
-		return !shutdown && !hide_event;
+		return !shutdown && !close_event;
 	}
 
 	void save(string path)
@@ -1703,6 +1731,8 @@ private:
 	string title;
 	float fps = 30.0f;
 	float opacity;
+
+	std::shared_ptr<bool> canary;
 
 	unordered_map<ConnectionID, FrameMessageInfo> frame_message_infos;
 
