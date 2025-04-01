@@ -103,7 +103,7 @@ public:
 			pts.col(1) = y;
             pts.col(2) = z;
 			
-			if (opts.thickness <= 0)
+			if (opts.thickness_in_screen_perc <= 0)
 			{
 				auto lines = make_shared<Lines>(pts);
 				lines->setColor(curr_color);
@@ -113,7 +113,7 @@ public:
 			{
 				auto lines = make_shared<ThickLines>(pts);
 				lines->setColor(curr_color);
-				lines->setLineWidth(opts.thickness);
+				lines->setLineWidth(opts.thickness_in_screen_perc*0.01);
 				inner_window.add(lines);
 			}
 			

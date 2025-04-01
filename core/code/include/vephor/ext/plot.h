@@ -39,7 +39,7 @@ struct PlotLineOptions
 	string label = "";
 	Color color = Color(Vec3(-1,-1,-1));
 	string linestyle = "";
-	float thickness = 0;
+	float thickness_in_screen_perc = 0;
 };
 
 enum PlotScatterMarker
@@ -74,7 +74,7 @@ struct PlotScatterOptions
 {
 	string label = "";
 	Color color = Color(Vec3(-1,-1,-1));
-	float size = 0.01;
+	float size_in_screen_perc = 1.0;
 	PlotScatterMarker marker = PlotScatterMarker::CIRCLE;
 };
 
@@ -185,7 +185,7 @@ public:
 			pts.col(0) = x;
 			pts.col(1) = y.col(col);
 			
-			if (opts.thickness <= 0)
+			if (opts.thickness_in_screen_perc <= 0)
 			{
 				auto lines = make_shared<Lines>(pts);
 				lines->setColor(curr_color);
@@ -195,7 +195,7 @@ public:
 			{
 				auto lines = make_shared<ThickLines>(pts);
 				lines->setColor(curr_color);
-				lines->setLineWidth(opts.thickness);
+				lines->setLineWidth(opts.thickness_in_screen_perc*0.01);
 				inner_window.add(lines, Vec3(0,0,plot_index + 1));
 			}
 			
@@ -251,6 +251,25 @@ public:
 			opts
 		);
 	}
+	void plot_d(
+		const vector<Vec2d>& xy,
+		const PlotLineOptions& opts = PlotLineOptions())
+	{
+		vector<float> x(xy.size());
+		vector<float> y(xy.size());
+
+		for (int i = 0; i < xy.size(); i++)
+		{
+			x[i] = (float)xy[i][0];
+			y[i] = (float)xy[i][1];
+		}
+
+		plot(
+			VecXMap(x.data(), x.size()),
+			MatXMap(y.data(), y.size(), 1),
+			opts
+		);
+	}
 	void scatter(
 		const VecXRef& x, 
 		const MatXRef& y, 
@@ -287,7 +306,7 @@ public:
 			}
 			
 			auto particle = make_shared<Particle>(pts);
-			particle->setSize(opts.size);
+			particle->setSize(opts.size_in_screen_perc*0.01);
 			particle->setScreenSpaceMode(true);
 			particle->setColor(curr_color);
 			
@@ -340,6 +359,25 @@ public:
 		{
 			x[i] = xy[i][0];
 			y[i] = xy[i][1];
+		}
+
+		scatter(
+			VecXMap(x.data(), x.size()),
+			MatXMap(y.data(), y.size(), 1),
+			opts
+		);
+	}
+	void scatter_d(
+		const vector<Vec2d>& xy,
+		const PlotScatterOptions& opts = PlotScatterOptions())
+	{
+		vector<float> x(xy.size());
+		vector<float> y(xy.size());
+
+		for (int i = 0; i < xy.size(); i++)
+		{
+			x[i] = (float)xy[i][0];
+			y[i] = (float)xy[i][1];
 		}
 
 		scatter(

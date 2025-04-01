@@ -857,13 +857,13 @@ PYBIND11_MODULE(_core, m) {
 				const MatX& y, 
 				const Vec3& color,
 				const string& linestyle,
-				float thickness,
+				float thickness_in_screen_perc,
 				const string& label){
 				PlotLineOptions opts;
 				opts.color = color;
 				opts.label = label;
 				opts.linestyle = linestyle;
-				opts.thickness = thickness;
+				opts.thickness_in_screen_perc = thickness_in_screen_perc;
 				if (y.rows() == 0)
 				{
 					if (x.cols() == 1)
@@ -882,17 +882,17 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("y")=MatX(), 
 			py::arg("color")=Vec3(-1,-1,-1), 
 			py::arg("linestyle") = "",
-			py::arg("thickness") = 0,
+			py::arg("thickness_in_screen_perc") = 0,
 			py::arg("label") = "")
 		.def("scatter", [](Plot& p, 
 				const MatX& x, 
 				const MatX& y,
-				float size, 
+				float size_in_screen_perc, 
 				const Vec3& color, 
 				const string& marker,
 				const string& label){
 				PlotScatterOptions opts;
-				opts.size = size;
+				opts.size_in_screen_perc = size_in_screen_perc;
 				opts.color = color;
 				opts.label = label;
 				if (marker == "circle")
@@ -923,7 +923,7 @@ PYBIND11_MODULE(_core, m) {
 			}, 
 			py::arg("x"), 
 			py::arg("y")=MatX(),
-			py::arg("size")=0.01,
+			py::arg("size_in_screen_perc")=1.0,
 			py::arg("color")=Vec3(-1,-1,-1),
 			py::arg("marker")="circle",
 			py::arg("label") = "")
@@ -1086,13 +1086,13 @@ PYBIND11_MODULE(_core, m) {
 				const MatX& z, 
 				const Vec3& color,
 				const string& linestyle,
-				float thickness,
+				float thickness_in_screen_perc,
 				const string& label){
 				PlotLineOptions opts;
 				opts.color = color;
 				opts.label = label;
 				opts.linestyle = linestyle;
-				opts.thickness = thickness;
+				opts.thickness_in_screen_perc = thickness_in_screen_perc;
 				if (x.cols() == 2)
 				{
 					p.plot(x.col(0),x.col(1),x.col(2),opts);
@@ -1107,7 +1107,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("z")=MatX(),
 			py::arg("color")=Vec3(-1,-1,-1), 
 			py::arg("linestyle") = "",
-			py::arg("thickness") = 0,
+			py::arg("thickness_in_screen_perc") = 0,
 			py::arg("label") = "")
 		.def("colorCycle", &Plot3D::colorCycle)
 		.def("xlabel", &Plot3D::xlabel)

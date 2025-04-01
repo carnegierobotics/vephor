@@ -30,7 +30,7 @@ int main()
         }
         PlotLineOptions opts;
         opts.label = "Thick Line";
-        opts.thickness = 0.025;
+        opts.thickness_in_screen_perc = 2.5;
         plt.plot(x, y, opts);
     }
 
@@ -43,7 +43,7 @@ int main()
         }
         PlotLineOptions opts;
         opts.label = "Less Thick Line";
-        opts.thickness = 0.01;
+        opts.thickness_in_screen_perc = 1.0;
         plt.plot(x, y, opts);
     }
 
