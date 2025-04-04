@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <array>
 #include <chrono>
+#include <random>
 #include <Eigen/Core>
 #include <manif/manif.h>
 
@@ -240,6 +241,15 @@ public:
 		float B = B1 + m;
 
 		return Color(R,G,B);
+	}
+
+	static Color random()
+	{
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<> dist(0, 360);
+
+		return fromHSL(dist(gen),0.5,0.5);
 	}
 
 private:

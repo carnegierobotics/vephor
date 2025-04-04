@@ -88,6 +88,7 @@ PYBIND11_MODULE(_core, m) {
 		.def(py::init<const Vec4&>())
 		.def(py::init<const Vec4u&>())
 		.def_static("fromHSL", &Color::fromHSL)
+		.def_static("random", &Color::random)
 		.def("getRGB", &Color::getRGB)
 		.def("getRGBA", &Color::getRGBA)
 		.def("getAlpha", &Color::getAlpha);
@@ -496,6 +497,8 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("height")=-1,
 			py::arg("name")="show")
 		.def("clear", &Window::clear)
+		.def("getNumObjects", &Window::getNumObjects)
+		.def("getNumActiveObjects", &Window::getNumActiveObjects)
         .def("render", [](Window& w, bool wait_close, bool wait_key, float time_increment_s){
 			return w.render(wait_close, wait_key, time_increment_s, [](){
 				if (PyErr_CheckSignals() != 0)

@@ -301,7 +301,8 @@ public:
 	ObjectID getID() const {return id;}
 	bool isNetworkUpToDate() const
 	{
-		// TODO: should this be looking for connections this object hasn't listed?
+		// It is important that this only tracks connections that have already seen this object,
+		// as we need to be able to delete objects that do not need to update a connection
 		for (auto& status : net_status)
 		{
 			if (!(status.second.obj_up_to_date && 
@@ -1556,10 +1557,40 @@ public:
 
 	void clear()
 	{
-		for (auto& obj : objects)
+		size_t obj_index = 0;
+		size_t removed_objs = 0;
+		while (obj_index < objects.size() - removed_objs)
 		{
+			auto& obj = objects[obj_index];
 			obj->setDestroy();
+			if (obj->isNetworkUpToDate())
+			{
+				removed_objs++;
+				obj = objects[objects.size() - removed_objs];
+				continue;
+			}
+				
+			obj_index++;
 		}
+		objects.resize(objects.size() - removed_objs);
+	}
+
+	int getNumObjects()
+	{
+		return objects.size();
+	}
+
+	int getNumActiveObjects()
+	{
+		int active = 0;
+
+		for (const auto& obj : objects)
+		{
+			if (!obj->getDestroy())
+				active++;
+		}
+
+		return active;
 	}
 
 	void invalidateCameraControlInfo()
@@ -1666,7 +1697,8 @@ private:
         virtual json serialize(ConnectionID conn_id, vector<vector<char>>*) override
         {
 			json data;
-			if (!net_status[conn_id].obj_up_to_date)
+
+			if (conn_id == LOCAL_CONN_ID_ABSOLUTE || !net_status[conn_id].obj_up_to_date)
 			{
 				data["type"] = "null";
 				if (node->getParent())
@@ -1677,7 +1709,7 @@ private:
 					}
 				}
 			}
-			if (!net_status[conn_id].pose_up_to_date)
+			if (conn_id == LOCAL_CONN_ID_ABSOLUTE || !net_status[conn_id].pose_up_to_date)
 			{
 				data["pose"] = toJson(node->getTransform());
 			}
@@ -1700,7 +1732,7 @@ private:
         virtual json serialize(ConnectionID conn_id, vector<vector<char>>* bufs) override
         {
 			json data;
-			if (!net_status[conn_id].obj_up_to_date)
+			if (conn_id == LOCAL_CONN_ID_ABSOLUTE || !net_status[conn_id].obj_up_to_date)
 			{
 				data = obj->serialize(bufs);
 				if (node->getParent())
@@ -1711,7 +1743,7 @@ private:
 					}
 				}
 			}
-			if (!net_status[conn_id].pose_up_to_date)
+			if (conn_id == LOCAL_CONN_ID_ABSOLUTE || !net_status[conn_id].pose_up_to_date)
 			{
 				data["pose"] = toJson(node->getTransform());
 			}
