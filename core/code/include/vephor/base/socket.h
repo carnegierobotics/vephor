@@ -896,6 +896,8 @@ public:
 	}
 	void cleanConns()
 	{
+		std::lock_guard<std::mutex> guard(op_mutex);
+
 		unordered_map<ConnectionID, shared_ptr<ConnRecord>> active_conns;
 		vector<ConnectionID> active_conn_id_list;
 		
@@ -924,6 +926,8 @@ public:
 			const shared_ptr<JSONBMessage>&,
 			const std::chrono::time_point<std::chrono::steady_clock>&)>& callback = NULL)
 	{
+		std::lock_guard<std::mutex> guard(op_mutex);
+
 		if (!find(conns, conn_id))
 			throw std::runtime_error("Attempt to send using invalid conn id: " + std::to_string(conn_id));
 
@@ -942,6 +946,8 @@ public:
 	}
 	int getJSONBOutgoingQueueSize(ConnectionID conn_id)
 	{
+		std::lock_guard<std::mutex> guard(op_mutex);
+
 		if (!find(conns, conn_id))
 			throw std::runtime_error("Attempt to send using invalid conn id: " + std::to_string(conn_id));
 
@@ -949,6 +955,8 @@ public:
 	}
 	vector<JSONBMessage> getIncomingJSONBMessages(ConnectionID conn_id)
 	{
+		std::lock_guard<std::mutex> guard(op_mutex);
+
 		if (!find(conns, conn_id))
 			throw std::runtime_error("Attempt to get using invalid conn id: " + std::to_string(conn_id));
 		
@@ -974,6 +982,8 @@ public:
 	}
 	vector<JSONBMessage> getIncomingJSONBMessagesFromAll()
 	{
+		std::lock_guard<std::mutex> guard(op_mutex);
+
 		vector<JSONBMessage> messages;
 		
 		for (auto& conn : conns)
@@ -987,6 +997,8 @@ public:
 	}
 	float getConnTime(ConnectionID conn_id) const
 	{
+		std::lock_guard<std::mutex> guard(op_mutex);
+
 		if (!find(conns, conn_id))
 			throw std::runtime_error("Attempt to get time using invalid conn id: " + std::to_string(conn_id));
 		return conns.at(conn_id)->getTime();
@@ -1119,6 +1131,8 @@ private:
 			}
 			v4print "Ending outgoing connection thread for", id;
 		});
+
+		std::lock_guard<std::mutex> guard(op_mutex);
 		conns[id] = conn;
 		conn_id_list.push_back(id);
 	}
@@ -1132,6 +1146,7 @@ private:
 	bool server_mode = false;
 	bool waiting_for_connections = false;
 	std::thread conn_wait_thread;
+	mutable std::mutex op_mutex;
 };
 	
 }

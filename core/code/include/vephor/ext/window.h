@@ -404,6 +404,7 @@ struct WindowManager
 	WindowID next_window_id = 0;
 	ObjectID next_obj_id = 0;
 	unordered_map<ConnectionID, unordered_set<string>> transferred_files;
+	std::mutex op_mutex;
 	NetworkManager net;
 	bool network_mode = false;
 	unordered_map<WindowID, vector<json>> window_messages;
@@ -415,12 +416,16 @@ struct WindowManager
 
 	void clearAnyWindowEvents()
 	{
+		std::lock_guard<std::mutex> guard(op_mutex);
 		any_window_closed = false;
 		any_window_key = false;
 	}
 	
-	void checkIncomingMessages()
+	void checkIncomingMessages(bool lock = true)
 	{
+		if (lock)
+			op_mutex.lock();
+
 		// Sort through all incoming messages and distribute them to windows
 		for (auto id : net.getConnectionIdList())
 		{
@@ -460,16 +465,23 @@ struct WindowManager
 				window_messages[window_id].push_back(msg.header);
 			}
 		}
+
+		if (lock)
+			op_mutex.unlock();
 	}
 	vector<json> getWindowMessages(WindowID id)
 	{
-		checkIncomingMessages();
+		std::lock_guard<std::mutex> guard(op_mutex);
+		checkIncomingMessages(false);
 		vector<json> msgs = window_messages[id];
 		window_messages[id].clear();
 		return msgs;
 	}
-	void updateMetadata()
+	void updateMetadata(bool lock = true)
 	{
+		if (lock)
+			op_mutex.lock();
+
 		for (auto conn_id : net.getConnectionIdList())
 		{
 			if (!show_metadata.flags.empty() && (!find(metadata_up_to_date, conn_id) || !metadata_up_to_date[conn_id]))
@@ -482,6 +494,27 @@ struct WindowManager
 				metadata_up_to_date[conn_id] = true;
 			}
 		}
+
+		if (lock)
+			op_mutex.unlock();
+	}
+	bool checkAndConsumeFlag(const string& flag)
+	{
+		if (!network_mode)
+			return false;
+
+		std::lock_guard<std::mutex> guard(op_mutex);
+
+		updateMetadata(false);
+		checkIncomingMessages(false);
+		
+		if (!find(show_metadata.flags, flag))
+			return false;
+		if (show_metadata.flags[flag].toggle)
+			return show_metadata.flags[flag].state;
+		bool ret_val = show_metadata.flags[flag].state;
+		show_metadata.flags[flag].state = false;
+		return ret_val;
 	}
 };
 
@@ -1314,19 +1347,7 @@ public:
 	
 	static bool checkAndConsumeFlag(const string& flag)
 	{
-		if (!manager.network_mode)
-			return false;
-
-		manager.updateMetadata();
-		manager.checkIncomingMessages();
-		
-		if (!find(manager.show_metadata.flags, flag))
-			return false;
-		if (manager.show_metadata.flags[flag].toggle)
-			return manager.show_metadata.flags[flag].state;
-		bool ret_val = manager.show_metadata.flags[flag].state;
-		manager.show_metadata.flags[flag].state = false;
-		return ret_val;
+		return manager.checkAndConsumeFlag(flag);
 	}
 
 	static bool canRender()
