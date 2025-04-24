@@ -35,22 +35,33 @@ set(CMAKE_CXX_STANDARD 17)
 
 project(vephor)
 
+include(GNUInstallDirs)
+
 option(VEPHOR_BUILD_PYTHON_BINDINGS "Build Python bindings with pybind11." OFF)
 option(VEPHOR_BUILD_OPENGL "Build OpenGL portion of the project." ON)
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
 
-# Make project CMake scripts available
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+#
+# Core library
+#
 
 add_subdirectory(core)
 
+#
+# OpenGL library
+#
+
 if (VEPHOR_BUILD_OPENGL)
-  add_subdirectory(opengl)
+    add_subdirectory(opengl)
 endif()
 
+#
+# Python bindings
+#
+
 if (VEPHOR_BUILD_PYTHON_BINDINGS)
-  add_subdirectory(python)
+    add_subdirectory(python)
 endif()

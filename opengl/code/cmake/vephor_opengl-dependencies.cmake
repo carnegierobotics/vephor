@@ -37,32 +37,14 @@
 # Required dependencies
 #
 
-find_package(Eigen3 3.3 QUIET)
-if (NOT Eigen3_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-            Eigen
-            GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-            GIT_TAG 3.4
-    )
-    FetchContent_MakeAvailable(Eigen)
+if (TARGET vephor)
+    message(STATUS "vephor target found, not calling find_package")
+else ()
+    find_package(vephor CONFIG REQUIRED)
 endif ()
 
+find_package(OpenGL REQUIRED)
 
-find_package(manif CONFIG QUIET)
-if (NOT manif_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-            manif
-            GIT_REPOSITORY https://github.com/artivis/manif.git
-    )
-    FetchContent_MakeAvailable(manif)
-endif ()
+find_package(GLEW REQUIRED)
 
-#
-# Optional dependencies
-#
-
-find_package(nlohmann_json QUIET)
-
-find_package(GTest QUIET)
+find_package(glfw3 REQUIRED)

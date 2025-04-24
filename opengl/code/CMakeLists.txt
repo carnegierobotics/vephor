@@ -29,23 +29,17 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-cmake_minimum_required(VERSION 3.16)
+# Make CMake scripts available
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
-project(vephor_opengl VERSION 0.1)
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
 
-if (TARGET vephor)
-	message("vephor target found, not calling find_package")
-else()
-	find_package(vephor CONFIG REQUIRED)
-endif()
+#
+# vephor_opengl
+#
 
-if(COMMAND cmake_policy)
-    cmake_policy(SET CMP0003 NEW)
-endif(COMMAND cmake_policy)
-
-list(APPEND CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-
-include(VephorOpenGLDependencies)
+include(${PROJECT_NAME}-dependencies)
 
 if (WIN32)
 	set(GRAPHICS_LIBS opengl32 glfw glew32 Ws2_32)
@@ -53,12 +47,7 @@ else()
 	set(GRAPHICS_LIBS ${OpenGL_LIBRARIES} GL glfw ${GLEW_LIBRARIES} dl X11 pthread)
 endif()
 
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
-								 VERSION ${PROJECT_VERSION}
-								 COMPATIBILITY AnyNewerVersion)
-
-add_library(vephor_opengl SHARED
+add_library(${PROJECT_NAME} SHARED
 	src/ogl/window.cpp 
 	src/ogl/draw/background.cpp	
 	src/ogl/draw/instanced_points.cpp
@@ -77,10 +66,92 @@ add_library(vephor_opengl SHARED
 	src/ogl/io.cpp
 	src/verlet.cpp
 )
-target_link_libraries(vephor_opengl ${GRAPHICS_LIBS} vephor)
+target_link_libraries(${PROJECT_NAME}
+	${GRAPHICS_LIBS}
+	vephor
+)
+target_include_directories(${PROJECT_NAME}
+	PUBLIC
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+set_property(TARGET ${PROJECT_NAME}
+    APPEND PROPERTY PUBLIC_HEADER
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
+)  # TODO: Should public headers be specified granularly?
+
+install(
+	TARGETS ${PROJECT_NAME}
+	EXPORT ${PROJECT_NAME}-targets
+	LIBRARY
+		DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		COMPONENT Runtime
+	ARCHIVE
+		DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		COMPONENT Development
+	RUNTIME
+		DESTINATION ${CMAKE_INSTALL_BINDIR}
+		COMPONENT Runtime
+	PUBLIC_HEADER
+		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+		COMPONENT Development
+	BUNDLE
+		DESTINATION ${CMAKE_INSTALL_BINDIR}
+		COMPONENT Runtime
+)
+install(
+	EXPORT ${PROJECT_NAME}-targets
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
+
+# Package configuration and version files
+configure_package_config_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}-config.cmake.in
+	${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
+	INSTALL_DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/cmake
+)
+write_basic_package_version_file(
+	${PROJECT_NAME}-config-version.cmake
+	VERSION ${PROJECT_VERSION}
+	COMPATIBILITY AnyNewerVersion
+)
+install(
+	FILES
+		${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
+		${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
+		${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}-dependencies.cmake
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
+
+#
+# vephor_show
+#
+
+set(VEPHOR_SHOW_TARGET vephor_show)
+
+add_executable(${VEPHOR_SHOW_TARGET}
+	${CMAKE_CURRENT_SOURCE_DIR}/apps/show/show.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/apps/show/show_record_window.cpp
+)
+include_directories(${VEPHOR_SHOW_TARGET} ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(${VEPHOR_SHOW_TARGET} ${PROJECT_NAME})
+
+# Update RPATH s that executable can find the shared objects it is linked with
+set_target_properties(${VEPHOR_SHOW_TARGET} PROPERTIES
+	INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}"
+)
+
+install(
+	TARGETS ${VEPHOR_SHOW_TARGET}
+	DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+#
+# Example applications
+#
 
 if (VEPHOR_BUILD_PYTHON_BINDINGS)
-	message("Not building OpenGL examples due to python bindings.")
+	message(STATUS "Not building OpenGL examples due to python bindings.")
 else (VEPHOR_BUILD_PYTHON_BINDINGS)
 	set(EXAMPLE_APPS
 		background_test
@@ -99,36 +170,8 @@ else (VEPHOR_BUILD_PYTHON_BINDINGS)
 	)
 
 	foreach (APP ${EXAMPLE_APPS})
-		add_executable (${APP} examples/${APP}.cpp)
-		include_directories(${APP} include)
-		target_link_libraries(${APP} vephor_opengl)
+		add_executable (${APP} ${CMAKE_CURRENT_SOURCE_DIR}/examples/${APP}.cpp)
+		include_directories(${APP} ${CMAKE_CURRENT_SOURCE_DIR}/include)
+		target_link_libraries(${APP} ${PROJECT_NAME})
 	endforeach()
 endif (VEPHOR_BUILD_PYTHON_BINDINGS)
-
-add_executable (vephor_show 
-	apps/show/show.cpp 
-	apps/show/show_record_window.cpp)
-include_directories(vephor_show include)
-target_link_libraries(vephor_show vephor_opengl)
-
-install(TARGETS vephor_opengl
-    EXPORT vephor_opengl_targets
-    LIBRARY DESTINATION lib COMPONENT Runtime
-    ARCHIVE DESTINATION lib COMPONENT Development
-    RUNTIME DESTINATION bin COMPONENT Runtime
-    PUBLIC_HEADER DESTINATION include COMPONENT Development
-    BUNDLE DESTINATION bin COMPONENT Runtime)
-
-install(EXPORT vephor_opengl_targets DESTINATION lib/cmake/vephor_opengl)
-install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-              "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-        DESTINATION lib/cmake/vephor_opengl)
-install(DIRECTORY include DESTINATION .)
-
-configure_package_config_file(
-  "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
-  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-  INSTALL_DESTINATION
-  ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/cmake)
-
-INSTALL(TARGETS vephor_show DESTINATION bin)

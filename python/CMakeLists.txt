@@ -37,13 +37,23 @@ project(${SKBUILD_PROJECT_NAME} VERSION ${SKBUILD_PROJECT_VERSION})
 
 add_subdirectory(ext/pybind11)
 
-include(VephorCoreDependencies)
-include(VephorOpenGLDependencies)
-
 pybind11_add_module(_core MODULE vephor/main.cpp)
-target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
-target_link_libraries(_core PRIVATE vephor vephor_opengl)
+target_compile_definitions(_core
+	PRIVATE
+		VERSION_INFO=${PROJECT_VERSION}
+)
+target_link_libraries(_core
+	PRIVATE
+		vephor
+		vephor_opengl
+)
 if (WIN32)
-	target_link_libraries(_core PRIVATE Ws2_32)
+	target_link_libraries(_core
+		PRIVATE
+			Ws2_32
+	)
 endif()
-INSTALL(TARGETS _core DESTINATION vephor)
+install(
+	TARGETS _core
+	DESTINATION vephor
+)

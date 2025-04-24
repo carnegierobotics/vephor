@@ -33,12 +33,36 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+include(FetchContent)
+
 #
 # Required dependencies
 #
 
-find_package(OpenGL REQUIRED)
+find_package(Eigen3 3.3 QUIET)
+if (NOT Eigen3_FOUND)
+    FetchContent_Declare(
+            Eigen
+            GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+            GIT_TAG 3.4
+    )
+    FetchContent_MakeAvailable(Eigen)
+endif ()
 
-find_package(GLEW REQUIRED)
 
-find_package(glfw3 REQUIRED)
+find_package(manif CONFIG QUIET)
+if (NOT manif_FOUND)
+    FetchContent_Declare(
+            manif
+            GIT_REPOSITORY https://github.com/artivis/manif.git
+    )
+    FetchContent_MakeAvailable(manif)
+endif ()
+
+#
+# Optional dependencies
+#
+
+find_package(nlohmann_json QUIET)
+
+find_package(GTest QUIET)
