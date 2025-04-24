@@ -1,8 +1,12 @@
 #
-# Copyright 2023
+# Copyright 2025
 # Carnegie Robotics, LLC
 # 4501 Hatfield Street, Pittsburgh, PA 15201
 # https://www.carnegierobotics.com
+#
+# Significant history (date, user, action):
+#   2025-04-24, emusser@carnegierobotics.com, 2045.01.3, Created file.
+#
 #
 # All rights reserved.
 #
@@ -31,8 +35,14 @@
 
 import os
 
+# The underlying C++ library requires access to certain executables created during the build process.  These executables
+# are installed in the Python package directory.  This file also resides in the package directory.  Augment the PATH
+# so that the underlying library can find the required executables.
+_pkg_dir = os.path.dirname(os.path.abspath(__file__))
+os.environ["PATH"] = _pkg_dir + os.pathsep + os.environ.get("PATH", "")
+
 # Hack to support MinGW
 if os.name == "nt":
     os.add_dll_directory("C:/msys64/mingw64/bin")
 
-from ._core import *
+from .@MODULE_NAME@ import *

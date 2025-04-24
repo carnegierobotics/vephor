@@ -37,23 +37,44 @@ project(${SKBUILD_PROJECT_NAME} VERSION ${SKBUILD_PROJECT_VERSION})
 
 add_subdirectory(ext/pybind11)
 
-pybind11_add_module(_core MODULE vephor/main.cpp)
-target_compile_definitions(_core
+#
+# Python module
+#
+
+set(PACKAGE_NAME vephor)
+set(MODULE_NAME _core)
+
+pybind11_add_module(${MODULE_NAME}
+	MODULE vephor/main.cpp
+)
+target_compile_definitions(${MODULE_NAME}
 	PRIVATE
 		VERSION_INFO=${PROJECT_VERSION}
 )
-target_link_libraries(_core
+target_link_libraries(${MODULE_NAME}
 	PRIVATE
 		vephor
 		vephor_opengl
 )
 if (WIN32)
-	target_link_libraries(_core
+	target_link_libraries(${MODULE_NAME}
 		PRIVATE
 			Ws2_32
 	)
 endif()
 install(
-	TARGETS _core
-	DESTINATION vephor
+	TARGETS ${MODULE_NAME}
+	DESTINATION ${PACKAGE_NAME}
+)
+
+# Configure and install an __init__.py
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME})
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/${PACKAGE_NAME}/__init__.py.in
+	${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}/__init__.py
+	@ONLY
+)
+install(
+	FILES ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}/__init__.py
+	DESTINATION ${PACKAGE_NAME}
 )

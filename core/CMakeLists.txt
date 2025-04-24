@@ -48,5 +48,5 @@ file(COPY assets DESTINATION ${CMAKE_BINARY_DIR}/share/vephor)
 
 install(
     DIRECTORY assets
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/vephor
+    DESTINATION ${INSTALL_DATADIR}/vephor
 )

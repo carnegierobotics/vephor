@@ -55,10 +55,8 @@ build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 minimum-version = "build-system.requires"
-
-[tool.scikit-build.cmake]
-version = ">=3.16"
-args = [
+cmake.version = ">=3.16"
+cmake.build-type = "Release"
+cmake.args = [
     "-DVEPHOR_BUILD_PYTHON_BINDINGS:BOOL=ON"
 ]
-build-type = "Release"
