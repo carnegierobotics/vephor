@@ -56,9 +56,9 @@ plt.limits(-1,1,-1,1)
 angle = 0
 angle_2 = 0
 while True:
-    plt.plot([0,np.cos(angle)],[0,np.sin(angle)],thickness=0.01)
+    plt.plot([0, np.cos(angle)], [0, np.sin(angle)], thickness_in_screen_perc=0.01)
     if second_hand:
-        plt.plot([0,np.cos(angle_2)],[0,np.sin(angle_2)],thickness=0.01)
+        plt.plot([0, np.cos(angle_2)], [0, np.sin(angle_2)], thickness_in_screen_perc=0.01)
     if not plt.show(wait_close = False, wait_key = False):
         break
     angle += 0.1
