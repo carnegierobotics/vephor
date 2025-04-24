@@ -136,9 +136,9 @@ include_directories(${VEPHOR_SHOW_TARGET} ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(${VEPHOR_SHOW_TARGET} ${PROJECT_NAME})
 
 # Update RPATH s that executable can find the shared objects it is linked with
+# TODO: Make this robust to cases where INSTALL_BINDIR AND INSTALL_LIBDIR are not adjacent.
 set_target_properties(${VEPHOR_SHOW_TARGET} PROPERTIES
-	INSTALL_RPATH "$ORIGIN"
-#	INSTALL_RPATH "$ORIGIN/../${INSTALL_LIBDIR}"
+	INSTALL_RPATH "$ORIGIN/../${INSTALL_LIBDIR}"
 )
 
 install(

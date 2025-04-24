@@ -35,11 +35,22 @@
 
 import os
 
-# The underlying C++ library requires access to certain executables created during the build process.  These executables
-# are installed in the Python package directory.  This file also resides in the package directory.  Augment the PATH
-# so that the underlying library can find the required executables.
+# The underlying C++ library requires access to certain libraries and executables
+# created during the build process.  These executables are installed in the Python
+# package directory.  This file also resides in the package directory.  Augment the
+# PATH and LD_LIBRARY_PATH so that the underlying library can find the required
+# executables.
 _pkg_dir = os.path.dirname(os.path.abspath(__file__))
-os.environ["PATH"] = _pkg_dir + os.pathsep + os.environ.get("PATH", "")
+os.environ["PATH"] = (
+    os.path.join(_pkg_dir, os.path.basename("@INSTALL_BINDIR@"))
+    + os.pathsep
+    + os.environ.get("PATH", "")
+)
+os.environ["LD_LIBRARY_PATH"] = (
+    os.path.join(_pkg_dir, os.path.basename("@INSTALL_LIBDIR@"))
+    + os.pathsep
+    + os.environ.get("LD_LIBRARY_PATH", "")
+)
 
 # Hack to support MinGW
 if os.name == "nt":

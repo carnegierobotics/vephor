@@ -72,8 +72,7 @@ sudo make install
 For Python:
 
 ```
-pip install scikit-build
-python setup.py install
+pip install .
 ```
 
 ### Windows
@@ -89,8 +88,7 @@ sudo mingw32-make install
 For Python:
 
 ```
-pip install scikit-build
-python setup.py install -G "MinGW Makefiles"
+pip install .
 ```
 
 ## API - TLDR

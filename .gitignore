@@ -1,9 +1,6 @@
 # Project
 build
 
-# CMake
-CMakeUserPresets.json
-
 # Python
 dist
 _skbuild
