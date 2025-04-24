@@ -1,5 +1,5 @@
 #
-# Copyright 2023
+# Copyright 2023 - 2025
 # Carnegie Robotics, LLC
 # 4501 Hatfield Street, Pittsburgh, PA 15201
 # https://www.carnegierobotics.com
@@ -41,8 +41,7 @@ endif(COMMAND cmake_policy)
 #	https://stackoverflow.com/questions/47718485/install-and-export-interface-only-library-cmake
 #	https://dominikberner.ch/cmake-interface-lib/
 
-find_package(Eigen3 3.3 REQUIRED)
-find_package(manif REQUIRED)
+include(VephorCoreDependencies)
 
 set(VEPHOR_USE_EXTERNAL_JSON OFF CACHE BOOL "Use an external JSON package")
 
@@ -53,12 +52,15 @@ target_include_directories(vephor INTERFACE
 
 target_link_libraries(vephor INTERFACE Eigen3::Eigen MANIF::manif)
 
-if(VEPHOR_USE_EXTERNAL_JSON)
-	message("Vephor using external JSON.")
-    find_package(nlohmann_json REQUIRED)
-	target_link_libraries(vephor INTERFACE nlohmann_json::nlohmann_json)
-	target_compile_definitions(vephor INTERFACE USE_EXTERNAL_JSON)
-endif()
+if (VEPHOR_USE_EXTERNAL_JSON)
+	if (nlohmann_json_FOUND)
+		message(STATUS "Vephor using external JSON.")
+		target_link_libraries(vephor INTERFACE nlohmann_json::nlohmann_json)
+		target_compile_definitions(vephor INTERFACE USE_EXTERNAL_JSON)
+	else (GTEST_FOUND)
+		message(WARNING "External Nlohmann JSON not found.  Using internal library.")
+	endif ()
+endif ()
 
 target_compile_options(
 	vephor
@@ -146,10 +148,9 @@ configure_package_config_file(
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
 
 if (BUILD_UNIT_TESTS)
-    find_package(GTest)
-    if(GTEST_FOUND)
+    if(GTest_FOUND)
         add_subdirectory(test/unit)
-    else(GTEST_FOUND)
+    else()
         message(WARNING "GTest not found, tests will not be built.")
     endif()
 endif()

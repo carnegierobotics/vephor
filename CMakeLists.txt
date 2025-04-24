@@ -1,5 +1,5 @@
 #
-# Copyright 2023
+# Copyright 2023 - 2025
 # Carnegie Robotics, LLC
 # 4501 Hatfield Street, Pittsburgh, PA 15201
 # https://www.carnegierobotics.com
@@ -41,6 +41,9 @@ option(VEPHOR_BUILD_OPENGL "Build OpenGL portion of the project." ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Make project CMake scripts available
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
 add_subdirectory(core)
 

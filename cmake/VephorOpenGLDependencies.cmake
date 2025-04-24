@@ -1,8 +1,12 @@
 #
-# Copyright 2023 - 2025
+# Copyright 2025
 # Carnegie Robotics, LLC
 # 4501 Hatfield Street, Pittsburgh, PA 15201
 # https://www.carnegierobotics.com
+#
+# Significant history (date, user, action):
+#   2025-04-23, emusser@carnegierobotics.com, 2045.01.3, Created file.
+#
 #
 # All rights reserved.
 #
@@ -29,21 +33,12 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-cmake_minimum_required(VERSION 3.15...3.25)
+#
+# Required dependencies
+#
 
-set(CMAKE_CXX_STANDARD 17)
+find_package(OpenGL REQUIRED)
 
-project(${SKBUILD_PROJECT_NAME} VERSION ${SKBUILD_PROJECT_VERSION})
+find_package(GLEW REQUIRED)
 
-add_subdirectory(ext/pybind11)
-
-include(VephorCoreDependencies)
-include(VephorOpenGLDependencies)
-
-pybind11_add_module(_core MODULE vephor/main.cpp)
-target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
-target_link_libraries(_core PRIVATE vephor vephor_opengl)
-if (WIN32)
-	target_link_libraries(_core PRIVATE Ws2_32)
-endif()
-INSTALL(TARGETS _core DESTINATION vephor)
+find_package(glfw3 REQUIRED)

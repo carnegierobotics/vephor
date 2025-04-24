@@ -1,5 +1,5 @@
 #
-# Copyright 2023
+# Copyright 2023 - 2025
 # Carnegie Robotics, LLC
 # 4501 Hatfield Street, Pittsburgh, PA 15201
 # https://www.carnegierobotics.com
@@ -43,11 +43,9 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+list(APPEND CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
-find_package(OpenGL REQUIRED)
-find_package(GLEW REQUIRED)
-find_package(glfw3 REQUIRED)
+include(VephorOpenGLDependencies)
 
 if (WIN32)
 	set(GRAPHICS_LIBS opengl32 glfw glew32 Ws2_32)
