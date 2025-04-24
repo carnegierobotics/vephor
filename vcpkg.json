@@ -1,0 +1,36 @@
+{
+  "name": "vephor",
+  "version-date": "2025-04-07",
+  "description": "A headless visualization library.",
+  "dependencies": [
+    "eigen3",
+    "manif",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ],
+  "default-features": [
+    "opengl"
+  ],
+  "features": {
+    "opengl": {
+      "description": "OpenGL visualization backend.",
+      "dependencies": [
+        "glew",
+        "glfw3",
+        "opengl"
+      ]
+    },
+    "tests": {
+      "description": "Build tests.",
+      "dependencies": [
+        "gtest"
+      ]
+    }
+  }
+}
