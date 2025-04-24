@@ -3,3 +3,6 @@ build
 dist
 _skbuild
 vephor.egg-info
+
+# CMake
+CMakeUserPresets.json
