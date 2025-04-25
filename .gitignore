@@ -12,3 +12,6 @@ uv.lock
 # IDEs
 .vscode
 .idea
+
+# CMake
+CMakeUserPresets.json

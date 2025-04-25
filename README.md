@@ -16,78 +16,127 @@ When running in server mode, Vephor visualization code is meant to be as dormant
 
 Vephor supports both C++ and Python.
 
-## Install instructions
+## Dependencies
 
-### Dependencies
+Vephor requires the following dependencies
 
-These are the dependencies for a single machine to run both headless and rendering parts of the system.
-For separated dependencies, see core/README.md and opengl/README.md.
+| Dependency \[version]                               | Core               | OpenGL             |
+|-----------------------------------------------------|--------------------|--------------------|
+| [Eigen](https://eigen.tuxfamily.org/) \[≥ 3.3.0]    | :heavy_check_mark: | :heavy_check_mark: |
+| [manif](https://artivis.github.io/manif/index.html) | :heavy_check_mark: | :heavy_check_mark: |
+| [GLEW](https://glew.sourceforge.net/)               | :x:                | :heavy_check_mark: |
+| [GLFW](https://www.glfw.org/)                       | :x:                | :heavy_check_mark: |
 
-Eigen
+See core/README.md and opengl/README.md for more details on separated dependencies.
 
+### vcpkg
+
+All required dependencies can be installed via vcpkg if you opt to build the software with their toolchain.
+
+This requires that you have vcpkg installed on your system. If not yet installed, you may install as follows. See
+the [official documentation](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivots=shell-bash) for
+additional details and instructions for Windows systems. Install vcpkg in a persistent directory on your system.
+
+```bash
+cd <persistent-directory>
+
+# Download and bootstrap vcpkg
+git clone https://github.com/microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+
+# Set VCPKG_ROOT and prepend it to your path
+vcpkg_root=$(pwd)
+echo "export VCPKG_ROOT=$vcpkg_root" >> ~/.bashrc
+echo "export PATH=\${VCPKG_ROOT}\${PATH:+:\${PATH}}" >> ~/.bashrc
 ```
-sudo apt install libeigen-dev
+
+
+
+Refer to
+the [vcpkg install directions](#vcpkg-install).
+
+### Linux
+
+Refer to the following instructions to manually install dependencies on an Ubuntu system. Feel free to adapt to your
+distro and package manager of choice.
+
+#### Eigen
+
+```bash
+sudo apt install libeigen3-dev
 ```
 
-Manif
+#### manif
 
-```
+Note that manif depends on Eigen. If Eigen is installed in a non-standard location, be sure to provide a
+`CMAKE_PREFIX_PATH` when configuring.
+
+```bash
 git clone https://github.com/artivis/manif.git
-mkdir build
-cd build
-cmake ..
-sudo make install
+cd manif
+cmake -S . -B build
+cmake --build build
+sudo cmake --install build
 ```
 
-GLEW
+#### GLEW
 
-```
+```bash
 sudo apt install libglew-dev
 ```
 
-GLFW
+#### GLFW
 
+```bash
+sudo apt install libglfw3-dev
 ```
-sudo apt install libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
 
-Download source from https://github.com/glfw/glfw/releases/download/3.3.8/glfw-3.3.8.zip
-Unzip and enter the root
-mkdir build
-cd build
-cmake ..
-make
-sudo make install
+## Install
+
+Below are supported methods for building and installing Vephor.
+
+### vcpkg
+
+Build and install as described in the following sections but with the additional CMake configuration flag
+`-DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake`  Alternately, for Linux systems, build with the
+`--preset=vcpkg` flag. See the following example configure steps.
+
+```bash
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake ...
+cmake -S . -B build --preset=vcpkg ...  # Linux only
 ```
 
 ### Linux
 
-```
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make
-sudo make install
+```bash
+cd <vephor-root>
+
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+sudo cmake --install build
 ```
 
-For Python:
+Install the Python bindings in the active Python environment as follows.
 
-```
+```bash
 pip install .
 ```
 
 ### Windows
 
-```
-mkdir build
+```bash
+cd <vephor-root>
+
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=c:/msys64/mingw64
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=c:/msys64/mingw64
 mingw32-make
 sudo mingw32-make install
 ```
 
-For Python:
+Install the Python bindings in the active Python environment as follows.
 
-```
+```bash
 pip install .
 ```
 
