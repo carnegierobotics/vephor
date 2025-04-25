@@ -1,8 +1,12 @@
 #
-# Copyright 2023
+# Copyright 2025
 # Carnegie Robotics, LLC
 # 4501 Hatfield Street, Pittsburgh, PA 15201
 # https://www.carnegierobotics.com
+#
+# Significant history (date, user, action):
+#   2025-04-24, emusser@carnegierobotics.com, 2045.01.3, Created file.
+#
 #
 # All rights reserved.
 #
@@ -29,14 +33,27 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-from skbuild import setup  # This line replaces 'from setuptools import setup'
-setup(
-    name="vephor",
-    version="0.1.0",
-    description="Vephor, a visualization library",
-    author='Steve Landers',
-    packages=['vephor'],
-    package_dir={'':'python'},
-    python_requires=">=3.7",
-    cmake_args=["-DVEPHOR_BUILD_PYTHON_BINDINGS:BOOL=ON"],
+import os
+
+# The underlying C++ library requires access to certain libraries and executables
+# created during the build process.  These executables are installed in the Python
+# package directory.  This file also resides in the package directory.  Augment the
+# PATH and LD_LIBRARY_PATH so that the underlying library can find the required
+# executables.
+_pkg_dir = os.path.dirname(os.path.abspath(__file__))
+os.environ["PATH"] = (
+    os.path.join(_pkg_dir, os.path.basename("@INSTALL_BINDIR@"))
+    + os.pathsep
+    + os.environ.get("PATH", "")
 )
+os.environ["LD_LIBRARY_PATH"] = (
+    os.path.join(_pkg_dir, os.path.basename("@INSTALL_LIBDIR@"))
+    + os.pathsep
+    + os.environ.get("LD_LIBRARY_PATH", "")
+)
+
+# Hack to support MinGW
+if os.name == "nt":
+    os.add_dll_directory("C:/msys64/mingw64/bin")
+
+from .@MODULE_NAME@ import *

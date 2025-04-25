@@ -1,8 +1,12 @@
 #
-# Copyright 2023 - 2025
+# Copyright 2025
 # Carnegie Robotics, LLC
 # 4501 Hatfield Street, Pittsburgh, PA 15201
 # https://www.carnegierobotics.com
+#
+# Significant history (date, user, action):
+#   2025-04-23, emusser@carnegierobotics.com, 2045.01.3, Created file.
+#
 #
 # All rights reserved.
 #
@@ -29,52 +33,36 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-cmake_minimum_required(VERSION 3.15...3.29)
-
-set(CMAKE_CXX_STANDARD 17)
-
-project(${SKBUILD_PROJECT_NAME} VERSION ${SKBUILD_PROJECT_VERSION})
-
-add_subdirectory(ext/pybind11)
+include(FetchContent)
 
 #
-# Python module
+# Required dependencies
 #
 
-set(PACKAGE_NAME vephor)
-set(MODULE_NAME _core)
+find_package(Eigen3 3.3 QUIET)
+if (NOT Eigen3_FOUND)
+    FetchContent_Declare(
+            Eigen
+            GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+            GIT_TAG 3.4
+    )
+    FetchContent_MakeAvailable(Eigen)
+endif ()
 
-pybind11_add_module(${MODULE_NAME}
-	MODULE vephor/main.cpp
-)
-target_compile_definitions(${MODULE_NAME}
-	PRIVATE
-		VERSION_INFO=${PROJECT_VERSION}
-)
-target_link_libraries(${MODULE_NAME}
-	PRIVATE
-		vephor
-		vephor_opengl
-)
-if (WIN32)
-	target_link_libraries(${MODULE_NAME}
-		PRIVATE
-			Ws2_32
-	)
-endif()
-install(
-	TARGETS ${MODULE_NAME}
-	DESTINATION ${PACKAGE_NAME}
-)
 
-# Configure and install an __init__.py
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME})
-configure_file(
-	${CMAKE_CURRENT_SOURCE_DIR}/${PACKAGE_NAME}/__init__.py.in
-	${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}/__init__.py
-	@ONLY
-)
-install(
-	FILES ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}/__init__.py
-	DESTINATION ${PACKAGE_NAME}
-)
+find_package(manif CONFIG QUIET)
+if (NOT manif_FOUND)
+    FetchContent_Declare(
+            manif
+            GIT_REPOSITORY https://github.com/artivis/manif.git
+    )
+    FetchContent_MakeAvailable(manif)
+endif ()
+
+#
+# Optional dependencies
+#
+
+find_package(nlohmann_json QUIET)
+
+find_package(GTest QUIET)

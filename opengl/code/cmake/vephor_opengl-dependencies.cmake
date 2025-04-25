@@ -1,8 +1,12 @@
 #
-# Copyright 2023
+# Copyright 2025
 # Carnegie Robotics, LLC
 # 4501 Hatfield Street, Pittsburgh, PA 15201
 # https://www.carnegierobotics.com
+#
+# Significant history (date, user, action):
+#   2025-04-23, emusser@carnegierobotics.com, 2045.01.3, Created file.
+#
 #
 # All rights reserved.
 #
@@ -29,10 +33,18 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-import os
+#
+# Required dependencies
+#
 
-# Hack to support MinGW
-if os.name == "nt":
-    os.add_dll_directory("C:/msys64/mingw64/bin")
+if (TARGET vephor)
+    message(STATUS "vephor target found, not calling find_package")
+else ()
+    find_package(vephor CONFIG REQUIRED)
+endif ()
 
-from ._core import *
+find_package(OpenGL REQUIRED)
+
+find_package(GLEW REQUIRED)
+
+find_package(glfw3 REQUIRED)

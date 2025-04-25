@@ -1,8 +1,17 @@
+# Project
 build
-.vscode
+
+# Python
 dist
 _skbuild
-vephor.egg-info
+*.egg-info
+*.dist-info
+.venv
+uv.lock
+
+# IDEs
+.vscode
+.idea
 
 # CMake
 CMakeUserPresets.json

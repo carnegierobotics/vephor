@@ -1,5 +1,5 @@
 #
-# Copyright 2023 - 2025
+# Copyright 2024 - 2025
 # Carnegie Robotics, LLC
 # 4501 Hatfield Street, Pittsburgh, PA 15201
 # https://www.carnegierobotics.com
@@ -29,52 +29,34 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-cmake_minimum_required(VERSION 3.15...3.29)
+[project]
+name = "vephor"
+authors = [
+    { name = "Steve Landers", email = "slanders@carnegierobotics.com" },
+]
+maintainers = [
+    { name = "Steve Landers", email = "slanders@carnegierobotics.com" }
+]
+description = "A headless visualization library."
+readme = "README.md"
+license = { file = "LICENSE.TXT" }
+version = "0.1.0"
+requires-python = ">=3.7"
+dependencies = [
+    "numpy"
+]
 
-set(CMAKE_CXX_STANDARD 17)
+[build-system]
+requires = [
+    "scikit-build-core>=0.10",
+    "pybind11"
+]
+build-backend = "scikit_build_core.build"
 
-project(${SKBUILD_PROJECT_NAME} VERSION ${SKBUILD_PROJECT_VERSION})
-
-add_subdirectory(ext/pybind11)
-
-#
-# Python module
-#
-
-set(PACKAGE_NAME vephor)
-set(MODULE_NAME _core)
-
-pybind11_add_module(${MODULE_NAME}
-	MODULE vephor/main.cpp
-)
-target_compile_definitions(${MODULE_NAME}
-	PRIVATE
-		VERSION_INFO=${PROJECT_VERSION}
-)
-target_link_libraries(${MODULE_NAME}
-	PRIVATE
-		vephor
-		vephor_opengl
-)
-if (WIN32)
-	target_link_libraries(${MODULE_NAME}
-		PRIVATE
-			Ws2_32
-	)
-endif()
-install(
-	TARGETS ${MODULE_NAME}
-	DESTINATION ${PACKAGE_NAME}
-)
-
-# Configure and install an __init__.py
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME})
-configure_file(
-	${CMAKE_CURRENT_SOURCE_DIR}/${PACKAGE_NAME}/__init__.py.in
-	${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}/__init__.py
-	@ONLY
-)
-install(
-	FILES ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}/__init__.py
-	DESTINATION ${PACKAGE_NAME}
-)
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+cmake.version = ">=3.16"
+cmake.build-type = "Release"
+cmake.args = [
+    "-DVEPHOR_BUILD_PYTHON_BINDINGS:BOOL=ON"
+]
