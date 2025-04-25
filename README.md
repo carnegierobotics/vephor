@@ -51,11 +51,6 @@ echo "export VCPKG_ROOT=$vcpkg_root" >> ~/.bashrc
 echo "export PATH=\${VCPKG_ROOT}\${PATH:+:\${PATH}}" >> ~/.bashrc
 ```
 
-
-
-Refer to
-the [vcpkg install directions](#vcpkg-install).
-
 ### Linux
 
 Refer to the following instructions to manually install dependencies on an Ubuntu system. Feel free to adapt to your
@@ -92,14 +87,14 @@ sudo apt install libglew-dev
 sudo apt install libglfw3-dev
 ```
 
-## Install
+## C++ Install
 
-Below are supported methods for building and installing Vephor.
+Below are supported methods for building and installing the Vephor C++ library.
 
 ### vcpkg
 
 Build and install as described in the following sections but with the additional CMake configuration flag
-`-DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake`  Alternately, for Linux systems, build with the
+`-DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake`. Alternately, for Linux systems, build with the
 `--preset=vcpkg` flag. See the following example configure steps.
 
 ```bash
@@ -117,12 +112,6 @@ cmake --build build
 sudo cmake --install build
 ```
 
-Install the Python bindings in the active Python environment as follows.
-
-```bash
-pip install .
-```
-
 ### Windows
 
 ```bash
@@ -134,11 +123,69 @@ mingw32-make
 sudo mingw32-make install
 ```
 
-Install the Python bindings in the active Python environment as follows.
+## Python Install
+
+Install the Vephor library Python bindings in the active Python environment as follows.
+
+### Linux
 
 ```bash
 pip install .
 ```
+
+### Windows
+
+```bash
+pip install . --config-settings=cmake.generator="MinGW Makefiles"
+```
+
+### Troubleshooting
+
+Refer to the contained sections for common Python installation issues.
+
+#### Conda Environment
+
+Conda employs
+their [own set of compiler tools](https://docs.conda.io/projects/conda-build/en/stable/resources/compiler-tools.html#)
+over those installed on the system. There is a known compatability bug between these tools and modern versions of the
+GCC compiler (see ContinuumIO/anaconda-issues#11152). If you encounter linker errors when installing (e.g. those shown
+below), then attempt one of the solutions
+described [here](https://github.com/ContinuumIO/anaconda-issues/issues/11152#issuecomment-1453005442).
+
+<details>
+<summary>Example linker error</summary>
+
+```
+/home/username/conda/envs/my_env/compiler_compat/ld: warning: libGLdispatch.so.0, needed by /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libGL.so, not found (try using -rpath or -rpath-link)
+/home/username/conda/envs/my_env/compiler_compat/ld: warning: libGLX.so.0, needed by /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libGL.so, not found (try using -rpath or -rpath-link)
+/home/username/conda/envs/my_env/compiler_compat/ld: warning: libxcb.so.1, needed by /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so, not found (try using -rpath or -rpath-link)
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_get_maximum_request_length'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libGL.so: undefined reference to `__glDispatchRegisterStubCallbacks'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libGL.so: undefined reference to `__glXGLLoadGLXFunction'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_poll_for_queued_event'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_wait_for_event'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_get_setup'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_poll_for_event'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_connection_has_error'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libGL.so: undefined reference to `__glDispatchFini'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_take_socket'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_disconnect'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_generate_id'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libGL.so: undefined reference to `__glDispatchUnregisterStubCallbacks'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libGL.so: undefined reference to `__GLXGL_CORE_FUNCTIONS'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libGL.so: undefined reference to `_glapi_tls_Current'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_parse_display'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libGL.so: undefined reference to `__glDispatchInit'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_wait_for_reply64'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_poll_for_reply64'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_connect'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_writev'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_connect_to_display_with_auth_info'
+/home/username/conda/envs/my_env/compiler_compat/ld: /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/libX11.so: undefined reference to `xcb_get_file_descriptor'
+collect2: error: ld returned 1 exit status
+```
+
+</details>
 
 ## API - TLDR
 
