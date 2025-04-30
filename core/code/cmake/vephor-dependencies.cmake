@@ -65,4 +65,6 @@ endif ()
 
 find_package(nlohmann_json QUIET)
 
-find_package(GTest QUIET)
+if (VEPHOR_BUILD_TESTING)
+    find_package(GTest QUIET)
+endif ()

@@ -41,6 +41,8 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
 include(CMakePackageConfigHelpers)
 
+option(VEPHOR_BUILD_TESTING "Enable testing" OFF)
+
 #
 # vephor
 #
@@ -181,8 +183,7 @@ endif ()
 # Tests
 #
 
-option(BUILD_TESTING "Enable testing" OFF)
-if (BUILD_TESTING)
+if (VEPHOR_BUILD_TESTING)
     if(GTest_FOUND)
         add_subdirectory(test/unit)
     else()
