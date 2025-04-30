@@ -124,7 +124,11 @@ inline string getBaseDir()
 			wai_getModulePath(buffer, 1024, &length);
 			buffer[length] = '\0';
 
-			base_dir = fs::path(buffer).parent_path();
+			base_dir = buffer;
+			if (!fs::exists(base_dir + "/share/vephor/assets"))
+			{
+				base_dir = fs::path(buffer).parent_path();
+			}
 		}
 	}
 
