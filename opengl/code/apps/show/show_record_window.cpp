@@ -477,6 +477,9 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		if (obj.contains("strip"))
 			draw_obj->setLineStrip(obj["strip"]);
 
+		if (obj.contains("alpha"))
+			draw_obj->setAlpha(true);
+
 		bool overlay = readDefault(obj, "overlay", false);
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));

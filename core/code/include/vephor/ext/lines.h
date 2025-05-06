@@ -31,12 +31,14 @@ public:
 	}
 	void setColor(const Color& p_color){default_color = p_color.getRGBA();}
 	void setLineStrip(bool p_is_strip){is_strip = p_is_strip;}
+	void setAlpha(bool p_is_alpha){is_alpha = p_is_alpha;}
 	json serialize(vector<vector<char>>* bufs)
 	{
 		json data = {
             {"type", "lines"},
 			{"default_color_rgba", toJson(default_color)},
 			{"strip", is_strip},
+			{"alpha", is_alpha},
         };
 		
 		//{"verts", toJson(verts)},
@@ -69,6 +71,7 @@ private:
 	MatX colors;
 	Vec4 default_color = Vec4(1,1,1,1);
 	bool is_strip = true;
+	bool is_alpha = true;
 };
 
 }
