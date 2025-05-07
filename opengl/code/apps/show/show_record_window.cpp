@@ -934,6 +934,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		Vec2 anchor = readDefault(obj, "anchor", Vec2(0,0));
 		draw_obj->setAnchorOffset(anchor);
 
+		draw_obj->setBillboard(readDefault(obj, "billboard", true));
 		draw_obj->setYFlip(readDefault(obj, "y_flip", false));
 		
 		auto world_from_body = readTransformSim3(obj["pose"]);

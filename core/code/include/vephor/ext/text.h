@@ -25,13 +25,24 @@ public:
 	void setColor(const Color& p_color){color = p_color.getRGB();}
 	json serialize(vector<vector<char>>*)
 	{
-		return {
+		json ser = {
             {"type", "text"},
-			{"text", text},
-			{"anchor", toJson(anchor)},
-			{"color_rgb", toJson(color)},
-			{"y_flip", y_flip}
+			{"text", text}
         };
+
+		if (anchor != Vec2::Zero())
+			ser["anchor"] = toJson(anchor);
+
+		if (color != Vec3(1,1,1))
+			ser["color_rgb"] = toJson(color);
+
+		if (billboard != true)
+			ser["billboard"] = billboard;
+
+		if (y_flip != false)
+			ser["y_flip"] = y_flip;
+
+		return ser;
 	}
 	
 	void setAnchorBottomLeft()
@@ -70,6 +81,10 @@ public:
 	{
 		anchor = Vec2(1,1);
 	}
+	void setBillboard(bool p_billboard)
+	{
+		billboard = p_billboard;
+	}
 	void setYFlip(bool p_y_flip)
 	{
 		y_flip = p_y_flip;
@@ -78,6 +93,7 @@ private:
 	string text;
 	Vec2 anchor = Vec2::Zero();
 	Vec3 color = Vec3(1,1,1);
+	bool billboard = true;
 	bool y_flip = false;
 };
 
