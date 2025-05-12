@@ -854,6 +854,12 @@ PYBIND11_MODULE(_core, m) {
 		.def("yflip", &Plot::yflip, py::arg("equal")=true)
 		.def("equal", &Plot::equal, py::arg("equal")=true)
 		.def("limits", &Plot::limits, py::arg("min_x"), py::arg("max_x"), py::arg("min_y"), py::arg("max_y"))
+		.def("label", [](Plot& p, 
+			const string &text, 
+			const Vec3& color,
+			const string &marker_name){
+				p.label(text, color, marker_name);
+			}, py::arg("text"), py::arg("color"), py::arg("marker")="circle")
 		.def("cursorCallout", &Plot::cursorCallout, py::arg("enabled"))
 		.def("plot", [](Plot& p, 
 				const MatX& x, 
