@@ -18,10 +18,11 @@ namespace vephor
 class Particle
 {
 public:
-	Particle(const MatXRef& p_verts, const MatXRef& p_colors = MatX())
-	: verts(p_verts.transpose()), colors(p_colors.transpose())
-	{
-	}
+    Particle(const MatXRef& p_verts, const MatXRef& p_colors = MatX(), const VecXRef& p_sizes = VecX()) :
+        verts(p_verts.transpose()), colors(p_colors.transpose()), sizes(p_sizes.transpose())
+    {
+    }
+
 	Particle(const vector<Vec3>& p_verts, const vector<Vec4>& p_colors = vector<Vec4>())
 	{
 		verts = MatXMap(reinterpret_cast<const float*>(p_verts.data()), 3, p_verts.size());
@@ -29,7 +30,8 @@ public:
 		if (!p_colors.empty())
 			colors = MatXMap(reinterpret_cast<const float*>(p_colors.data()), 4, p_colors.size());
 	}
-	void setSize(float p_size){size = p_size;}
+    void setSize(const float p_size) { sizes.fill(p_size); }
+    void setSizes(const VecX& p_sizes) { sizes = p_sizes; }
 	void setColor(const Color& p_color){default_color_rgba = p_color.getRGBA();}
 	void setTexture(const string& p_tex, bool p_filter_nearest = nearest_default)
 	{
@@ -92,11 +94,24 @@ public:
 			}
 		}
 
+        if (sizes.cols() > 0)
+        {
+            if (bufs)
+            {
+                json_data["sizes"] = produceVertDataRaw(sizes, bufs);
+            }
+            else
+            {
+                json_data["sizes"] = produceVertDataBase64(sizes);
+            }
+        }
+
 		return json_data;
 	}
 private:
 	MatX verts;
 	MatX colors;
+	RVecX sizes;
 	string tex;
 
 	inline const static bool nearest_default = false;
