@@ -146,6 +146,10 @@ public:
 	{
 		inner_window.getCameraControlInfo()["equal"] = is_equal;
 	}
+	void textScale(float text_scale)
+	{
+		inner_window.getCameraControlInfo()["text_scale"] = text_scale;
+	}
 	void limits(float min_x, float max_x, float min_y, float max_y)
 	{
 		inner_window.getCameraControlInfo()["auto_fit"] = false;
@@ -157,6 +161,26 @@ public:
 	void cursorCallout(bool enabled)
 	{
 		inner_window.getCameraControlInfo()["cursor_callout"] = enabled;
+	}
+	void setLegendTopRight()
+	{
+		inner_window.getCameraControlInfo()["legend_right"] = true;
+		inner_window.getCameraControlInfo()["legend_top"] = true;
+	}
+	void setLegendTopLeft()
+	{
+		inner_window.getCameraControlInfo()["legend_right"] = false;
+		inner_window.getCameraControlInfo()["legend_top"] = true;
+	}
+	void setLegendBottomRight()
+	{
+		inner_window.getCameraControlInfo()["legend_right"] = true;
+		inner_window.getCameraControlInfo()["legend_top"] = false;
+	}
+	void setLegendBottomLeft()
+	{
+		inner_window.getCameraControlInfo()["legend_right"] = false;
+		inner_window.getCameraControlInfo()["legend_top"] = false;
 	}
 
 	void plot(

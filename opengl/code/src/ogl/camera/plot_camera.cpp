@@ -290,10 +290,28 @@ void PlotCamera::setupLegend(const json& label_data, Window& window, AssetManage
 	window.add(legend_fill, TransformSim3(), true, 1)->setParent(legend_node);
 	
 	Vec3 pos;
-	pos.head<2>() = Vec2(-box_border - text_scale, -box_border - text_scale);
 	pos[2] = 0;
+	if (legend_right && legend_top)
+	{
+		pos.head<2>() = Vec2(-box_border - text_scale, -box_border - text_scale);
+		legend_node->setParent(window.getWindowTopRightNode());
+	}
+	else if (!legend_right && legend_top)
+	{
+		pos.head<2>() = Vec2(box_left_border + text_scale + x_max, -box_border - text_scale);
+		legend_node->setParent(window.getWindowTopLeftNode());
+	}
+	else if (legend_right && !legend_top)
+	{
+		pos.head<2>() = Vec2(-box_border - text_scale, box_bottom_border + text_scale - y_shift);
+		legend_node->setParent(window.getWindowBottomRightNode());
+	}
+	else if (!legend_right && !legend_top)
+	{
+		pos.head<2>() = Vec2(box_left_border + text_scale + x_max, box_bottom_border + text_scale - y_shift);
+		legend_node->setParent(window.getWindowBottomLeftNode());
+	}
 	legend_node->setPos(pos);
-	legend_node->setParent(window.getWindowTopRightNode());
 }
 
 void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
@@ -302,11 +320,13 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 
 	circle_tex = window.loadTexture(assets.getAssetPath("/assets/circle.png"), false);
 
-	box_border = 30.0f * window.getContentScale()[1];
-	box_left_border = 100.0f * window.getContentScale()[1];
-	box_bottom_border = 60.0f * window.getContentScale()[1];
+	float text_scale_mult = readDefault(data, "text_scale", 1.0f);
+
+	box_border = 30.0f * text_scale_mult * window.getContentScale()[1];
+	box_left_border = 100.0f * text_scale_mult * window.getContentScale()[1];
+	box_bottom_border = 60.0f * text_scale_mult * window.getContentScale()[1];
 	inner_border = 15.0f * window.getContentScale()[1];
-	text_scale = 15.0f * window.getContentScale()[1];
+	text_scale = 15.0f * text_scale_mult * window.getContentScale()[1];
 	tick_size = 10.0f * window.getContentScale()[1];
 	tick_dist = 100.0f * window.getContentScale()[1];
 
@@ -347,6 +367,12 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 
 	if (data.contains("cursor_callout"))
 		cursor_callout = data["cursor_callout"];
+
+	if (data.contains("legend_right"))
+		legend_right = data["legend_right"];
+
+	if (data.contains("legend_top"))
+		legend_top = data["legend_top"];
 	
 	mouse_pos_text = make_shared<Text>("", text_tex, fore_color);
 	mouse_pos_node = window.add(mouse_pos_text, TransformSim3(Vec3(0,0,-1)), true, 1);
@@ -580,12 +606,20 @@ float PlotCamera::findBestTickRes(float span, float window_span)
 
 void PlotCamera::update(Window& window, float dt, const ControlInfo& control_info)
 {
-	if (find(control_info.key_down, GLFW_KEY_H) && control_info.key_down.at(GLFW_KEY_H))
+	if (find(control_info.keys_pressed, GLFW_KEY_H))
 	{
 		content_min = orig_content_min;
 		content_max = orig_content_max;
 		resizeWindow(window);
 		last_left_drag_on = false;
+	}
+	else if (find(control_info.keys_pressed, GLFW_KEY_C))
+	{
+		cursor_callout = !cursor_callout;
+		if (!cursor_callout)
+		{
+			mouse_pos_text->setText("");
+		}
 	}
 	else if (control_info.left_drag_on || 
 		control_info.right_drag_on || 

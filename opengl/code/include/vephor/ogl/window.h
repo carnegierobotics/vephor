@@ -257,6 +257,12 @@ public:
     void setOpacity(float opacity)
     {
         glfwSetWindowOpacity(window, opacity);
+        curr_opacity = opacity;
+    }
+
+    float getOpacity() const
+    {
+        return curr_opacity;
     }
 	
     shared_ptr<RenderNode> add(
@@ -710,6 +716,7 @@ private:
 	vector<vector<shared_ptr<RenderNode>>> overlay_object_layers;
 	vector<shared_ptr<RenderNode>> non_render_objects;
     bool on_top = false;
+    float curr_opacity = 1.0f;
 };
 
 }

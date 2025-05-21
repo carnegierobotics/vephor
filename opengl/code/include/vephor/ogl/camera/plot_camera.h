@@ -63,6 +63,8 @@ private:
 	bool xflip = false;
 	bool yflip = false;
 	bool cursor_callout = true;
+	bool legend_right = true;
+	bool legend_top = true;
 	Vec3 content_min;
 	Vec3 content_max;
 	Vec3 orig_content_min;

@@ -25,6 +25,8 @@ struct ControlInfo
 	bool right_press = false;
 	bool right_release = false;
 	unordered_map<int, bool> key_down;
+	unordered_set<int> keys_pressed;
+	unordered_set<int> keys_released;
 	Vec3 key_motion = Vec3::Zero();
 	float total_scroll_amount = 0.0f;
 	Vec2 drag_start_mouse_pos;
@@ -87,11 +89,13 @@ struct ControlInfo
 	}
 	void onKeyPress(int key)
 	{
+		keys_pressed.insert(key);
 		key_down[key] = true;
 		refreshKeyMotion();
 	}
 	void onKeyRelease(int key)
 	{
+		keys_released.insert(key);
 		key_down[key] = false;
 		refreshKeyMotion();
 	}
@@ -108,6 +112,8 @@ struct ControlInfo
 		left_release = false;
 		right_press = false;
 		right_release = false;
+		keys_pressed.clear();
+		keys_released.clear();
 	}
 };
 

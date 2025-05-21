@@ -419,6 +419,14 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 			window->toggleAlwaysOnTop();
 			on_top_indicator_node->setShow(!on_top_indicator_node->isShow());
 		}
+		else if (key == GLFW_KEY_O)
+		{
+			float opacity = window->getOpacity();
+			if (opacity < 1.0)
+				window->setOpacity(1.0);
+			else
+				window->setOpacity(0.75);
+		}
 	});
 	window->setKeyReleaseCallback([&, net_manager](int key){
 		control_info.onKeyRelease(key);

@@ -853,6 +853,7 @@ PYBIND11_MODULE(_core, m) {
 		.def("ylabel", &Plot::ylabel)
 		.def("yflip", &Plot::yflip, py::arg("equal")=true)
 		.def("equal", &Plot::equal, py::arg("equal")=true)
+		.def("textScale", &Plot::textScale)
 		.def("limits", &Plot::limits, py::arg("min_x"), py::arg("max_x"), py::arg("min_y"), py::arg("max_y"))
 		.def("label", [](Plot& p, 
 			const string &text, 
@@ -861,6 +862,10 @@ PYBIND11_MODULE(_core, m) {
 				p.label(text, color, marker_name);
 			}, py::arg("text"), py::arg("color"), py::arg("marker")="circle")
 		.def("cursorCallout", &Plot::cursorCallout, py::arg("enabled"))
+		.def("setLegendTopRight", &Plot::setLegendTopRight)
+		.def("setLegendTopLeft", &Plot::setLegendTopLeft)
+		.def("setLegendBottomRight", &Plot::setLegendBottomRight)
+		.def("setLegendBottomLeft", &Plot::setLegendBottomLeft)
 		.def("plot", [](Plot& p, 
 				const MatX& x, 
 				const MatX& y, 
@@ -943,6 +948,26 @@ PYBIND11_MODULE(_core, m) {
 				const MatX& verts,
 				const Vec3& color,
 				float thickness
+			){
+				if (verts.cols() != 2)
+				{
+					throw std::runtime_error("Polygon verts matrix must have 2 columns.");
+				}
+
+				vector<Vec2> inner_verts;
+				for (int r = 0; r < verts.rows(); r++)
+					inner_verts.push_back(verts.row(r));
+
+				p.polygon(inner_verts, color, thickness);
+			},
+			py::arg("verts"),
+			py::arg("color"),
+			py::arg("thickness")=0
+		)
+		.def("polygon", [](Plot& p,
+			const MatX& verts,
+			const Vec4& color,
+			float thickness
 			){
 				if (verts.cols() != 2)
 				{
