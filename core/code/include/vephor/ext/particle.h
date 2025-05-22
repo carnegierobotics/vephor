@@ -23,16 +23,45 @@ public:
     {
     }
 
-	Particle(const vector<Vec3>& p_verts, const vector<Vec4>& p_colors = vector<Vec4>())
-	{
-		verts = MatXMap(reinterpret_cast<const float*>(p_verts.data()), 3, p_verts.size());
-		
-		if (!p_colors.empty())
-			colors = MatXMap(reinterpret_cast<const float*>(p_colors.data()), 4, p_colors.size());
-	}
-    void setSize(const float p_size) { sizes.fill(p_size); }
+    Particle(const MatXRef& p_verts, const MatXRef& p_colors, const float p_size) :
+        verts(p_verts.transpose()), colors(p_colors.transpose()), size(p_size)
+    {
+    }
+
+    Particle(const vector<Vec3>& p_verts, const vector<Vec4>& p_colors = {}, const vector<float>& p_sizes = {})
+    {
+        verts = MatXMap(reinterpret_cast<const float*>(p_verts.data()), 3, p_verts.size());
+
+        if (!p_colors.empty())
+        {
+            colors = MatXMap(reinterpret_cast<const float*>(p_colors.data()), 4, p_colors.size());
+        }
+
+        if (!p_sizes.empty())
+        {
+            sizes = RVecXMap(sizes.data(), sizes.size());
+        }
+    }
+
+    Particle(const vector<Vec3>& p_verts, const vector<Vec4>& p_colors, const float p_size) : default_size(p_size)
+    {
+        verts = MatXMap(reinterpret_cast<const float*>(p_verts.data()), 3, p_verts.size());
+
+        if (!p_colors.empty())
+        {
+            colors = MatXMap(reinterpret_cast<const float*>(p_colors.data()), 4, p_colors.size());
+        }
+    }
+
+    void setSize(const float p_size)
+    {
+        size = p_size;
+        sizes = RVecX{};
+    }
+
     void setSizes(const VecX& p_sizes) { sizes = p_sizes; }
-	void setColor(const Color& p_color){default_color_rgba = p_color.getRGBA();}
+
+	void setColor(const Color& p_color){ default_color_rgba = p_color.getRGBA(); }
 	void setTexture(const string& p_tex, bool p_filter_nearest = nearest_default)
 	{
 		string temp_dir = getTempDir();
@@ -63,7 +92,7 @@ public:
 			{"type", "particle"}
 		};
 
-		if (!tex.empty())
+        if (!tex.empty())
 		{
 			json_data["tex"] = tex;
 			VEPHOR_SERIALIZE_IF_STANDARD(nearest);
@@ -71,28 +100,27 @@ public:
 		VEPHOR_SERIALIZE_IF_STANDARD(default_color_rgba);
 		VEPHOR_SERIALIZE_IF_STANDARD(size);
 		VEPHOR_SERIALIZE_IF_STANDARD(ss_mode);
-		
-		if (bufs)
-		{
-			json_data["verts"] = produceVertDataRaw(verts, bufs);
-		}
-		else
-		{
-			json_data["verts"] = produceVertDataBase64(verts);
-		}
+        if (bufs)
+        {
+            json_data["verts"] = produceVertDataRaw(verts, bufs);
+        }
+        else
+        {
+            json_data["verts"] = produceVertDataBase64(verts);
+        }
 
-		if (colors.rows() > 0)
-		{
-			//{"colors", toJson(colors)},
-			if (bufs)
-			{
-				json_data["colors"] = produceVertDataRaw(colors, bufs);
-			}
-			else
-			{
-				json_data["colors"] = produceVertDataBase64(colors);
-			}
-		}
+        if (colors.rows() > 0)
+        {
+            //{"colors", toJson(colors)},
+            if (bufs)
+            {
+                json_data["colors"] = produceVertDataRaw(colors, bufs);
+            }
+            else
+            {
+                json_data["colors"] = produceVertDataBase64(colors);
+            }
+        }
 
         if (sizes.cols() > 0)
         {
@@ -106,8 +134,8 @@ public:
             }
         }
 
-		return json_data;
-	}
+        return json_data;
+    }
 private:
 	MatX verts;
 	MatX colors;
@@ -127,4 +155,4 @@ private:
 	bool ss_mode = ss_mode_default;
 };
 
-}
+} // namespace vephor

@@ -971,6 +971,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		serialization.valid = true;
 		
 		const Vec4 default_color = readDefault(obj, "default_color_rgb", Vec4(1,1,1,1));
+		const float default_size = readDefault(obj, "default_size", 0.1F);
 
         VertexDataRecord verts_record;
 		readVertexData(obj["verts"], base_buf_index, bufs, verts_record, &serialization.header["verts"], &serialization.payloads);
@@ -1011,7 +1012,8 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
             /* pts */ verts_record.map.transpose(),
             /* colors */ colors_record.map.transpose(),
             /* sizes */ sizes_record.map.transpose(),
-            /* default_color */ default_color);
+            /* default_color */ default_color,
+            /* default_size */ default_size);
 
 		if (obj.contains("tex") && !string(obj["tex"]).empty())
 		{
