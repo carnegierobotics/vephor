@@ -152,6 +152,18 @@ GCC compiler (see ContinuumIO/anaconda-issues#11152). If you encounter linker er
 below), then attempt one of the solutions
 described [here](https://github.com/ContinuumIO/anaconda-issues/issues/11152#issuecomment-1453005442).
 
+In particular, this solution is recommended:
+
+```bash
+conda install -c conda-forge ld_impl_linux-64  # Modify the suffix to correspond with your platform
+```
+
+If, on importing vephor, you have an error complaining about a missing GLIBCXX version, try this:
+
+```bash
+conda install -c conda-forge libstdcxx-ng
+```
+
 <details>
 <summary>Example linker error</summary>
 

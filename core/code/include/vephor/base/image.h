@@ -11,6 +11,7 @@
 #pragma once
 
 #include "tensor.h"
+#include <filesystem>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "thirdparty/nothings/stb_image.h"
@@ -20,6 +21,8 @@
 
 namespace vephor
 {
+
+namespace fs = std::filesystem;
 
 template <typename T>
 class Image
@@ -323,6 +326,9 @@ inline shared_ptr<Image<uint8_t>> generateCheckerboardImage(const Vec2i& size, c
 
 inline shared_ptr<Image<uint8_t>> loadImage(const string& file)
 {
+	if (!fs::exists(file))
+		throw std::runtime_error("Image does not exist at path: " + file);
+
 	int width, height, comps;
 	const uint8_t* img = stbi_load(file.c_str(), &width, &height, &comps, 0);
 	

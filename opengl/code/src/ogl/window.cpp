@@ -825,7 +825,7 @@ shared_ptr<Texture> Window::getTextureFromBuffer(const char* buf_data, int chann
 	else if (channels == 4)
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buf_data);
 	else
-		throw std::runtime_error("Only supporting loading 1, 3, and 4 channels from buffer");
+		throw std::runtime_error("Only supporting loading 1, 3, and 4 channels from buffer, tried to load: " + std::to_string(channels));
 
 	setTextureSampling(nearest);
 

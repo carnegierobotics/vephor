@@ -343,7 +343,9 @@ PYBIND11_MODULE(_core, m) {
 		.def("setAnchorTop", &Text::setAnchorTop)
 		.def("setAnchorBottomRight", &Text::setAnchorBottomRight)
 		.def("setAnchorRight", &Text::setAnchorRight)
-		.def("setAnchorTopRight", &Text::setAnchorTopRight);
+		.def("setAnchorTopRight", &Text::setAnchorTopRight)
+		.def("setBillboard", &Text::setBillboard)
+		.def("setYFlip", &Text::setYFlip);
 
 	py::class_<Lines, shared_ptr<Lines>>(m, "Lines")
 		.def(py::init([](const MatX& verts, const MatX& colors){
