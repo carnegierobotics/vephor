@@ -47,38 +47,58 @@ os.environ["PATH"] = (
     + os.environ.get("PATH", "")
 )
 
-lib_dirs = [os.path.join(_pkg_dir, os.path.basename("@INSTALL_LIBDIR@"))]
+_lib_dirs = [os.path.join(_pkg_dir, os.path.basename("@INSTALL_LIBDIR@"))]
 
 if "CONDA_PREFIX" in os.environ:
-    env_lib_dir = f"{os.environ['CONDA_PREFIX']}/lib"
-    print(f"Env lib dir located: {env_lib_dir}")
-    lib_dirs.append(env_lib_dir)
+    _env_lib_dir = f"{os.environ['CONDA_PREFIX']}/lib"
+    
+    print(f"Env lib dir located: {_env_lib_dir}")
+    _lib_dirs.append(_env_lib_dir)
+
+    del _env_lib_dir
 else:
-    pkg_dir_walk = _pkg_dir
-    parts = []
-    envs_found = False
+    _pkg_dir_walk = _pkg_dir
+    _parts = []
+    _envs_found = False
+    _next_pkg_dir_walk = None
+    _part = None
+
     while True:
-        next_pkg_dir_walk, part = os.path.split(pkg_dir_walk)
-        if next_pkg_dir_walk == pkg_dir_walk:
+        _next_pkg_dir_walk, _part = os.path.split(_pkg_dir_walk)
+        if _next_pkg_dir_walk == _pkg_dir_walk:
             break
-        pkg_dir_walk = next_pkg_dir_walk
-        parts.append(part)
-        if part == "envs":
-            envs_found = True
+        _pkg_dir_walk = _next_pkg_dir_walk
+        _parts.append(_part)
+        if _part == "envs":
+            _envs_found = True
             break
 
-    if envs_found and len(parts) >= 2:
-        env_lib_dir = f"{pkg_dir_walk}/envs/{parts[-2]}/lib"
-        print(f"Env lib dir located: {env_lib_dir}")
-        lib_dirs.append(env_lib_dir)
+    if _envs_found and len(_parts) >= 2:
+        _env_lib_dir = f"{_pkg_dir_walk}/envs/{_parts[-2]}/lib"
 
-lib_dirs.append(os.environ.get("LD_LIBRARY_PATH", ""))
+        print(f"Env lib dir located: {_env_lib_dir}")
+        _lib_dirs.append(_env_lib_dir)
 
-os.environ["LD_LIBRARY_PATH"] = os.pathsep.join(lib_dirs)
+        del _env_lib_dir
+
+    del _pkg_dir_walk
+    del _parts
+    del _envs_found
+    del _next_pkg_dir_walk
+    del _part
+
+_lib_dirs.append(os.environ.get("LD_LIBRARY_PATH", ""))
+
+os.environ["LD_LIBRARY_PATH"] = os.pathsep.join(_lib_dirs)
+
+del _lib_dirs
+del _pkg_dir
 
 
 # Hack to support MinGW
 if os.name == "nt":
     os.add_dll_directory("C:/msys64/mingw64/bin")
+
+del os
 
 from .@MODULE_NAME@ import *
