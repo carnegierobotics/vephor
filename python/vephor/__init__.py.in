@@ -57,8 +57,11 @@ else:
     pkg_dir_walk = _pkg_dir
     parts = []
     envs_found = False
-    while len(pkg_dir_walk) > 0:
-        pkg_dir_walk, part = os.path.split(pkg_dir_walk)
+    while True:
+        next_pkg_dir_walk, part = os.path.split(pkg_dir_walk)
+        if next_pkg_dir_walk == pkg_dir_walk:
+            break
+        pkg_dir_walk = next_pkg_dir_walk
         parts.append(part)
         if part == "envs":
             envs_found = True
