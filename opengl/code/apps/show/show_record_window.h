@@ -32,6 +32,7 @@ struct ShowRecordWindow
 	shared_ptr<Texture> text_tex;
 	unordered_map<string, shared_ptr<Texture>> texture_bank;
 	bool save_flag = false;
+	bool custom_opacity = false;
 	
 	// Camera controls
 	shared_ptr<CameraManager> camera;

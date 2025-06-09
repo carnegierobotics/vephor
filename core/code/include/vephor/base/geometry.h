@@ -471,6 +471,80 @@ inline MeshData formPolygon(vector<Vec2> verts)
 	return data;
 }
 
+inline MeshData formPolygonPrism(vector<Vec2> verts, float height, bool invert=false, bool cap=false)
+{
+	MeshData data;
+
+	verts = cleanOrderedVerts(verts, DEFAULT_ORDERED_VERTS_DIST_MIN, true);
+	
+	if (!isPolyCCW(verts))
+	{
+		vector<Vec2> new_verts(verts.size());
+		
+		for (size_t i = 0; i < verts.size(); i++)
+		{
+			new_verts[verts.size() - 1 - i] = verts[i];
+		}
+		
+		verts = new_verts;
+	}
+
+	if (cap)
+	{
+		throw std::runtime_error("Polygon prism caps not implemented yet.");
+	}
+
+	data.verts.resize(verts.size()*3*2,3);
+	data.norms.resize(verts.size()*3*2,3);
+	data.uvs.resize(verts.size()*3*2,2);
+	
+	int index = 0;
+	for (int v = 0; v < verts.size(); v++)
+	{
+		const auto& v1 = verts[v];
+		const auto& v2 = verts[(v+1)%verts.size()];
+		Vec2 vec = v2 - v1;
+		float vec_length = vec.norm();
+		vec /= vec_length;
+		Vec3 norm(vec[1],-vec[0],0);
+
+		if (invert)
+			norm = -norm;
+
+		data.verts.row(index) = Vec3(v1[0], v1[1], -height / 2);
+		data.norms.row(index) = norm;
+		data.uvs.row(index) = Vec2(0,0);
+		index++;
+		
+		data.verts.row(index) = Vec3(v1[0], v1[1], height / 2);
+		data.norms.row(index) = norm;
+		data.uvs.row(index) = Vec2(0,height);
+		index++;
+		
+		data.verts.row(index) = Vec3(v2[0], v2[1], height / 2);
+		data.norms.row(index) = norm;
+		data.uvs.row(index) = Vec2(vec_length,height);
+		index++;
+
+		data.verts.row(index) = Vec3(v1[0], v1[1], -height / 2);
+		data.norms.row(index) = norm;
+		data.uvs.row(index) = Vec2(0,0);
+		index++;
+		
+		data.verts.row(index) = Vec3(v2[0], v2[1], height / 2);
+		data.norms.row(index) = norm;
+		data.uvs.row(index) = Vec2(vec_length,height);
+		index++;
+		
+		data.verts.row(index) = Vec3(v2[0], v2[1], -height / 2);
+		data.norms.row(index) = norm;
+		data.uvs.row(index) = Vec2(vec_length,0);
+		index++;
+	}
+	
+	return data;
+}
+
 inline MeshData formCube()
 {
 	MeshData data;

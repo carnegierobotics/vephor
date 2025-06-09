@@ -260,7 +260,7 @@ void ShowRecordWindow::update(const json& data, AssetManager& assets)
 			string title = data["window"]["title"];
 			window->setTitle(title);
 		}
-		if (data["window"].contains("opacity"))
+		if (data["window"].contains("opacity") && !custom_opacity)
 		{
 			float opacity = data["window"]["opacity"];
 			window->setOpacity(opacity);
@@ -421,6 +421,7 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 		}
 		else if (key == GLFW_KEY_O)
 		{
+			custom_opacity = true;
 			float opacity = window->getOpacity();
 			if (opacity < 1.0)
 				window->setOpacity(1.0);

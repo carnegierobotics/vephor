@@ -46,11 +46,33 @@ os.environ["PATH"] = (
     + os.pathsep
     + os.environ.get("PATH", "")
 )
-os.environ["LD_LIBRARY_PATH"] = (
-    os.path.join(_pkg_dir, os.path.basename("@INSTALL_LIBDIR@"))
-    + os.pathsep
-    + os.environ.get("LD_LIBRARY_PATH", "")
-)
+
+lib_dirs = [os.path.join(_pkg_dir, os.path.basename("@INSTALL_LIBDIR@"))]
+
+if "CONDA_PREFIX" in os.environ:
+    env_lib_dir = f"{os.environ['CONDA_PREFIX']}/lib"
+    print(f"Env lib dir located: {env_lib_dir}")
+    lib_dirs.append(env_lib_dir)
+else:
+    pkg_dir_walk = _pkg_dir
+    parts = []
+    envs_found = False
+    while len(pkg_dir_walk) > 0:
+        pkg_dir_walk, part = os.path.split(pkg_dir_walk)
+        parts.append(part)
+        if part == "envs":
+            envs_found = True
+            break
+
+    if envs_found and len(parts) >= 2:
+        env_lib_dir = f"{pkg_dir_walk}/envs/{parts[-2]}/lib"
+        print(f"Env lib dir located: {env_lib_dir}")
+        lib_dirs.append(env_lib_dir)
+
+lib_dirs.append(os.environ.get("LD_LIBRARY_PATH", ""))
+
+os.environ["LD_LIBRARY_PATH"] = os.pathsep.join(lib_dirs)
+
 
 # Hack to support MinGW
 if os.name == "nt":

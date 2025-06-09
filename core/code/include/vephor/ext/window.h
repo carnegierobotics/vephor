@@ -1273,11 +1273,14 @@ public:
 				string show_path = getBaseDir()+"/bin/vephor_show";
 				if (!fs::exists(show_path))
 					show_path = "vephor_show"; // Hope it is on PATH
-				v4print "Calling show at path:", show_path;
+				v4print "Calling show:", show_path, "-i", temp_dir, "-r";
 				Process proc({show_path, "-i", temp_dir, "-r"});
 				int result = proc.join();
 				if (result != 0)
+				{
 					v4print "Show exited without success.";
+					proc.printOutput();
+				}
 				else
 					v4print "Show exited with success.";
 
@@ -1557,6 +1560,14 @@ public:
 		v4print "Client process started.";
 		
 		manager.network_mode = true;
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+		if (!server_proc->isAlive())
+		{
+			server_proc->printOutput();
+			throw std::runtime_error("BYOC client crashed.");
+		}
 		
 		manager.net.connectPreparedServer();
 

@@ -367,7 +367,11 @@ struct ShowRecord
 				auto text = make_shared<Text>(flag["name"], text_tex);
 				text->setColor(Vec3(1,1,1));
 				auto text_node = control_window->add(text, Vec3(hpos, vpos, 0), true, 1);
-				text_node->setScale(flag_size);
+				Vec2 text_size = text->getSize();
+				float scale_from_x = flag_size;
+				if (text_size[0] > 0)
+					scale_from_x = flag_width * 0.95f / text_size[0];
+				text_node->setScale(std::min((float)flag_size, scale_from_x));
 				text_node->setParent(control_window->getWindowTopLeftNode());
 				
 				flags_record.flags.push_back({flag["name"], toggle, flag["state"], on_back, off_back});
