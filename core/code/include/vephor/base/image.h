@@ -57,6 +57,18 @@ public:
 		const T* ptr = &(data({ind[1], ind[0], 0}));
 		return Eigen::Map<const Vec>(ptr, channels);
 	}
+	bool in(const Vec2i& ind) const
+	{
+		if (ind[0] < 0)
+			return false;
+		if (ind[1] < 0)
+			return false;
+		if (ind[0] >= data.size()[1])
+			return false;
+		if (ind[1] >= data.size()[0])
+			return false;
+		return true;
+	}
 	Vec2i getSize() const {return Vec2i(data.size()[1], data.size()[0]);}
 	int getChannels() const {return channels;}
 	Image<T> changeChannels(int new_channels) const
@@ -163,6 +175,107 @@ private:
 	Tensor<3, T> data;
 };
 
+inline std::vector<Vec2i> plotLineBresenham(const Vec2i& start, const Vec2i& end)
+{
+    int dx = abs(end[0] - start[0]);
+    int sx = start[0] < end[0] ? 1 : -1;
+    int dy = -abs(end[1] - start[1]);
+    int sy = start[1] < end[1] ? 1 : -1;
+    int error = dx + dy;
+
+    std::vector<Vec2i> pts;
+    int x0 = start[0];
+    int y0 = start[1];
+
+    while (true)
+    {
+        pts.push_back(Vec2i(x0, y0));
+
+        if (x0 == end[0] && y0 == end[1]) break;
+        int e2 = 2 * error;
+        if (e2 >= dy)
+        {
+            if (x0 == end[0]) break;
+            error = error + dy;
+            x0 = x0 + sx;
+        }
+        if (e2 <= dx)
+        {
+            if (y0 == end[1]) break;
+            error = error + dx;
+            y0 = y0 + sy;
+        }
+    }
+
+    return pts;
+}
+
+// only keep the part of the line on the positive side of the plane
+inline void clipLineToPlane(Vec2& start, Vec2& end, const Vec3& plane)
+{   
+    const float epsilon = 1e-3;
+
+    Vec2 vec = end - start;
+    float length = vec.norm();
+    if (length < epsilon)
+        return;
+    Vec2 slope = vec / length;
+
+    float start_dist = start.dot(plane.head<2>()) + plane[2];
+    float end_dist = end.dot(plane.head<2>()) + plane[2];
+
+    float plane_dist_per_line_dist = slope.dot(plane.head<2>());
+
+    if (fabs(plane_dist_per_line_dist) < epsilon)
+        return;
+
+    if (start_dist < epsilon)
+        start = start + slope * ((-start_dist + epsilon) / plane_dist_per_line_dist);
+
+    if (end_dist < epsilon)
+        end = end + slope * ((-end_dist + epsilon) / plane_dist_per_line_dist);
+}
+
+inline void clipLineToImage(Vec2& start, Vec2& end, const Vec2i& image_size)
+{
+    clipLineToPlane(start, end, Vec3(1,0,0));
+    clipLineToPlane(start, end, Vec3(0,1,0));
+    clipLineToPlane(start, end, Vec3(-1,0,image_size[0]));
+    clipLineToPlane(start, end, Vec3(0,-1,image_size[1]));
+
+    if (start[0] < 0 || start[0] > image_size[0] || start[1] < 0 || start[1] > image_size[1])
+    {
+        start = Vec2::Zero();
+        end = Vec2::Zero();
+    }
+
+    if (end[0] < 0 || end[0] > image_size[0] || end[1] < 0 || end[1] > image_size[1])
+    {
+        start = Vec2::Zero();
+        end = Vec2::Zero();
+    }
+}
+
+template <typename T, int N>
+void drawLine(Image<T>& im, const Vec2& start, const Vec2& end, const Eigen::Matrix<T, N, 1>& color, int rad = 1)
+{
+	Vec2 line_start = start;
+	Vec2 line_end = end;
+
+	Vec2i image_size = im.getSize();
+	clipLineToImage(line_start, line_end, image_size);
+	auto pixels = plotLineBresenham(line_start.cast<int>(), line_end.cast<int>());
+	for (const auto& px : pixels)
+	{
+		for (int x = -rad; x <= rad; x++)
+		for (int y = -rad; y <= rad; y++)
+		{
+			Vec2i npx(px[0]+x,px[1]+y);
+			if (im.in(npx))
+				im(npx) = color;
+		}
+	}
+}
 
 inline shared_ptr<Image<uint8_t>> generateSimpleImage(const Vec2i& size, const Vec3& rgb)
 {

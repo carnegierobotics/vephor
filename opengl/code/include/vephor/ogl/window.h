@@ -560,6 +560,11 @@ public:
     Image<uint8_t> getDepthImage();
     
     void clear();
+
+    static void setDebug(bool p_debug = true)
+	{
+		debug = p_debug;
+	}
 private:
     void removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects);
 
@@ -717,6 +722,8 @@ private:
 	vector<shared_ptr<RenderNode>> non_render_objects;
     bool on_top = false;
     float curr_opacity = 1.0f;
+
+    inline static bool debug = false;
 };
 
 }

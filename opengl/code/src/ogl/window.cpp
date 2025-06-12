@@ -173,6 +173,17 @@ GLuint buildProgram(const string& program_name, const string& vert_shader, const
 	// TODO Later: glDeleteProgram(program_id);
 }
 
+void APIENTRY handleDebug(GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei /*length*/,
+	const GLchar *message,
+	const void */*userParam*/)
+{
+	v4print "OpenGL Debug:", type, id, severity, message;
+}
+
 Window::Window(const int p_width,
                const int p_height,
                const string &p_title,
@@ -326,6 +337,12 @@ Window::Window(int p_width,
 		throw std::runtime_error("Failed to initialize GLEW");
 	}
 
+	if (debug)
+	{
+		glEnable(GL_DEBUG_OUTPUT);
+		glDebugMessageCallback(handleDebug, NULL);
+	}
+
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
 	// Enable depth test
@@ -336,9 +353,6 @@ Window::Window(int p_width,
 	glEnable(GL_CULL_FACE);
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glEnable(GL_ALPHA_TEST);
-	glAlphaFunc(GL_GREATER,0.01f);
 
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);

@@ -294,6 +294,10 @@ public:
 	{
 		q.normalize();
 	}
+	Mat3 matrix() const
+	{
+		return q.toRotationMatrix();
+	}
 	Eigen::Quaternionf quat() const
 	{
 		return q;

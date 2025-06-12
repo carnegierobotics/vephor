@@ -43,6 +43,7 @@ int main(int argc, char* argv[])
 	string video_path;
 	float playback_speed = 1;
 	bool daemonize = false;
+	bool debug = false;
 	string screenshot_path;
 	
 	int opt;
@@ -50,12 +51,15 @@ int main(int argc, char* argv[])
 	while (optind < argc)
 	{
 		v4print "optind:", optind;
-		if((opt = getopt(argc, argv, "dhi:m:o:p:P:rR:S:v:")) != -1) 
+		if((opt = getopt(argc, argv, "dDhi:m:o:p:P:rR:S:v:")) != -1) 
 		{
 			switch(opt)
 			{
 			case 'd':
 				daemonize = true;
+				break;
+			case 'D':
+				debug = true;
 				break;
 			case 'h':
 				usage(argv);
@@ -144,6 +148,9 @@ int main(int argc, char* argv[])
 	bool use_server = mode == string("server");
 	bool use_server_no_daemon = mode == string("server_no_daemon");
 	bool use_net = use_client || use_server || use_server_no_daemon;
+
+	if (debug)
+		vephor::Window::setDebug(true);
 
 	ShowRecord show;
 	show.record_path = record_path;
