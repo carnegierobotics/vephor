@@ -48,7 +48,8 @@ PYBIND11_MODULE(_core, m) {
 		.def("translation", &Transform3::translation)
 		.def("rvec", &Transform3::rvec)
 		.def("rotation", &Transform3::rotation)
-		.def("matrix", &Transform3::matrix);
+		.def("matrix", &Transform3::matrix)
+		.def("interp", &Transform3::interp);
     py::class_<TransformSim3>(m, "TransformSim3")
 		.def(py::init<>())
 		.def(py::init<const Vec3&,const Vec3,float>(),py::arg("t"),py::arg("r")=Vec3(0,0,0),py::arg("scale")=1.0f)

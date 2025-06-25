@@ -131,6 +131,18 @@ struct MeshData
 	}
 };
 
+inline MatX convertVertsToMat(const std::vector<Vec3>& verts)
+{
+	MatX m(verts.size(), 3);
+
+	for (int v = 0; v < verts.size(); v++)
+	{
+		m.row(v) = verts[v].transpose();
+	}
+
+	return m;
+}
+
 const float DEFAULT_ORDERED_VERTS_DIST_MIN = 1e-3;
 
 inline vector<Vec2> cleanOrderedVerts(
@@ -450,20 +462,24 @@ inline MeshData formPolygon(vector<Vec2> verts)
 	tris.push_back({verts[0], verts[1], verts[2]});
 	
 	data.verts.resize(tris.size()*3,3);
+	data.uvs.resize(tris.size()*3,2);
 	data.norms.resize(tris.size()*3,3);
 	
 	int index = 0;
 	for (const auto& tri : tris)
 	{
 		data.verts.row(index) = Vec3(tri.a[0], tri.a[1], 0);
+		data.uvs.row(index) = Vec2(tri.a[0], tri.a[1]);
 		data.norms.row(index) = Vec3(0,0,-1);
 		index++;
 		
 		data.verts.row(index) = Vec3(tri.b[0], tri.b[1], 0);
+		data.uvs.row(index) = Vec2(tri.b[0], tri.b[1]);
 		data.norms.row(index) = Vec3(0,0,-1);
 		index++;
 		
 		data.verts.row(index) = Vec3(tri.c[0], tri.c[1], 0);
+		data.uvs.row(index) = Vec2(tri.c[0], tri.c[1]);
 		data.norms.row(index) = Vec3(0,0,-1);
 		index++;
 	}

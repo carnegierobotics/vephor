@@ -379,9 +379,14 @@ public:
 	{
 		return transform;
 	}
-	Transform3 interp(const Transform3& other, float perc)
+	Transform3 interp(const Transform3& other, float perc) const
 	{
-		return Transform3((transform.log() * (1 - perc) + other.transform.log() * perc).exp());
+		// To get the shortest path, we take the delta transform and interpolate that
+		Transform3 self_from_other = this->inverse() * other;
+		return transform * (self_from_other.transform.log() * perc).exp();
+
+		// This is the absolute version, this has caused problems with angle wrap
+		//return Transform3((transform.log() * (1 - perc) + other.transform.log() * perc).exp());
 	}
 private:
 	manif::SE3f transform;

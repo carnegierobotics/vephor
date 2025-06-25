@@ -265,12 +265,23 @@ void drawLine(Image<T>& im, const Vec2& start, const Vec2& end, const Eigen::Mat
 	Vec2i image_size = im.getSize();
 	clipLineToImage(line_start, line_end, image_size);
 	auto pixels = plotLineBresenham(line_start.cast<int>(), line_end.cast<int>());
+
+	Vec2 vec = end - start;
+	Vec2 cross(vec[1], -vec[0]);
+	float length = vec.norm();
+	cross = cross / length;
+
+	std::vector<Vec2i> offsets;
+	for (int r = -rad; r <= rad; r++)
+	{
+		offsets.push_back((cross * r).cast<int>());
+	}
+
 	for (const auto& px : pixels)
 	{
-		for (int x = -rad; x <= rad; x++)
-		for (int y = -rad; y <= rad; y++)
+		for (const auto& off : offsets)
 		{
-			Vec2i npx(px[0]+x,px[1]+y);
+			Vec2i npx(px[0]+off[0],px[1]+off[1]);
 			if (im.in(npx))
 				im(npx) = color;
 		}
