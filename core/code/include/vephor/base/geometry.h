@@ -561,7 +561,7 @@ inline MeshData formPolygonPrism(vector<Vec2> verts, float height, bool invert=f
 	return data;
 }
 
-inline MeshData formCube()
+inline MeshData formRectPrism(const Vec3& rads, float uv_scale=1.0f)
 {
 	MeshData data;
 	
@@ -615,56 +615,62 @@ inline MeshData formCube()
 		-1.0f, 1.0f, 1.0f,
 		 1.0f,-1.0f, 1.0f;
 	
+	for (int a = 0; a < 3; a++)
+        data.verts.col(a) *= rads[a];
+
+	float u0 = rads[0]*2*uv_scale;
+	float u1 = rads[1]*2*uv_scale;
+	float u2 = rads[2]*2*uv_scale;
 
 	data.uvs.resize(12*3,2);
     data.uvs << 
         0.f,0.f,
-		0.f,1.f,
-		1.f,1.f,
+		0.f,u2,
+		u1, u2,
 		
 		0.f,0.f,
-		1.f,1.f,
-		1.f,0.f,
+		u1, u2,
+		u1, 0.f,
 		
-		1.f,1.f,
-		0.f,1.f,
+		u0, u2,
+		0.f,u2,
 		0.f,0.f,
 		
-		1.f,1.f,
+		u0, u2,
 		0.f,0.f,
-		1.f,0.f,
+		u0, 0.f,
 
-		1.f,1.f,
+		u0, u1,
 		0.f,0.f,
-		0.f,1.f,
+		0.f,u1,
 		 
-		1.f,1.f,
-		1.f,0.f,
+		u0, u1,
+		u0, 0.f,
 		0.f,0.f,
 
-		1.f,1.f,
+		u1, u2,
 		0.f,0.f,
-		1.f,0.f,
+		u1, 0.f,
 
 		0.f,0.f,
-		1.f,1.f,
-		0.f,1.f,
+		u1, u2,
+		0.f,u2,
 
-		1.f,1.f,
-		1.f,0.f,
+		u0, u2,
+		u0, 0.f,
 		0.f,0.f,
 
-		1.f,1.f,
+		u0, u2,
 		0.f,0.f,
-		0.f,1.f,
+		0.f,u2,
 
-		0.f,1.f,
+		0.f,u1,
 		0.f,0.f,
-		1.f,0.f,
+		u0, 0.f,
 
-		1.f,1.f,
-		0.f,1.f,
-		1.f,0.f;
+		u0, u1,
+		0.f,u1,
+		u0, 0.f;
 
     data.norms.resize(12*3,3);
     data.norms << 
@@ -706,6 +712,11 @@ inline MeshData formCube()
 		 0.0f, 0.0f, 1.0f;
 		 
 	return data;
+}
+
+inline MeshData formCube()
+{
+	return formRectPrism(Vec3(1,1,1), 0.5);
 }
 
 inline MatX formCubeWireframe()
@@ -1021,6 +1032,100 @@ inline MeshData formPlane(const Vec2& rads)
 		0,0,1,
 		0,0,1;
 		
+	return data;
+}
+
+inline MeshData formPlaneGrid(const Vec2& rads, const Vec2i& divs)
+{
+	std::vector<Vec3> verts_per_cell = {
+		Vec3(0,0,0),
+		Vec3(1,1,0),
+		Vec3(1,0,0),
+		Vec3(0,0,0),
+		Vec3(0,1,0),
+		Vec3(1,1,0),
+		Vec3(0,0,0),
+		Vec3(1,0,0),
+		Vec3(1,1,0),
+		Vec3(0,0,0),
+		Vec3(1,1,0),
+		Vec3(0,1,0)
+	};
+
+	std::vector<Vec2> uvs_per_cell = {
+		Vec2(0,0),
+		Vec2(1,1),
+		Vec2(1,0),
+		Vec2(0,0),
+		Vec2(0,1),
+		Vec2(1,1),
+		Vec2(0,0),
+		Vec2(1,0),
+		Vec2(1,1),
+		Vec2(0,0),
+		Vec2(1,1),
+		Vec2(0,1)
+	};
+
+	std::vector<Vec3> normals_per_cell = {
+		Vec3(0,0,-1),
+		Vec3(0,0,-1),
+		Vec3(0,0,-1),
+		Vec3(0,0,-1),
+		Vec3(0,0,-1),
+		Vec3(0,0,-1),
+		Vec3(0,0,1),
+		Vec3(0,0,1),
+		Vec3(0,0,1),
+		Vec3(0,0,1),
+		Vec3(0,0,1),
+		Vec3(0,0,1)
+	};
+
+	MeshData data;
+
+	int cells = divs[0] * divs[1];
+
+	const int verts_per_quad = 12;
+
+	data.verts.resize(cells * verts_per_quad, 3);
+	data.uvs.resize(cells * verts_per_quad, 2);
+	data.norms.resize(cells * verts_per_quad, 3);
+
+	for (int x = 0; x < divs[0]; x++)
+	{
+		float x_perc_l = (float)x / divs[0];
+		float x_perc_u = (float)(x+1) / divs[0];
+
+		for (int y = 0; y < divs[1]; y++)
+		{
+			float y_perc_l = (float)y / divs[1];
+			float y_perc_u = (float)(y+1) / divs[1];
+
+			int cell_index = x * divs[1] + y;
+			int base_index = cell_index * verts_per_quad;
+
+			Vec2 corner_l(
+				-rads[0] + 2 * rads[0] * x_perc_l,
+				-rads[1] + 2 * rads[1] * y_perc_l
+			);
+			Vec2 corner_u(
+				-rads[0] + 2 * rads[0] * x_perc_u,
+				-rads[1] + 2 * rads[1] * y_perc_u
+			);
+
+			for (int i = 0; i < verts_per_quad; i++)
+			{
+				data.verts.row(base_index + i) = (verts_per_cell[i].array() * Vec3(
+					corner_u[0]-corner_l[0],
+					corner_u[1]-corner_l[1],
+					1).array() + Vec3(corner_l[0],corner_l[1],0).array()).transpose();
+				data.uvs.row(base_index + i) = uvs_per_cell[i].transpose();
+				data.norms.row(base_index + i) = normals_per_cell[i].transpose();
+			}
+		}
+	}
+
 	return data;
 }
 
