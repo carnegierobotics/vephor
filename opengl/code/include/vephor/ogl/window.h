@@ -33,6 +33,7 @@ GLuint linkProgram(GLuint vertexShaderId, GLuint fragmentShaderId);
 void global_mouse_handler(GLFWwindow* window, int button, int action, int mods);
 void global_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
+GLuint findProgram(const string& program_name);
 GLuint buildProgram(const string& program_name, const string& vert_shader, const string& frag_shader);
 
 class Window;

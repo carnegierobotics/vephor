@@ -156,7 +156,6 @@ inline MeshShader produceMeshShader(bool with_normal_map)
         void main()
         {
             // Light emission properties
-            // You probably want to put them as uniforms
             vec3 point_light_color = vec3(1,1,1);
             vec3 dir_light_color = vec3(1,1,1);
             

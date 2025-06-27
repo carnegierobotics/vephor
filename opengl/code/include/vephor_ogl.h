@@ -11,6 +11,7 @@
 #include "vephor/ogl/window.h"
 #include "vephor/ogl/io.h"
 #include "vephor/ogl/asset_manager.h"
+#include "vephor/ogl/draw/material.h"
 #include "vephor/ogl/draw/mesh.h"
 #include "vephor/ogl/draw/lines.h"
 #include "vephor/ogl/draw/thick_lines.h"

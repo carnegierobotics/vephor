@@ -12,6 +12,7 @@
 
 #include "../window.h"
 #include "../io.h"
+#include "material.h"
 
 namespace vephor
 {

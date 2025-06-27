@@ -52,6 +52,7 @@ add_library(${PROJECT_NAME} SHARED
 	src/ogl/draw/instanced_points.cpp
 	src/ogl/draw/light.cpp
 	src/ogl/draw/lines.cpp
+	src/ogl/draw/material.cpp 
 	src/ogl/draw/mesh.cpp 
 	src/ogl/draw/particle.cpp
 	src/ogl/draw/points.cpp
@@ -158,6 +159,7 @@ else (VEPHOR_BUILD_PYTHON_BINDINGS)
 		basic
 		camera_test
 		marching_cubes
+		material_test
 		physics
 		physics_constraints
 		physics_height_map

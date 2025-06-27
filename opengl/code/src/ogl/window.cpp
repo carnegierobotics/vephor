@@ -152,6 +152,18 @@ void global_framebuffer_size_callback(GLFWwindow* gl_window, int width, int heig
 
 unordered_map<string, GLuint> program_bank;
 
+GLuint findProgram(const string& program_name)
+{
+	GLuint program_id = std::numeric_limits<GLuint>::max();
+
+	if (find(program_bank, program_name))
+	{
+		program_id = program_bank[program_name];
+	}
+
+	return program_id;
+}
+
 GLuint buildProgram(const string& program_name, const string& vert_shader, const string& frag_shader)
 {
 	GLuint program_id;
