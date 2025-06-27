@@ -13,12 +13,36 @@
 namespace vephor
 {
 
-void Material::activate()
+void Material::activate(Window* window, const TransformSim3& world_from_body)
 {
     glUseProgram(program_id);
 
+    Mat4 world_from_body_mat = world_from_body.matrix();
+
+	Mat4 MV = window->getCamFromWorldMatrix() * world_from_body_mat;
+    Mat4 MVP = window->getProjectionMatrix() * MV;
+
+    glUniformMatrix4fv(mvp_matrix_id, 1, GL_FALSE, MVP.data());
+    glUniformMatrix4fv(model_matrix_id, 1, GL_FALSE, world_from_body_mat.data());
+    glUniformMatrix4fv(view_matrix_id, 1, GL_FALSE, window->getCamFromWorldMatrix().data());
+	glUniformMatrix4fv(modelview_matrix_id, 1, GL_FALSE, MV.data());
+
+    glUniform3fv(diffuse_id, 1, diffuse.data());
+    glUniform3fv(ambient_id, 1, ambient.data());
+	glUniform3fv(emissive_id, 1, emissive.data());
+    glUniform1f(specular_id, specular);
+    glUniform1f(opacity_id, opacity);
+
+	Vec3 ambient_light_strength = window->getAmbientLight();
+	glUniform3fv(light_ambient_id, 1, ambient_light_strength.data());
+
     if (tex_sampler_id != std::numeric_limits<GLuint>::max())
     {
+        if (!tex)
+        {
+            tex = window->getDefaultTex();
+        }
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, tex->getID());
         glUniform1i(tex_sampler_id, 0);
@@ -28,12 +52,39 @@ void Material::activate()
     {
         if (!normal_map)
 	    {
-            throw std::runtime_error("No normal map found in mesh.");
+            throw std::runtime_error("No normal map found in material.");
         }
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, normal_map->getID());
         glUniform1i(normal_sampler_id, 1);
+    }
+
+    if (light_dir_id != std::numeric_limits<GLuint>::max())
+    {
+        auto dir_light = window->getDirLight();
+
+        v4print "Dir light:", dir_light.pos.transpose(), dir_light.strength;
+
+        glUniform3fv(light_dir_id, 1, dir_light.pos.data());
+        glUniform1f(light_dir_strength_id, dir_light.strength);
+    }
+
+    if (num_point_lights_id != std::numeric_limits<GLuint>::max())
+    {
+        int num_point_lights = std::max((int)window->getPointLights().size(), (int)MAX_NUM_POINT_LIGHTS);
+        glUniform1i(num_point_lights_id, num_point_lights);
+
+        size_t point_light_id = 0;
+        for (const auto& point_light : window->getPointLights())
+        {
+            glUniform3fv(light_point_pos_id[point_light_id], 1, point_light.second.pos.data());
+            glUniform1f(light_point_strength_id[point_light_id], point_light.second.strength);
+            point_light_id++;
+
+            if (point_light_id >= num_point_lights)
+                break;
+        }
     }
 }
 

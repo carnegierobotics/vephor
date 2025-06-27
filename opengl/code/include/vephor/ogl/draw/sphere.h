@@ -23,7 +23,11 @@ public:
 	{
 		auto data = formSphere(p_slices, p_stacks);
 		data.verts *= p_rad;
-		mesh = make_shared<Mesh>(data);
+
+		MaterialBuilder builder;
+		builder.dir_light = true;
+		builder.point_lights = true;
+		mesh = make_shared<Mesh>(data, builder.build());
 	}
 	void setColor(const Vec3& p_color)
 	{

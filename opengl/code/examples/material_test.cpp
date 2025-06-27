@@ -20,8 +20,8 @@ int main()
     window.setFrameLock(60.0f);
 
     MaterialBuilder builder;
-    builder.tex = true;
-    builder.normal_map = true;
+    builder.tex = false;
+    builder.normal_map = false;
     builder.dir_light = true;
     builder.point_lights = true;
     v4print builder.produceVertexShader();

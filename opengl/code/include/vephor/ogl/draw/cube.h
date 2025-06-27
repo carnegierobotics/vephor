@@ -23,7 +23,11 @@ public:
 	{
 		auto data = formCube();
 		data.verts *= p_rad;
-		mesh = make_shared<Mesh>(data);
+		
+		MaterialBuilder builder;
+		builder.dir_light = true;
+		builder.point_lights = true;
+		mesh = make_shared<Mesh>(data, builder.build());
 	}
 	void setColor(const Color& p_color)
 	{

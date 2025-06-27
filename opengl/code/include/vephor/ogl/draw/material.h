@@ -28,7 +28,25 @@ public:
             light_point_strength_id[i] = std::numeric_limits<GLuint>::max();
         }
     }
-    void activate();
+    void setTexture(const shared_ptr<Texture>& p_tex){tex = p_tex;}
+	void setNormalMap(const shared_ptr<Texture>& p_normal_map){normal_map = p_normal_map;}
+
+	void setDiffuse(const Color& p_color){diffuse = p_color.getRGB();}
+	Color getDiffuse() const {return diffuse;}
+	void setAmbient(const Color& p_color){ambient = p_color.getRGB();}
+	Color getAmbient() const {return ambient;}
+    void setEmissive(const Color& p_color){emissive = p_color.getRGB();}
+	Color getEmissive() const {return emissive;}
+    void setSpecular(bool p_specular){specular = p_specular;}
+	void setOpacity(const float& p_opacity){opacity = p_opacity;}
+
+    GLuint getPosAttrLoc() const {return pos_attr_loc;}
+    GLuint getUVAttrLoc() const {return uv_attr_loc;}
+    GLuint getNormAttrLoc() const {return norm_attr_loc;}
+    GLuint getTangentAttrLoc() const {return tangent_attr_loc;}
+    GLuint getBitangentAttrLoc() const {return bitangent_attr_loc;}
+
+    void activate(Window* window, const TransformSim3& world_from_body);
     void deactivate();
 private:
     friend MaterialBuilder;
@@ -37,9 +55,9 @@ private:
 
     GLuint program_id = std::numeric_limits<GLuint>::max();
 
-    Vec3 diffuse;
-    Vec3 ambient;
-	Vec3 emissive;
+    Vec3 diffuse = Vec3(1,1,1);
+    Vec3 ambient = Vec3(1,1,1);
+	Vec3 emissive = Vec3(1,1,1);
     float specular = 1.0f;
 	float opacity = 1.0f;
 

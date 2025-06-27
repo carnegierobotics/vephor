@@ -22,7 +22,11 @@ public:
 	Cone(float p_rad = 1.0f, float p_height = 1.0f, int p_slices = 16)
 	{
 		auto data = formCone(p_rad, p_height, p_slices);
-		mesh = make_shared<Mesh>(data);
+
+		MaterialBuilder builder;
+		builder.dir_light = true;
+		builder.point_lights = true;
+		mesh = make_shared<Mesh>(data, builder.build());
 	}
 	void setColor(const Vec3& p_color)
 	{

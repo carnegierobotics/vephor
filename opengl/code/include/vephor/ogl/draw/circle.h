@@ -22,7 +22,11 @@ public:
     Circle(float p_rad, float p_thickness, float p_slices = 16)
 	{
 		auto data = formCircle(p_rad, p_thickness, p_slices);
-		mesh = make_shared<Mesh>(data);
+
+		MaterialBuilder builder;
+		builder.dir_light = true;
+		builder.point_lights = true;
+		mesh = make_shared<Mesh>(data, builder.build());
 	}
 	void setColor(const Vec3& p_color)
 	{
