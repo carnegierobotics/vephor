@@ -29,7 +29,9 @@ public:
         }
     }
     void setTexture(const shared_ptr<Texture>& p_tex){tex = p_tex;}
+    shared_ptr<Texture> getTexture() const {return tex;}
 	void setNormalMap(const shared_ptr<Texture>& p_normal_map){normal_map = p_normal_map;}
+    shared_ptr<Texture> getNormalMap() const {return normal_map;}
 
 	void setDiffuse(const Color& p_color){diffuse = p_color.getRGB();}
 	Color getDiffuse() const {return diffuse;}
@@ -38,14 +40,20 @@ public:
     void setEmissive(const Color& p_color){emissive = p_color.getRGB();}
 	Color getEmissive() const {return emissive;}
     void setSpecular(bool p_specular){specular = p_specular;}
+    float getSpecular() const {return specular;}
 	void setOpacity(const float& p_opacity){opacity = p_opacity;}
+    float getOpacity() const {return opacity;}
     void setSize(const float& p_size){size = p_size;}
+    float getSize() const {return size;}
 
     GLuint getPosAttrLoc() const {return pos_attr_loc;}
     GLuint getUVAttrLoc() const {return uv_attr_loc;}
     GLuint getNormAttrLoc() const {return norm_attr_loc;}
     GLuint getTangentAttrLoc() const {return tangent_attr_loc;}
     GLuint getBitangentAttrLoc() const {return bitangent_attr_loc;}
+    GLuint getOffsetAttrLoc() const {return offset_attr_loc;}
+    GLuint getColorAttrLoc() const {return color_attr_loc;}
+    GLuint getSizeAttrLoc() const {return size_attr_loc;}
 
     void activate(Window* window, const TransformSim3& world_from_body);
     void deactivate();

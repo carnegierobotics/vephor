@@ -250,13 +250,14 @@ string vertexShaderBillboardMain = R"(
 )";
 
 string vertexShaderScreenSpaceMain = R"(
-    float w_mult = proj_from_camera[0][3] + proj_from_camera[1][3] + proj_from_camera[2][3] + proj_from_camera[3][3];
-    vec4 ss_offset = vec4(2 * curr_pos_in_model.x / aspect, 2 * curr_pos_in_model.y, 0.0, 0.0) * w_mult; 
-    gl_Position = ss_offset;
+    vec4 center_in_proj = proj_from_model * vec4(in_offset, 1);
+    vec4 ss_offset = vec4(2 * curr_pos_in_model.x / aspect, 2 * curr_pos_in_model.y, 0.0, 0.0) * center_in_proj.w; 
+    gl_Position = ss_offset + center_in_proj;
 )";
 
 string vertexShaderOffsetMain = R"(
-    gl_Position += proj_from_model * vec4(in_offset, 1);
+    vec4 center_in_proj = proj_from_model * vec4(in_offset, 1);
+    gl_Position += center_in_proj;
 )";
 
 string vertexShaderLightingMain = R"(
@@ -413,12 +414,17 @@ std::string MaterialBuilder::produceVertexShader() const
     if (screen_space)
         shader += vertexShaderScreenSpaceMain;
     else if (billboard)
+    {
         shader += vertexShaderBillboardMain;
+        if (offset)
+            shader += vertexShaderOffsetMain;
+    }
+    else if (offset)
+        shader += vertexShaderOffsetMain;
     else
         shader += vertexShaderMain;
 
-    if (offset)
-        shader += vertexShaderOffsetMain;
+    
 
     if (tex || normal_map)
         shader += vertexShaderTexMain;
@@ -472,6 +478,10 @@ in vec3 vo_dir_light_dir_in_camera;
 string fragmentShaderPointLightIn = R"(
 in vec3 vo_pos_in_world;
 in vec3 vo_point_light_dir_in_camera[MAX_POINT_LIGHTS];
+)";
+
+string fragmentShaderVertexColorIn = R"(
+in vec4 vo_color;
 )";
 
 string fragmentShaderOut = R"(
@@ -655,6 +665,9 @@ std::string MaterialBuilder::produceFragmentShader() const
     if (point_lights)
         shader += fragmentShaderPointLightIn;
 
+    if (vertex_color)
+        shader += fragmentShaderVertexColorIn;
+
     shader += fragmentShaderOut;
 
     shader += "\n";
@@ -809,8 +822,8 @@ std::shared_ptr<Material> MaterialBuilder::build() const
     if (uniform_size && instanced_size)
         throw std::runtime_error("Can't use both uniform size and instanced size.");
 
-    if (screen_space && !billboard)
-        throw std::runtime_error("Screen space must be used with billboard.");
+    if (screen_space && (!billboard || !offset))
+        throw std::runtime_error("Screen space must be used with billboard and offset.");
 
     auto tag = getTag();
 

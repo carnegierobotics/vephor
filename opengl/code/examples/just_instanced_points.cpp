@@ -15,21 +15,6 @@ using namespace vephor;
 
 int main()
 {
-    MaterialBuilder builder;
-    builder.tex = true;
-    builder.normal_map = false;
-    builder.dir_light = false;
-    builder.point_lights = false;
-    builder.vertex_color = true;
-    builder.materials = false;
-    builder.offset = true;
-    builder.uniform_size = true;
-    builder.billboard = true;
-    builder.screen_space = true;
-    builder.saveShaders();
-
-
-
     AssetManager asset_mgr;
     TrackballCamera cam_mgr;
 
@@ -53,6 +38,7 @@ int main()
 
     MatX points(10*10*10, 3);
     MatX colors(10*10*10, 3);
+    MatX sizes(10*10*10, 1);
 
     TensorIter<3> iter({10,10,10});
     int index = 0;
@@ -60,6 +46,7 @@ int main()
     {
         points.row(index) = (iter.getIndex().cast<float>() - Vec3(4.5,4.5,4.5)).transpose();
         colors.row(index) = (iter.getIndex().cast<float>()/9).transpose();
+        sizes(index) = index / 1000.0f * 0.03f;
 
         iter++;
         index++;
@@ -67,6 +54,7 @@ int main()
 
     auto points_draw = make_shared<InstancedPoints>(points, colors);
     points_draw->setScreenSpaceMode(true);
+    points_draw->setSizes(sizes);
     
     auto points_render = window.add(points_draw, TransformSim3(
 		Vec3(0.0,0.0,0.0),

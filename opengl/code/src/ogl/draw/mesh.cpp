@@ -113,34 +113,6 @@ void Mesh::setMaterial(const shared_ptr<Material>& p_material)
     setupVAO();
 }
 
-void createOpenGLBufferForMatX(GLuint& buffer_id, const MatX& mat)
-{
-    glGenBuffers(1, &buffer_id);
-	glBindBuffer(GL_ARRAY_BUFFER, buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, mat.size() * sizeof(GLfloat), mat.data(), GL_STATIC_DRAW);
-}
-
-void addOpenGLBufferToActiveVAO(
-    GLuint buffer_id,
-    GLuint attr_loc,
-    int size
-)
-{
-    if (attr_loc == std::numeric_limits<GLuint>::max())
-        return;
-
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_id);
-    glVertexAttribPointer(
-        attr_loc,                         // attribute
-        size,                             // size
-        GL_FLOAT,                         // type
-        GL_FALSE,                         // normalized?
-        0,                                // stride
-        (void*)0                          // array buffer offset
-    );
-    glEnableVertexAttribArray(attr_loc);
-}
-
 void Mesh::setupVAO()
 {
     if (!curr_window)

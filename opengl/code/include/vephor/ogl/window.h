@@ -22,6 +22,13 @@ using ScrollCallback = std::function<void(float)>;
 using KeyActionCallback = std::function<void(int)>;
 using WindowResizeCallback = std::function<void(Window*, const Vec2i&)>;
 
+void createOpenGLBufferForMatX(GLuint& buffer_id, const MatX& mat);
+void addOpenGLBufferToActiveVAO(
+    GLuint buffer_id,
+    GLuint attr_loc,
+    int size
+);
+
 // Compile and create shader object and returns its id
 GLuint compileShaders(string shader, GLenum type);
 
