@@ -35,16 +35,30 @@ GLuint compileShaders(string shader, GLenum type)
     glGetShaderiv(shaderId, GL_COMPILE_STATUS, &compileStatus);
 
     if (!compileStatus)
-    { // If compilation was not successfull
+    { // If compilation was not successful
+		v4print "Code:";
+
+		std::istringstream stream(shader);
+		std::string line;
+		int line_number = 1;
+
+		while (std::getline(stream, line)) {
+			std::cout << std::setw(3) << std::setfill(' ') <<  line_number++ << "  " << line << std::endl;
+		}
+		v4print "";
+
         int length;
         glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &length);
         char *cMessage = new char[length];
 
         // Get additional information
         glGetShaderInfoLog(shaderId, length, &length, cMessage);
-        cout << "Cannot Compile Shader: " << cMessage;
+        cout << "Cannot compile shader: " << cMessage;
         delete[] cMessage;
         glDeleteShader(shaderId);
+
+		throw std::runtime_error("Cannot compile shader.");
+
         return 0;
     }
 

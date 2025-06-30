@@ -26,6 +26,8 @@ int main()
     window.setFrameLock(60.0f);
     window.setClearColor(Vec3(0.1,0.1,0.1));
 
+
+
     shared_ptr<Material> lighting_only_material;
     {
         MaterialBuilder builder;

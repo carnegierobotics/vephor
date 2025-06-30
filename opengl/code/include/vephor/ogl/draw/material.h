@@ -39,6 +39,7 @@ public:
 	Color getEmissive() const {return emissive;}
     void setSpecular(bool p_specular){specular = p_specular;}
 	void setOpacity(const float& p_opacity){opacity = p_opacity;}
+    void setSize(const float& p_size){size = p_size;}
 
     GLuint getPosAttrLoc() const {return pos_attr_loc;}
     GLuint getUVAttrLoc() const {return uv_attr_loc;}
@@ -63,6 +64,7 @@ private:
 	Vec3 emissive = Vec3(0,0,0);
     float specular = 1.0f;
 	float opacity = 1.0f;
+    float size = 1.0f;
 
     shared_ptr<Texture> tex;
 	shared_ptr<Texture> normal_map;
@@ -72,8 +74,12 @@ private:
     GLuint norm_attr_loc = std::numeric_limits<GLuint>::max();
     GLuint tangent_attr_loc = std::numeric_limits<GLuint>::max();
     GLuint bitangent_attr_loc = std::numeric_limits<GLuint>::max();
+    GLuint offset_attr_loc = std::numeric_limits<GLuint>::max();
+    GLuint color_attr_loc = std::numeric_limits<GLuint>::max();
+    GLuint size_attr_loc = std::numeric_limits<GLuint>::max();
     
     GLuint mvp_matrix_id = std::numeric_limits<GLuint>::max();
+    GLuint proj_from_camera_id = std::numeric_limits<GLuint>::max();
     GLuint view_matrix_id = std::numeric_limits<GLuint>::max();
     GLuint model_matrix_id = std::numeric_limits<GLuint>::max();
     GLuint modelview_matrix_id = std::numeric_limits<GLuint>::max();
@@ -91,6 +97,8 @@ private:
     GLuint tex_sampler_id = std::numeric_limits<GLuint>::max();
     GLuint normal_sampler_id = std::numeric_limits<GLuint>::max();
     GLuint time_id = std::numeric_limits<GLuint>::max();
+    GLuint size_id = std::numeric_limits<GLuint>::max();
+    GLuint aspect_id = std::numeric_limits<GLuint>::max();
 };
 
 class MaterialBuilder
@@ -101,12 +109,20 @@ public:
     bool dir_light = false;
     bool point_lights = false;
     bool time = false;
+    bool vertex_color = false;
+    bool materials = true;
+    bool offset = false;
+    bool uniform_size = false;
+    bool instanced_size = false;
+    bool billboard = false;
+    bool screen_space = false;
 
     unordered_map<string, vector<string>> extra_sections;
 
     std::string produceVertexShader() const;
     std::string produceFragmentShader() const;
     std::string getTag() const;
+    void saveShaders() const;
     std::shared_ptr<Material> build() const;
 };
 
