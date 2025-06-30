@@ -174,8 +174,8 @@ void Mesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
     curr_window = window;
 
     createOpenGLBufferForMatX(pos_buffer_id, verts);
-    createOpenGLBufferForMatX(uv_buffer_id, verts);
-    createOpenGLBufferForMatX(norm_buffer_id, uvs);
+    createOpenGLBufferForMatX(uv_buffer_id, uvs);
+    createOpenGLBufferForMatX(norm_buffer_id, norms);
     createOpenGLBufferForMatX(tangent_buffer_id, tangents);
     createOpenGLBufferForMatX(bitangent_buffer_id, bitangents);
         

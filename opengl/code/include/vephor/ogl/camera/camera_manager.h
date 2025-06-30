@@ -32,6 +32,31 @@ struct ControlInfo
 	Vec2 drag_start_mouse_pos;
 	Transform3 drag_cam_from_world;
 
+	void setStandardWindowCallbacks(Window& window)
+	{
+		window.setLeftMouseButtonPressCallback([&](){
+			this->onLeftMouseButtonPress(window);
+		});
+		window.setLeftMouseButtonReleaseCallback([&](){
+			this->onLeftMouseButtonRelease();
+		});
+		window.setRightMouseButtonPressCallback([&](){
+			this->onRightMouseButtonPress(window);
+		});
+		window.setRightMouseButtonReleaseCallback([&](){
+			this->onRightMouseButtonRelease();
+		});
+		window.setKeyPressCallback([&](int key){
+			this->onKeyPress(key);
+		});
+		window.setKeyReleaseCallback([&](int key){
+			this->onKeyRelease(key);
+		});
+		window.setScrollCallback([&](float amount){
+			this->onScroll(amount);
+		});
+	}
+
 	void onLeftMouseButtonPress(const Window& window)
 	{
 		Vec2 pos = window.getMousePos();

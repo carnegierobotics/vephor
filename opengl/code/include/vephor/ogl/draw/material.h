@@ -48,16 +48,19 @@ public:
 
     void activate(Window* window, const TransformSim3& world_from_body);
     void deactivate();
+
+    string getTag() const {return tag;}
 private:
     friend MaterialBuilder;
 
     static const int MAX_NUM_POINT_LIGHTS = 4;
 
+    string tag;
     GLuint program_id = std::numeric_limits<GLuint>::max();
 
     Vec3 diffuse = Vec3(1,1,1);
     Vec3 ambient = Vec3(1,1,1);
-	Vec3 emissive = Vec3(1,1,1);
+	Vec3 emissive = Vec3(0,0,0);
     float specular = 1.0f;
 	float opacity = 1.0f;
 
@@ -87,6 +90,7 @@ private:
     GLuint opacity_id = std::numeric_limits<GLuint>::max();
     GLuint tex_sampler_id = std::numeric_limits<GLuint>::max();
     GLuint normal_sampler_id = std::numeric_limits<GLuint>::max();
+    GLuint time_id = std::numeric_limits<GLuint>::max();
 };
 
 class MaterialBuilder
@@ -96,9 +100,13 @@ public:
     bool normal_map = false;
     bool dir_light = false;
     bool point_lights = false;
+    bool time = false;
+
+    unordered_map<string, vector<string>> extra_sections;
 
     std::string produceVertexShader() const;
     std::string produceFragmentShader() const;
+    std::string getTag() const;
     std::shared_ptr<Material> build() const;
 };
 

@@ -64,8 +64,6 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
     {
         auto dir_light = window->getDirLight();
 
-        v4print "Dir light:", dir_light.pos.transpose(), dir_light.strength;
-
         glUniform3fv(light_dir_id, 1, dir_light.pos.data());
         glUniform1f(light_dir_strength_id, dir_light.strength);
     }
@@ -85,6 +83,11 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
             if (point_light_id >= num_point_lights)
                 break;
         }
+    }
+
+    if (time_id != std::numeric_limits<GLuint>::max())
+    {
+        glUniform1f(time_id, window->getCanonicalTime());
     }
 }
 
@@ -150,14 +153,23 @@ uniform vec3 point_light_pos_in_world[MAX_POINT_LIGHTS];
 uniform int num_point_lights;
 )";
 
-string vertexShaderMain = R"(
+string vertexShaderTimeUniforms = R"(
+uniform float time;
+)";
+
+string vertexShaderMainHeader = R"(
 
 void main()
 {
-    gl_Position = proj_from_model * vec4(pos_in_model, 1);
+    vec3 curr_pos_in_model = pos_in_model;
+    vec3 curr_normal_in_model = normal_in_model;
+)";
+
+string vertexShaderMainBody = R"(
+    gl_Position = proj_from_model * vec4(curr_pos_in_model, 1);
     
     // Position of the vertex, in worldspace : M * position
-    pos_in_world = (world_from_model * vec4(pos_in_model,1)).xyz;
+    pos_in_world = (world_from_model * vec4(curr_pos_in_model,1)).xyz;
     
     // Vector that goes from the vertex to the camera, in camera space.
     // In camera space, the camera is at the origin (0,0,0).
@@ -166,7 +178,7 @@ void main()
 
     // Normal of the the vertex, in camera space
     // Only correct if cam_from_model does not scale the model ! Use its inverse transpose if not.
-    normal_in_camera = (cam_from_model * vec4(normal_in_model,0)).xyz; 
+    normal_in_camera = (cam_from_model * vec4(curr_normal_in_model,0)).xyz; 
 
     uv = in_uv;
 )";
@@ -236,7 +248,30 @@ std::string MaterialBuilder::produceVertexShader() const
         shader += vertexShaderPointLightUniforms;
     }
 
-    shader += vertexShaderMain;
+    if (time)
+    {
+        shader += vertexShaderTimeUniforms;
+    }
+
+    if (find(extra_sections, string("vertex_func")))
+    {
+        for (const auto& section : extra_sections.at("vertex_func"))
+        {
+            shader += section;
+        }
+    }
+
+    shader += vertexShaderMainHeader;
+
+    if (find(extra_sections, string("vertex_main")))
+    {
+        for (const auto& section : extra_sections.at("vertex_main"))
+        {
+            shader += section;
+        }
+    }
+
+    shader += vertexShaderMainBody;
 
     if (normal_map)
     {
@@ -501,7 +536,34 @@ std::string MaterialBuilder::produceFragmentShader() const
     return shader;
 }
 
-std::shared_ptr<Material> MaterialBuilder::build() const
+const std::string BASE64_ALPHABET =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+// FNV-1a 32-bit hash function
+uint32_t fnv1a_hash(const std::string& text) {
+    uint32_t hash = 2166136261u;
+    for (char c : text) {
+        hash ^= static_cast<uint8_t>(c);
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
+// Convert a 32-bit hash to a base64-url-safe string
+std::string hash_to_base64(uint32_t hash, size_t length = 5) {
+    std::string out;
+    for (size_t i = 0; i < length; ++i) {
+        out += BASE64_ALPHABET[hash & 0x3F]; // 6 bits
+        hash >>= 6;
+    }
+    return out;
+}
+
+std::string short_hash(const std::string& text, size_t length = 5) {
+    return hash_to_base64(fnv1a_hash(text), length);
+}
+
+std::string MaterialBuilder::getTag() const
 {
     std::string tag = "mat";
     if (tex)
@@ -512,9 +574,23 @@ std::shared_ptr<Material> MaterialBuilder::build() const
         tag += "_dl";
     if (point_lights)
         tag += "_pl";
+    for (const auto& sections : extra_sections)
+    {
+        for (const auto& section : sections.second)
+        {
+            tag += "_" + short_hash(sections.first + section);
+        }
+    }
+    return tag;
+}
+
+std::shared_ptr<Material> MaterialBuilder::build() const
+{
+    auto tag = getTag();
 
     auto material = std::make_shared<Material>();
 
+    material->tag = tag;
     material->program_id = findProgram(tag);
     if (material->program_id == std::numeric_limits<GLuint>::max())
         material->program_id = buildProgram(tag, produceVertexShader(), produceFragmentShader());
@@ -562,6 +638,9 @@ std::shared_ptr<Material> MaterialBuilder::build() const
 
         material->normal_sampler_id  = glGetUniformLocation(material->program_id, "normal_sampler");
     }
+
+    if (time)
+        material->time_id = glGetUniformLocation(material->program_id, "time");
 
     return material;
 }

@@ -448,6 +448,38 @@ inline shared_ptr<Image<uint8_t>> generateCheckerboardImage(const Vec2i& size, c
     return image;
 }
 
+inline shared_ptr<Image<float>> generateFlatNormalImage(const Vec2i& size)
+{
+	auto image = make_shared<Image<float>>(size[0], size[1], 3);
+
+    Vec3 normal(0,0,1);
+
+	for (int i = 0; i < size[0]; i++)
+	{
+		for (int j = 0; j < size[1]; j++)
+		{
+			(*image)(i,j) = normal;
+		}
+	}
+    
+    return image;
+}
+
+inline shared_ptr<Image<uint8_t>> convertNormalImageToNormalMap(const Image<float>& normal_image)
+{
+	auto normal_map = make_shared<Image<uint8_t>>(normal_image.getSize()[0], normal_image.getSize()[1], 3);
+
+	for (int i = 0; i < normal_image.getSize()[0]; i++)
+	{
+		for (int j = 0; j < normal_image.getSize()[1]; j++)
+		{
+			(*normal_map)(i,j) = ((normal_image(i,j) + Vec3(1,1,1)) / 2.0f * 255.0f).cast<uint8_t>();
+		}
+	}
+    
+    return normal_map;
+}
+
 inline shared_ptr<Image<uint8_t>> loadImage(const string& file)
 {
 	if (!fs::exists(file))

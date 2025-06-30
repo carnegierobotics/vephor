@@ -566,6 +566,15 @@ public:
 	{
 		debug = p_debug;
 	}
+
+    void setCanonicalTime(float time)
+    {
+        canonical_time = time;
+    }
+    float getCanonicalTime() const
+    {
+        return canonical_time;
+    }
 private:
     void removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects);
 
@@ -723,6 +732,7 @@ private:
 	vector<shared_ptr<RenderNode>> non_render_objects;
     bool on_top = false;
     float curr_opacity = 1.0f;
+    float canonical_time = 0.0f;
 
     inline static bool debug = false;
 };

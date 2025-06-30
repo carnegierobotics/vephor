@@ -1116,11 +1116,13 @@ inline MeshData formPlaneGrid(const Vec2& rads, const Vec2i& divs)
 
 			for (int i = 0; i < verts_per_quad; i++)
 			{
+				Vec2 uv = (Vec2(x,y) + uvs_per_cell[i]).array() / divs.cast<float>().array();
+
 				data.verts.row(base_index + i) = (verts_per_cell[i].array() * Vec3(
 					corner_u[0]-corner_l[0],
 					corner_u[1]-corner_l[1],
 					1).array() + Vec3(corner_l[0],corner_l[1],0).array()).transpose();
-				data.uvs.row(base_index + i) = uvs_per_cell[i].transpose();
+				data.uvs.row(base_index + i) = uv.transpose();
 				data.norms.row(base_index + i) = normals_per_cell[i].transpose();
 			}
 		}

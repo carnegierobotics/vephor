@@ -158,6 +158,7 @@ else (VEPHOR_BUILD_PYTHON_BINDINGS)
 		background_test
 		basic
 		camera_test
+		just_sphere
 		marching_cubes
 		material_test
 		physics
