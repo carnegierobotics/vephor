@@ -39,15 +39,7 @@ int main()
     string base_asset_dir = getBaseAssetDir()+"/assets";
     string skybox_dir = base_asset_dir+"/Nalovardo";
 
-    auto cube_tex = window.getCubeTextureFromImages({
-        skybox_dir+"/posx.jpg",
-        skybox_dir+"/negx.jpg",
-        skybox_dir+"/posy.jpg",
-        skybox_dir+"/negy.jpg",
-        skybox_dir+"/posz.jpg",
-        skybox_dir+"/negz.jpg"
-    });
-
+    auto cube_tex = window.getCubeTextureFromDir(skybox_dir);
 
     auto skybox = make_shared<Skybox>(cube_tex);
     window.add(skybox);

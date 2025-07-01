@@ -562,6 +562,7 @@ public:
     shared_ptr<Texture> getTextureFromBuffer(const char* buf_data, int buf_size, const Vec2i& size, bool nearest = false);
     shared_ptr<Texture> getTextureFromImage(const Image<uint8_t>& img, bool nearest = false);
 
+    shared_ptr<CubeTexture> getCubeTextureFromDir(const string& faces_dir, bool nearest = false);
     shared_ptr<CubeTexture> getCubeTextureFromImages(const vector<string>& faces, bool nearest = false);
 
     using TexturePathResolveCallback = std::function<string(const string&)>;

@@ -909,6 +909,18 @@ shared_ptr<Texture> Window::getTextureFromImage(const Image<uint8_t>& img, bool 
 	return getTextureFromBuffer(buf_data, img.getChannels(), img.getSize(), nearest);
 }
 
+shared_ptr<CubeTexture> Window::getCubeTextureFromDir(const string& skybox_dir, bool nearest)
+{
+	return getCubeTextureFromImages({
+        skybox_dir+"/posx.jpg",
+        skybox_dir+"/negx.jpg",
+        skybox_dir+"/posy.jpg",
+        skybox_dir+"/negy.jpg",
+        skybox_dir+"/posz.jpg",
+        skybox_dir+"/negz.jpg"
+    }, nearest);
+}
+
 shared_ptr<CubeTexture> Window::getCubeTextureFromImages(const vector<string>& faces, bool nearest)
 {
 	GLuint textureID;
