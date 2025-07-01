@@ -36,8 +36,8 @@ int main()
 		node_2->setPos(Vec3(0,cos(time),sin(time))*10);
 		
 		bool keep_going = false;
-		keep_going |= window_1.render();
-		keep_going |= window_2.render();
+		keep_going |= window_1.render(false);
+		keep_going |= window_2.render(false);
 		if (!keep_going)
 		{
 			break;

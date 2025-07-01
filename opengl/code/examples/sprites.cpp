@@ -26,7 +26,7 @@ int main()
     auto normal_sprite_sheet_2 = window.loadTexture(getBaseAssetDir()+"/assets/diamond_sprite_normal.png", false);
 
 	auto sprite_1 = make_shared<Sprite>(
-		sprite_sheet_1
+		sprite_sheet_1, Vec2i::Zero(), false, true
 	);
     sprite_1->setNormalSpriteSheet(normal_sprite_sheet_1);
 	window.add(sprite_1, Transform3(
@@ -35,7 +35,7 @@ int main()
 	));
 	
 	auto sprite_2 = make_shared<Sprite>(
-		sprite_sheet_2
+		sprite_sheet_2, Vec2i::Zero(), false, true
 	);
     sprite_2->setNormalSpriteSheet(normal_sprite_sheet_2);
 	window.add(sprite_2, Transform3(
@@ -44,7 +44,7 @@ int main()
 	));
 	
 	auto sprite_3 = make_shared<Sprite>(
-		sprite_sheet_2
+		sprite_sheet_2, Vec2i::Zero(), false, true
 	);
     sprite_3->setNormalSpriteSheet(normal_sprite_sheet_2);
 	window.add(sprite_3, Transform3(
@@ -53,7 +53,7 @@ int main()
 	));
 	
 	auto sprite_4 = make_shared<Sprite>(
-		sprite_sheet_1
+		sprite_sheet_1, Vec2i::Zero(), false, true
 	);
     sprite_4->setNormalSpriteSheet(normal_sprite_sheet_1);
 	window.add(sprite_4, Transform3(
@@ -62,7 +62,7 @@ int main()
 	));
 	
 	auto sprite_5 = make_shared<Sprite>(
-		sprite_sheet_1
+		sprite_sheet_1, Vec2i::Zero(), false, true
 	);
     sprite_5->setNormalSpriteSheet(normal_sprite_sheet_1);
 	window.add(sprite_5, Transform3(

@@ -213,6 +213,7 @@ public:
         if (!showing)
         {
             glfwShowWindow(window);
+            glfwSetWindowOpacity(window, curr_opacity);
             showing = true;
         }
     }
@@ -265,7 +266,7 @@ public:
     void setOpacity(float opacity)
     {
         glfwSetWindowOpacity(window, opacity);
-        curr_opacity = opacity;
+        curr_opacity = glfwGetWindowOpacity(window);
     }
 
     float getOpacity() const

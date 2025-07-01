@@ -64,6 +64,17 @@ int main()
     bound_mgr.addBoundSphere(5.0f, Transform3(Vec3(0,0,0)));
 
 
+    TensorIter<3> corner_iter({2,2,2});
+    while (!corner_iter.atEnd())
+    {
+        auto sphere = make_shared<Sphere>(0.5);
+        Vec3 corner = corner_iter.getIndex().cast<float>();
+        window.add(sphere, Transform3(Vec3(-5,-5,-5).array()+corner.array()*Vec3(10,10,10).array()));
+
+        corner_iter++;
+    }
+
+
     Vec3 light_dir(-1,-1,1);
     light_dir /= light_dir.norm();
     auto dir_light = make_shared<DirLight>(light_dir, 0.4f);
