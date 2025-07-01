@@ -277,8 +277,8 @@ string vertexShaderBillboardMain = R"(
 
 string vertexShaderBillboardOffsetMain = R"(
     vec4 center_in_proj = proj_from_model * vec4(in_offset, 1);
-    gl_Position.xy = (proj_from_camera * vec4(curr_pos_in_model, 1)).xy + center_in_proj.xy;
-    gl_Position.zw = center_in_proj.zw;
+    gl_Position.xyw = ((proj_from_camera * vec4(curr_pos_in_model, 1)) + center_in_proj).xyw;
+    gl_Position.z = center_in_proj.z;
 )";
 
 string vertexShaderScreenSpaceMain = R"(
