@@ -355,13 +355,52 @@ public:
         point_lights.erase(light_id);
     }
 
-    void setDirLight(const Vec3& dir, float strength)
+    void setDirLight(const Vec3& dir, float strength, bool shadows=false, int shadow_map_size=0)
     {
 		if (window == NULL)
 			return;
 		
         dir_light.pos = -dir;
         dir_light.strength = strength;
+        dir_light_shadows = shadows;
+
+        if (!dir_light_shadows)
+            return;
+
+        if (shadow_map_size == 0)
+        {
+            throw std::runtime_error("Must have a shadow map size larger than 0.");
+        }
+
+        glGenFramebuffers(1, &dir_light_shadow_map_fbo);
+        
+        if (shadow_map_size != dir_light_shadow_map_size)
+        {
+            if (dir_light_shadow_map_size > 0)
+                glDeleteTextures(1, &dir_light_shadow_map);
+
+            glGenTextures(1, &dir_light_shadow_map);
+            glBindTexture(GL_TEXTURE_2D, dir_light_shadow_map);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 
+                        shadow_map_size, shadow_map_size, 0, 
+                        GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+            dir_light_shadow_map_size = shadow_map_size;
+        }
+
+        glBindTexture(GL_TEXTURE_2D, dir_light_shadow_map);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        float border_color[] = {1.0, 1.0, 1.0, 1.0};
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, dir_light_shadow_map_fbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, dir_light_shadow_map, 0);
+        glDrawBuffer(GL_NONE); // no color buffer is drawn to
+        glReadBuffer(GL_NONE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     const LightInfo& getDirLight() const
     {
@@ -605,6 +644,48 @@ public:
     }
 private:
     void removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects);
+    void renderDirLightShadowMap();
+
+    struct ReflectiveSurface
+    {
+        Vec4 plane;
+        GLuint fbo;
+        GLuint texture;
+        GLuint depth_buffer;
+    };
+
+    vector<ReflectiveSurface> reflective_surfaces;
+
+    void addReflectiveSurface(const Vec4& plane)
+    {
+        ReflectiveSurface surface;
+        surface.plane = plane;
+
+        glGenFramebuffers(1, &surface.fbo);
+
+        int width, height;
+	    glfwGetFramebufferSize(window, &width, &height);
+
+        // Color texture
+        glGenTextures(1, &surface.texture);
+        glBindTexture(GL_TEXTURE_2D, surface.texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // Depth renderbuffer
+        glGenRenderbuffers(1, &surface.depth_buffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, surface.depth_buffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+
+        // Attach
+        glBindFramebuffer(GL_FRAMEBUFFER, surface.fbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, surface.texture, 0);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, surface.depth_buffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        reflective_surfaces.push_back(surface);
+    }
 
     WindowResizeCallback resize_callback;
     Vec2i window_size;
@@ -642,6 +723,10 @@ private:
 	shared_ptr<Texture> default_normal_map;
     unordered_map<int, LightInfo> point_lights;
     LightInfo dir_light;
+    bool dir_light_shadows = false;
+    int dir_light_shadow_map_size = 0;
+    GLuint dir_light_shadow_map = std::numeric_limits<GLuint>::max();
+    GLuint dir_light_shadow_map_fbo = std::numeric_limits<GLuint>::max();
 	Vec3 overlay_ambient_light_strength = Vec3(1,1,1);
 	Vec3 ambient_light_strength;
     int light_id = 0;

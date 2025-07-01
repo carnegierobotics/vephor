@@ -1668,10 +1668,14 @@ private:
 				json datum = obj->serialize(conn_id, bufs);
 				datum["id"] = obj->id;
 				datum["show"] = obj->show;
-				datum["overlay"] = obj->on_overlay;
-				datum["layer"] = obj->layer;
-				datum["bounds"] = obj->include_in_bounds;
-				datum["selectable"] = obj->selectable;
+				if (obj->on_overlay)
+					datum["overlay"] = obj->on_overlay;
+				if (obj->layer != 0)
+					datum["layer"] = obj->layer;
+				if (!obj->include_in_bounds)
+					datum["bounds"] = obj->include_in_bounds;
+				if (obj->selectable)
+					datum["selectable"] = obj->selectable;
 				scene["objects"].push_back(datum);
 
 				continue;
@@ -1699,10 +1703,14 @@ private:
 			
 			if (!obj->net_status[conn_id].obj_up_to_date)
 			{
-				datum["overlay"] = obj->on_overlay;
-				datum["layer"] = obj->layer;
-				datum["bounds"] = obj->include_in_bounds;
-				datum["selectable"] = obj->selectable;
+				if (obj->on_overlay)
+					datum["overlay"] = obj->on_overlay;
+				if (obj->layer != 0)
+					datum["layer"] = obj->layer;
+				if (!obj->include_in_bounds)
+					datum["bounds"] = obj->include_in_bounds;
+				if (obj->selectable)
+					datum["selectable"] = obj->selectable;
 			}
 			scene["objects"].push_back(datum);
 			

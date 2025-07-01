@@ -20,6 +20,21 @@ namespace vephor{
 
 using json = nlohmann::json;
 
+inline json toJson(const bool& v)
+{
+	return v;
+}
+
+inline json toJson(const int& v)
+{
+	return v;
+}
+
+inline json toJson(const float& v)
+{
+	return v;
+}
+
 inline json toJson(const Vec2i& v)
 {
 	return {v[0], v[1]};
@@ -45,6 +60,16 @@ inline json toJson(const Vec4& v)
 	return {v[0], v[1], v[2], v[3]};
 }
 
+template <typename T>
+inline void serializeIf(json& data, const string& name, const T& val, const T& default_val)
+{
+	if (val != default_val)
+		data[name] = toJson(val);
+}
+
+#define VEPHOR_SERIALIZE_IF_STANDARD(var) \
+    serializeIf(json_data, #var, var, var##_default)
+
 inline json toJson(const Transform3& T)
 {
 	Eigen::AngleAxisf aa;
@@ -53,10 +78,12 @@ inline json toJson(const Transform3& T)
 	const Vec3& t = T.translation();
 	Vec3 r = aa.axis() * aa.angle();
 	
-	return {
-		{"t", toJson(t)},
-		{"r", toJson(r)}
-	};
+	json json_data;
+
+	serializeIf(json_data, "t", t, Vec3(0,0,0));
+	serializeIf(json_data, "r", r, Vec3(0,0,0));
+
+	return json_data;
 }
 
 inline json toJson(const TransformSim3& T)
@@ -67,11 +94,13 @@ inline json toJson(const TransformSim3& T)
 	const Vec3& t = T.translation();
 	Vec3 r = aa.axis() * aa.angle();
 	
-	return {
-		{"t", toJson(t)},
-		{"r", toJson(r)},
-		{"scale", T.scale}
-	};
+	json json_data;
+
+	serializeIf(json_data, "t", t, Vec3(0,0,0));
+	serializeIf(json_data, "r", r, Vec3(0,0,0));
+	serializeIf(json_data, "scale", T.scale, 1.0f);
+
+	return json_data;
 }
 
 template <typename T>

@@ -21,8 +21,6 @@ public:
     Mesh(const MeshData& p_data)
 	: data(p_data)
 	{
-		/*if (data.verts.rows() == 0)
-			v4print "Empty mesh created.";*/
 	}
 	void setTexture(const string& p_tex, bool p_filter_nearest = false)
 	{
@@ -34,37 +32,55 @@ public:
 		tex_data.tex = p_tex;
 		tex_data.filter_nearest = p_filter_nearest;
 	}
-	void setColor(const Color& p_color){color = p_color.getRGBA();}
+	void setColor(const Color& p_color){color_rgba = p_color.getRGBA();}
 	void setSpecular(bool p_specular){specular = p_specular;}
 	void setCull(bool p_cull){cull = p_cull;}
-	void setDiffuseStrength(float strength){diffuse_strength = strength;}
-	void setAmbientStrength(float strength){ambient_strength = strength;}
-	void setEmissiveStrength(float strength){emissive_strength = strength;}
+	void setDiffuseStrength(float strength){diffuse = strength;}
+	void setAmbientStrength(float strength){ambient = strength;}
+	void setEmissiveStrength(float strength){emissive = strength;}
 	json serialize(vector<vector<char>>* bufs)
 	{
-		return {
+		json json_data = {
             {"type", "mesh"},
 			{"verts", toJson(data.verts)},
 			{"norms", toJson(data.norms)},
-			{"uvs", toJson(data.uvs)},
-			{"color_rgba", toJson(color)},
-			{"diffuse", diffuse_strength},
-			{"ambient", ambient_strength},
-			{"emissive", emissive_strength},
-			{"tex", produceTextureData(tex_data, bufs)},
-			{"specular", specular},
-			{"cull", cull}
+			{"uvs", toJson(data.uvs)}
         };
+
+		json json_tex_data = produceTextureData(tex_data, bufs);
+		if (json_tex_data["type"] != "none")
+			json_data["tex"] = json_tex_data;
+
+		VEPHOR_SERIALIZE_IF_STANDARD(color_rgba);
+		VEPHOR_SERIALIZE_IF_STANDARD(diffuse);
+		VEPHOR_SERIALIZE_IF_STANDARD(ambient);
+		VEPHOR_SERIALIZE_IF_STANDARD(emissive);
+		VEPHOR_SERIALIZE_IF_STANDARD(specular);
+		VEPHOR_SERIALIZE_IF_STANDARD(cull);
+
+		return json_data;
 	}
 private:
 	MeshData data;
 	TextureDataRecord tex_data;
-	Vec4 color = Vec4(1,1,1,1);
-	float diffuse_strength = 1.0f;
-	float ambient_strength = 1.0f;
-	float emissive_strength = 0.0f;
-	float specular = 1.0f;
-	bool cull = true;
+
+	inline const static Vec4 color_rgba_default = Vec4(1,1,1,1);
+	Vec4 color_rgba = color_rgba_default;
+
+	inline const static float diffuse_default = 1.0f;
+	float diffuse = diffuse_default;
+
+	inline const static float ambient_default = 1.0f;
+	float ambient = ambient_default;
+
+	inline const static float emissive_default = 0.0f;
+	float emissive = emissive_default;
+
+	inline const static float specular_default = 1.0f;
+	float specular = specular_default;
+
+	inline const static bool cull_default = true;
+	bool cull = cull_default;
 };
 
 }

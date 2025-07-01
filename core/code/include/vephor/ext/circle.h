@@ -19,25 +19,35 @@ namespace vephor
 class Circle
 {
 public:
-    Circle(float p_rad = 1.0f, float p_thickness = 1.0f, float p_slices = 16)
+    Circle(float p_rad = rad_default, float p_thickness = thickness_default, float p_slices = slices_default)
 	: rad(p_rad), thickness(p_thickness), slices(p_slices)
 	{}
-	void setColor(const Vec3& p_color){color = p_color;}
+	void setColor(const Vec3& p_color){color_rgb = p_color;}
 	json serialize(vector<vector<char>>*)
 	{	
-		return {
-            {"type", "circle"},
-			{"color_rgb", toJson(color)},
-			{"rad", rad},
-			{"thickness", thickness},
-			{"slices", slices}
+		json json_data = {
+            {"type", "circle"}
         };
+
+		VEPHOR_SERIALIZE_IF_STANDARD(rad);
+		VEPHOR_SERIALIZE_IF_STANDARD(thickness);
+		VEPHOR_SERIALIZE_IF_STANDARD(slices);
+		VEPHOR_SERIALIZE_IF_STANDARD(color_rgb);
+
+		return json_data;
 	}
 private:
+	inline const static float rad_default = 1.0f;
 	float rad;
+
+	inline const static float thickness_default = 1.0f;
 	float thickness;
+
+	inline const static int slices_default = 16;
 	int slices;
-	Vec3 color = Vec3(1,1,1);
+
+	inline const static Vec3 color_rgb_default = Vec3(1,1,1);
+	Vec3 color_rgb = color_rgb_default;
 };
 
 }

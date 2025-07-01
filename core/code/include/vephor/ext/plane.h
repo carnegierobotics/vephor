@@ -22,7 +22,7 @@ public:
     Plane(const Vec2& p_rads)
 	: rads(p_rads)
 	{}
-	void setColor(const Color& p_color){color = p_color.getRGBA();}
+	void setColor(const Color& p_color){color_rgba = p_color.getRGBA();}
 	void setTexture(const string& p_tex, bool p_filter_nearest = false)
 	{
 		tex_data.path = p_tex;
@@ -35,17 +35,25 @@ public:
 	}
 	json serialize(vector<vector<char>>* bufs)
 	{	
-		return {
+		json json_data {
             {"type", "plane"},
-			{"tex", produceTextureData(tex_data, bufs)},
-			{"rads", toJson(rads)},
-			{"color_rgba", toJson(color)}
+			{"rads", toJson(rads)}
         };
+
+		json json_tex_data = produceTextureData(tex_data, bufs);
+		if (json_tex_data["type"] != "none")
+			json_data["tex"] = json_tex_data;
+
+		VEPHOR_SERIALIZE_IF_STANDARD(color_rgba);
+
+		return json_data;
 	}
 private:
 	Vec2 rads;
 	TextureDataRecord tex_data;
-	Vec4 color = Vec4(1,1,1,1);
+
+	inline const static Vec4 color_rgba_default = Vec4(1,1,1,1);
+	Vec4 color_rgba = Vec4(1,1,1,1);
 };
 
 }

@@ -559,12 +559,45 @@ void Window::getWorldRayForMousePos(const Vec2& mpos, Vec3& origin, Vec3& ray)
 	ray = world_from_cam.rotation() * ray;
 }
 
+void Window::renderDirLightShadowMap()
+{
+	v4print "Rendering shadow map...";
+
+	glViewport(0, 0, dir_light_shadow_map_size, dir_light_shadow_map_size);
+	glBindFramebuffer(GL_FRAMEBUFFER, dir_light_shadow_map_fbo);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	for (auto& objects : object_layers)
+	{
+		for (const auto& obj : objects)
+		{
+			obj->render(this);
+		}
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
+	glViewport(0, 0, width, height);
+
+
+	// TODO for shadows:
+	//	Figure out how to instruct all objects to render with depth shaders
+	//	Add support for adding shadow map to regular shaders
+}
+
 bool Window::render()
 {
 	if (window == NULL)
 		return false;
 	
 	glfwMakeContextCurrent(window);
+
+	if (dir_light_shadows)
+	{
+		renderDirLightShadowMap();
+	}
 	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

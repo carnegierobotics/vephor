@@ -29,26 +29,27 @@ public:
 		if (!p_colors.empty())
 			colors = MatXMap(reinterpret_cast<const float*>(p_colors.data()), 4, p_colors.size());
 	}
-	void setColor(const Color& p_color){default_color = p_color.getRGBA();}
-	void setLineStrip(bool p_is_strip){is_strip = p_is_strip;}
-	void setAlpha(bool p_is_alpha){is_alpha = p_is_alpha;}
+	void setColor(const Color& p_color){default_color_rgba = p_color.getRGBA();}
+	void setLineStrip(bool p_is_strip){strip = p_is_strip;}
+	void setAlpha(bool p_is_alpha){alpha = p_is_alpha;}
 	json serialize(vector<vector<char>>* bufs)
 	{
-		json data = {
-            {"type", "lines"},
-			{"default_color_rgba", toJson(default_color)},
-			{"strip", is_strip},
-			{"alpha", is_alpha},
+		json json_data = {
+            {"type", "lines"}
         };
+
+		VEPHOR_SERIALIZE_IF_STANDARD(default_color_rgba);
+		VEPHOR_SERIALIZE_IF_STANDARD(strip);
+		VEPHOR_SERIALIZE_IF_STANDARD(alpha);
 		
 		//{"verts", toJson(verts)},
 		if (bufs)
 		{
-			data["verts"] = produceVertDataRaw(verts, bufs);
+			json_data["verts"] = produceVertDataRaw(verts, bufs);
 		}
 		else
 		{
-			data["verts"] = produceVertDataBase64(verts);
+			json_data["verts"] = produceVertDataBase64(verts);
 		}
 
 		if (colors.rows() > 0)
@@ -56,22 +57,28 @@ public:
 			//{"colors", toJson(colors)},
 			if (bufs)
 			{
-				data["colors"] = produceVertDataRaw(colors, bufs);
+				json_data["colors"] = produceVertDataRaw(colors, bufs);
 			}
 			else
 			{
-				data["colors"] = produceVertDataBase64(colors);
+				json_data["colors"] = produceVertDataBase64(colors);
 			}
 		}
 
-		return data;
+		return json_data;
 	}
 private:
 	MatX verts;
 	MatX colors;
-	Vec4 default_color = Vec4(1,1,1,1);
-	bool is_strip = true;
-	bool is_alpha = true;
+
+	inline const static Vec4 default_color_rgba_default = Vec4(1,1,1,1);
+	Vec4 default_color_rgba = default_color_rgba_default;
+
+	inline const static bool strip_default = true;
+	bool strip = strip_default;
+
+	inline const static bool alpha_default = true;
+	bool alpha = alpha_default;
 };
 
 }

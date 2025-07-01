@@ -19,21 +19,27 @@ namespace vephor
 class Cube
 {
 public:
-    Cube(float p_rad=1.0f)
+    Cube(float p_rad=rad_default)
 	: rad(p_rad)
 	{}
-	void setColor(const Color& p_color){color = p_color.getRGB();}
+	void setColor(const Color& p_color){color_rgb = p_color.getRGB();}
 	json serialize(vector<vector<char>>*)
 	{	
-		return {
-            {"type", "cube"},
-			{"rad", rad},
-			{"color_rgb", toJson(color)}
+		json json_data = {
+            {"type", "cube"}
         };
+
+		VEPHOR_SERIALIZE_IF_STANDARD(rad);
+		VEPHOR_SERIALIZE_IF_STANDARD(color_rgb);
+
+		return json_data;
 	}
 private:
+	inline const static float rad_default = 1.0f;
 	float rad;
-	Vec3 color = Vec3(1,1,1);
+
+	inline const static Vec3 color_rgb_default = Vec3(1,1,1);
+	Vec3 color_rgb = color_rgb_default;
 };
 
 }

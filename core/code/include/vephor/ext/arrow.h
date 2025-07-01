@@ -19,31 +19,40 @@ namespace vephor
 class Arrow
 {
 public:
-    Arrow(float p_length = 1.0f, float p_rad = 1.0f, int p_slices = 16)
+    Arrow(float p_length = 1.0f, float p_rad = rad_default, int p_slices = slices_default)
 	: start(0,0,-p_length/2), end(0,0,p_length/2), rad(p_rad), slices(p_slices)
 	{}
-	Arrow(const Vec3& p_start, const Vec3& p_end, float p_rad = 1.0f, int p_slices = 16)
+	Arrow(const Vec3& p_start, const Vec3& p_end, float p_rad = rad_default, int p_slices = slices_default)
 	: start(p_start), end(p_end), rad(p_rad), slices(p_slices)
 	{}
-    void setColor(const Vec3 &p_color) { color << p_color, 1.0F; }
-    void setColor(const Color &p_color) { color = p_color.getRGBA(); }
+    void setColor(const Vec3 &p_color) { color_rgba << p_color, 1.0F; }
+    void setColor(const Color &p_color) { color_rgba = p_color.getRGBA(); }
 	json serialize(vector<vector<char>>*)
 	{
-		return {
+		json json_data = {
 			{"type", "arrow"},
 			{"start", toJson(start)},
-			{"end", toJson(end)},
-			{"rad", rad},
-			{"slices", slices},
-			{"color_rgba", toJson(color)}
+			{"end", toJson(end)}
 		};
+
+		VEPHOR_SERIALIZE_IF_STANDARD(rad);
+		VEPHOR_SERIALIZE_IF_STANDARD(slices);
+		VEPHOR_SERIALIZE_IF_STANDARD(color_rgba);
+
+		return json_data;
 	}
 private:
 	Vec3 start;
 	Vec3 end;
+
+	inline const static float rad_default = 1.0f;
 	float rad;
-	float slices;
-	Vec4 color{1.0F, 1.0F, 1.0F, 1.0F};
+
+	inline const static int slices_default = 16;
+	int slices;
+
+	inline const static Vec4 color_rgba_default = Vec4(1,1,1,1);
+	Vec4 color_rgba = color_rgba_default;
 };
 
 }

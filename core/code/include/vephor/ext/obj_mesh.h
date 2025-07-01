@@ -24,7 +24,7 @@ public:
 	: path(p_path)
 	{
 	}
-	void setColor(const Vec3& p_color){color = p_color;}
+	void setColor(const Vec3& p_color){color_rgb = p_color;}
 	json serialize(vector<vector<char>>*) const
 	{
 		string temp_dir = getTempDir();
@@ -80,15 +80,20 @@ public:
 			fs::copy(path, final_path);
 		}
 
-		return {
+		json json_data = {
             {"type", "obj_mesh"},
-            {"path", "scene_assets/"+fs::path(path).filename().string()},
-			{"color_rgb", toJson(color)}
+            {"path", "scene_assets/"+fs::path(path).filename().string()}
         };
+
+		VEPHOR_SERIALIZE_IF_STANDARD(color_rgb);
+
+		return json_data;
 	}
 private:
 	string path;
-	Vec3 color = Vec3(1,1,1);
+
+	inline const static Vec3 color_rgb_default = Vec3(1,1,1);
+	Vec3 color_rgb = color_rgb_default;
 };
 
 }

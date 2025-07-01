@@ -30,8 +30,8 @@ public:
 			colors = MatXMap(reinterpret_cast<const float*>(p_colors.data()), 4, p_colors.size());
 	}
 	void setSize(float p_size){size = p_size;}
-	void setColor(const Color& p_color){default_color = p_color.getRGBA();}
-	void setTexture(const string& p_tex, bool p_filter_nearest = false)
+	void setColor(const Color& p_color){default_color_rgba = p_color.getRGBA();}
+	void setTexture(const string& p_tex, bool p_filter_nearest = nearest_default)
 	{
 		string temp_dir = getTempDir();
 		
@@ -49,7 +49,7 @@ public:
 			fs::copy(p_tex, final_path);
 		
 		tex = "scene_assets/"+fs::path(p_tex).filename().string();
-		filter_nearest = p_filter_nearest;
+		nearest = p_filter_nearest;
 	}
 	void setScreenSpaceMode(bool p_ss_mode)
 	{
@@ -57,23 +57,26 @@ public:
 	}
 	json serialize(vector<vector<char>>* bufs)
 	{	
-		json data = {
-			{"type", "particle"},
-			{"tex", tex},
-			{"tex_filter_nearest", filter_nearest},
-			{"default_color_rgb", toJson(default_color)},
-			{"size", size},
-			{"ss_mode", ss_mode}
+		json json_data = {
+			{"type", "particle"}
 		};
-			
-		//{"verts", toJson(verts)},
+
+		if (!tex.empty())
+		{
+			json_data["tex"] = tex;
+			VEPHOR_SERIALIZE_IF_STANDARD(nearest);
+		}
+		VEPHOR_SERIALIZE_IF_STANDARD(default_color_rgba);
+		VEPHOR_SERIALIZE_IF_STANDARD(size);
+		VEPHOR_SERIALIZE_IF_STANDARD(ss_mode);
+		
 		if (bufs)
 		{
-			data["verts"] = produceVertDataRaw(verts, bufs);
+			json_data["verts"] = produceVertDataRaw(verts, bufs);
 		}
 		else
 		{
-			data["verts"] = produceVertDataBase64(verts);
+			json_data["verts"] = produceVertDataBase64(verts);
 		}
 
 		if (colors.rows() > 0)
@@ -81,24 +84,32 @@ public:
 			//{"colors", toJson(colors)},
 			if (bufs)
 			{
-				data["colors"] = produceVertDataRaw(colors, bufs);
+				json_data["colors"] = produceVertDataRaw(colors, bufs);
 			}
 			else
 			{
-				data["colors"] = produceVertDataBase64(colors);
+				json_data["colors"] = produceVertDataBase64(colors);
 			}
 		}
 
-		return data;
+		return json_data;
 	}
 private:
 	MatX verts;
 	MatX colors;
 	string tex;
-	bool filter_nearest = false;
-	Vec4 default_color = Vec4(1,1,1,1);
-	float size = 0.03f;
-	bool ss_mode = false;
+
+	inline const static bool nearest_default = false;
+	bool nearest = nearest_default;
+
+	inline const static Vec4 default_color_rgba_default = Vec4(1,1,1,1);
+	Vec4 default_color_rgba = default_color_rgba_default;
+
+	inline const static float size_default = 0.03f;
+	float size = size_default;
+
+	inline const static bool ss_mode_default = false;
+	bool ss_mode = ss_mode_default;
 };
 
 }

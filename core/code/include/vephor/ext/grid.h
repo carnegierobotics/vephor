@@ -18,27 +18,42 @@ namespace vephor
 class Grid
 {
 public:
-    Grid(float p_rad, const Vec3& p_normal = Vec3(0,0,1), const Vec3& p_right = Vec3(1,0,0), float p_cell_size = 1.0f)
+    Grid(float p_rad = rad_default, 
+		const Vec3& p_normal = normal_default, 
+		const Vec3& p_right = right_default, 
+		float p_cell_size = cell_size_default)
 	: rad(p_rad), cell_size(p_cell_size), normal(p_normal), right(p_right)
 	{}
-	void setColor(const Vec3& p_color){color = p_color;}
+	void setColor(const Vec3& p_color){color_rgb = p_color;}
 	json serialize(vector<vector<char>>*)
 	{
-		return {
-            {"type", "grid"},
-			{"rad", rad},
-			{"cell_size", cell_size},
-			{"normal", toJson(normal)},
-			{"right", toJson(right)},
-			{"color_rgb", toJson(color)}
+		json json_data = {
+            {"type", "grid"}
 		};
+
+		VEPHOR_SERIALIZE_IF_STANDARD(rad);
+		VEPHOR_SERIALIZE_IF_STANDARD(cell_size);
+		VEPHOR_SERIALIZE_IF_STANDARD(normal);
+		VEPHOR_SERIALIZE_IF_STANDARD(right);
+		VEPHOR_SERIALIZE_IF_STANDARD(color_rgb);
+
+		return json_data;
 	}
 private:
+	inline const static float rad_default = 10.0f;
 	float rad;
+
+	inline const static float cell_size_default = 1.0f;
 	float cell_size;
+
+	inline const static Vec3 normal_default = Vec3(0,0,1);
 	Vec3 normal;
+
+	inline const static Vec3 right_default = Vec3(1,0,0);
 	Vec3 right;
-	Vec3 color = Vec3(1,1,1);
+
+	inline const static Vec3 color_rgb_default = Vec3(1,1,1);
+	Vec3 color_rgb = Vec3(1,1,1);
 };
 
 }

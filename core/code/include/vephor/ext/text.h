@@ -91,6 +91,7 @@ public:
 	}
 private:
 	string text;
+	
 	Vec2 anchor = Vec2::Zero();
 	Vec3 color = Vec3(1,1,1);
 	bool billboard = true;

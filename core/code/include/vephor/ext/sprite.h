@@ -36,7 +36,7 @@ public:
 
 		tex_data.filter_nearest = p_filter_nearest;
 	}
-	void setColor(const Color& p_color){color = p_color.getRGB();}
+	void setColor(const Color& p_color){color_rgb = p_color.getRGB();}
 	void setFlip(bool p_x_flip, bool p_y_flip)
 	{
 		x_flip = p_x_flip;
@@ -54,27 +54,44 @@ public:
 	}
 	json serialize(vector<vector<char>>* bufs)
 	{
-		json data = {
-            {"type", "sprite"},
-			{"tex", produceTextureData(tex_data, bufs)},
-			{"normal_tex", produceTextureData(normal_tex_data, bufs)},
-			{"x_flip", x_flip},
-			{"y_flip", y_flip},
-			{"color_rgb", toJson(color)},
-			{"diffuse", diffuse_strength},
-			{"ambient", ambient_strength},
+		json json_data = {
+            {"type", "sprite"}
         };
+
+		json json_tex_data = produceTextureData(tex_data, bufs);
+		if (json_tex_data["type"] != "none")
+			json_data["tex"] = json_tex_data;
+
+		json json_normal_tex_data = produceTextureData(normal_tex_data, bufs);
+		if (json_normal_tex_data["type"] != "none")
+			json_data["normal_tex"] = json_normal_tex_data;
+
+		VEPHOR_SERIALIZE_IF_STANDARD(x_flip);
+		VEPHOR_SERIALIZE_IF_STANDARD(y_flip);
+		VEPHOR_SERIALIZE_IF_STANDARD(color_rgb);
+		VEPHOR_SERIALIZE_IF_STANDARD(diffuse);
+		VEPHOR_SERIALIZE_IF_STANDARD(ambient);
 		
-		return data;
+		return json_data;
 	}
 private:
 	TextureDataRecord tex_data;
 	TextureDataRecord normal_tex_data;
-	bool x_flip = false;
-	bool y_flip = false;
-	Vec3 color = Vec3(1,1,1);
-	float diffuse_strength = 1.0f;
-	float ambient_strength = 1.0f;
+
+	inline const static bool x_flip_default = false;
+	bool x_flip = x_flip_default;
+
+	inline const static bool y_flip_default = false;
+	bool y_flip = y_flip_default;
+
+	inline const static Vec3 color_rgb_default = Vec3(1,1,1);
+	Vec3 color_rgb = color_rgb_default;
+
+	inline const static float diffuse_default = 1.0f;
+	float diffuse = diffuse_default;
+
+	inline const static float ambient_default = 1.0f;
+	float ambient = ambient_default;
 };
 
 }

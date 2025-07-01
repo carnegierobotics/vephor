@@ -667,8 +667,14 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 	{
 		serialization.header = obj;
 		serialization.valid = true;
+
+		float rad = readDefault(obj, "rad", 1.0f);
 		
-		auto draw_obj = make_shared<Sphere>(obj["rad"], obj["slices"], obj["stacks"]);
+		auto draw_obj = make_shared<Sphere>(
+			rad, 
+			readDefault(obj, "slices", 16), 
+			readDefault(obj, "stacks", 16)
+		);
 		draw_obj->setColor(readDefault(obj, "color_rgb", Vec3(1,1,1)));
 		
 		auto world_from_body = readTransformSim3(obj["pose"]);
@@ -677,13 +683,13 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		if (!overlay)
 		{
 			if (readDefault(obj, "bounds", true))
-				bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
+				bound_mgr->addBoundSphere(rad, node->getWorldTransform());
 
 			if(readDefault(obj, "selectable", false))
 			{
 				camera->addSelectionWidget(
 					world_from_body.translation(), 
-					(float)(obj["rad"])*world_from_body.scale,
+					rad*world_from_body.scale,
 					node);
 			}
 		}
@@ -694,9 +700,9 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		serialization.header = obj;
 		serialization.valid = true;
 		
-		float rad = obj["rad"];
-		float height = obj["height"];
-		auto draw_obj = make_shared<Cylinder>(rad, height, obj["slices"]);
+		float rad = readDefault(obj,"rad",1.0);
+		float height = readDefault(obj,"height",1.0);
+		auto draw_obj = make_shared<Cylinder>(rad, height, readDefault(obj,"slices",16));
 		draw_obj->setColor(readDefault(obj, "color_rgb", Vec3(1,1,1)));
 		
 		auto world_from_body = readTransformSim3(obj["pose"]);
@@ -722,9 +728,9 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		serialization.header = obj;
 		serialization.valid = true;
 		
-		float rad = obj["rad"];
-		float height = obj["height"];
-		auto draw_obj = make_shared<Cone>(rad, height, obj["slices"]);
+		float rad = readDefault(obj,"rad",1.0);
+		float height = readDefault(obj,"height",1.0);
+		auto draw_obj = make_shared<Cone>(rad, height, readDefault(obj,"slices",16));
 		draw_obj->setColor(readDefault(obj, "color_rgb", Vec3(1,1,1)));
 		
 		auto world_from_body = readTransformSim3(obj["pose"]);
@@ -750,7 +756,9 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		serialization.header = obj;
 		serialization.valid = true;
 
-		auto draw_obj = make_shared<Cube>(obj["rad"]);
+		float rad = readDefault(obj,"rad",1.0);
+
+		auto draw_obj = make_shared<Cube>(rad);
 		draw_obj->setColor(readDefault(obj, "color_rgb", Vec3(1,1,1)));
 		
 		auto world_from_body = readTransformSim3(obj["pose"]);
@@ -759,13 +767,13 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		if (!overlay)
 		{
 			if (readDefault(obj, "bounds", true))
-				bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
+				bound_mgr->addBoundSphere(rad, node->getWorldTransform());
 
 			if(readDefault(obj, "selectable", false))
 			{
 				camera->addSelectionWidget(
 					world_from_body.translation(), 
-					(float)(obj["rad"])*world_from_body.scale,
+					rad*world_from_body.scale,
 					node);
 			}
 		}
@@ -822,13 +830,13 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		
 		auto start = readVec3(obj["start"]);
 		auto end = readVec3(obj["end"]);
-		float rad = obj["rad"];
+		float rad = readDefault(obj,"rad",1.0f);
 		float dist = (end - start).norm();
 		auto draw_obj = make_shared<Arrow>(
 			start, 
 			end,
 			rad,
-			obj["slices"]
+			readDefault(obj,"slices",16)
 		);
 		draw_obj->setColor(readDefault(obj, "color_rgba", Vec4{1.0F, 1.0F, 1.0F, 1.0F}));
 
@@ -855,8 +863,10 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 	{
 		serialization.header = obj;
 		serialization.valid = true;
+
+		float size = readDefault(obj,"size",1.0f);
 		
-		auto draw_obj = make_shared<Axes>(obj["size"]);
+		auto draw_obj = make_shared<Axes>(size);
 		if (obj.contains("x_rgb") && obj.contains("y_rgb") && obj.contains("z_rgb"))
 		{
 			draw_obj->setColors(
@@ -872,13 +882,13 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		if (!overlay)
 		{
 			if (readDefault(obj, "bounds", true))
-				bound_mgr->addBoundSphere(obj["size"], node->getWorldTransform());
+				bound_mgr->addBoundSphere(size, node->getWorldTransform());
 
 			if(readDefault(obj, "selectable", false))
 			{
 				camera->addSelectionWidget(
 					world_from_body.translation(), 
-					(float)(obj["size"])*world_from_body.scale,
+					size*world_from_body.scale,
 					node);
 			}
 		}
@@ -888,15 +898,20 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 	{
 		serialization.header = obj;
 		serialization.valid = true;
+
+		float rad = readDefault(obj,"rad",1.0f);
 		
-		auto draw_obj = make_shared<Circle>(obj["rad"], obj["thickness"], obj["slices"]);
+		auto draw_obj = make_shared<Circle>(
+			rad, 
+			readDefault(obj,"thickness",1.0f), 
+			readDefault(obj,"slices",16));
 		draw_obj->setColor(readDefault(obj, "color_rgb", Vec3(1,1,1)));
 		
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
 		if (!overlay && readDefault(obj, "bounds", true))
-			bound_mgr->addBoundSphere(obj["rad"], node->getWorldTransform());
+			bound_mgr->addBoundSphere(rad, node->getWorldTransform());
 		return node;
 	}
 	else if (obj["type"] == "grid")
@@ -904,16 +919,16 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		serialization.header = obj;
 		serialization.valid = true;
 		
-		float rad = obj["rad"];
-		Vec3 normal = readVec3(obj["normal"]);
-		Vec3 right = readVec3(obj["right"]);
+		float rad = readDefault(obj,"rad",10.0f);
+		Vec3 normal = readDefault(obj,"normal",Vec3(0,0,1));
+		Vec3 right = readDefault(obj,"right",Vec3(1,0,0));
 		Vec3 forward = normal.cross(right);
 		forward /= forward.norm();
 		auto draw_obj = make_shared<Grid>(
 			rad,
 			normal,
 			right,
-			obj["cell_size"],
+			readDefault(obj,"cell_size",1.0f),
 			readDefault(obj, "color_rgb", Vec3(1,1,1))
 		);
 		
@@ -976,13 +991,13 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		auto draw_obj = make_shared<InstancedPoints>(
 			verts_record.map.transpose(),
 			colors_record.map.transpose(),
-			readDefault(obj, "default_color_rgb", Vec4(1,1,1,1)));
+			readDefault(obj, "default_color_rgba", Vec4(1,1,1,1)));
 		
 		if (obj.contains("tex") && !string(obj["tex"]).empty())
 		{
 			bool filter_nearest = false;
-			if (obj.contains("tex_filter_nearest"))
-				filter_nearest = obj["tex_filter_nearest"];
+			if (obj.contains("nearest"))
+				filter_nearest = obj["nearest"];
 			auto tex = loadTexture(obj["tex"], filter_nearest, assets);
 			draw_obj->setTexture(tex);
 		}
@@ -1008,6 +1023,11 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		float diffuse = readDefault(obj, "diffuse", 1.0f);
 		float ambient = readDefault(obj, "ambient", 1.0f);
 		Vec3 color = readDefault(obj, "color_rgb", Vec3(1,1,1));
+
+		if (!obj.contains("tex"))
+		{
+			throw std::runtime_error("No texture data for sprite.");
+		}
 
 		shared_ptr<Texture> tex = window->getTextureFromJSON(
 			obj["tex"], 

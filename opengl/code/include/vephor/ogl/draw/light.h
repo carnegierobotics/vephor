@@ -74,12 +74,20 @@ public:
     void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
     {
         curr_window = window;
-        curr_window->setDirLight(dir, strength);
+        curr_window->setDirLight(dir, strength, shadows, shadow_map_size);
     }
     void setDir(const Vec3& p_dir)
     {
         dir = p_dir;
-        curr_window->setDirLight(dir, strength);
+        if (curr_window)
+            curr_window->setDirLight(dir, strength, shadows, shadow_map_size);
+    }
+    void enableShadows(int map_size = 512)
+    {
+        shadows = true;
+        shadow_map_size = map_size;
+        if (curr_window)
+            curr_window->setDirLight(dir, strength, shadows, shadow_map_size);
     }
 	void renderOGL(Window* window, const TransformSim3& world_from_body){}
     void onRemoveFromWindow(Window* window){}
@@ -87,6 +95,8 @@ private:
     Window* curr_window = NULL;
     Vec3 dir;
     float strength;
+    bool shadows = false;
+    int shadow_map_size = 512;
 };
 
 }

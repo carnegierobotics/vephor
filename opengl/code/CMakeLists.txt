@@ -167,6 +167,7 @@ else (VEPHOR_BUILD_PYTHON_BINDINGS)
 		physics_height_map
 		physics_solid
 		screenshot_test
+		shadows_test
 		skybox_test
 		sprites
 		thick_lines_test

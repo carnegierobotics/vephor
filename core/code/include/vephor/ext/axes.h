@@ -19,7 +19,7 @@ namespace vephor
 class Axes
 {
 public:
-    Axes(float p_size = 1.0f)
+    Axes(float p_size = size_default)
 	: size(p_size)
 	{}
 	void setColors(
@@ -43,22 +43,25 @@ public:
 	}
 	json serialize(vector<vector<char>>*)
 	{
-		json data = {
-			{"type", "axes"},
-			{"size", size}
+		json json_data = {
+			{"type", "axes"}
 		};
+
+		VEPHOR_SERIALIZE_IF_STANDARD(size);
 
 		if (!colors.empty())
 		{
-			data["x_rgb"] = toJson(colors[0]);
-			data["y_rgb"] = toJson(colors[1]);
-			data["z_rgb"] = toJson(colors[2]);
+			json_data["x_rgb"] = toJson(colors[0]);
+			json_data["y_rgb"] = toJson(colors[1]);
+			json_data["z_rgb"] = toJson(colors[2]);
 		}
 
-		return data;
+		return json_data;
 	}
 private:
+	inline const static float size_default = 1.0f;
 	float size;
+
 	vector<Vec3> colors;
 };
 

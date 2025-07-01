@@ -36,14 +36,6 @@ int main()
     control_info.setStandardWindowCallbacks(window);
 
 
-    string base_asset_dir = getBaseAssetDir()+"/assets";
-    string skybox_dir = base_asset_dir+"/Nalovardo";
-
-    auto cube_tex = window.getCubeTextureFromDir(skybox_dir);
-
-    auto skybox = make_shared<Skybox>(cube_tex);
-    window.add(skybox);
-
 
     for (int i = -250; i <= 250; i += 25)
     for (int j = -250; j <= 250; j += 25) 
@@ -69,6 +61,7 @@ int main()
     Vec3 light_dir(-1,-1,1);
     light_dir /= light_dir.norm();
     auto dir_light = make_shared<DirLight>(light_dir, 0.4f);
+    dir_light->enableShadows();
     window.add(dir_light, Transform3());
 
     auto ambient_light = make_shared<AmbientLight>(Vec3(0.6f,0.6f,0.6f));
