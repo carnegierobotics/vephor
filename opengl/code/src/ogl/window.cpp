@@ -268,7 +268,7 @@ Window::Window(int p_width,
     if (resize_callback == nullptr)
 	{
 		resize_callback = [](Window* this_window, const Vec2i& window_size){
-			Mat4 proj = makePerspectiveProj(45, window_size, 0.1f, 100.0f);
+			Mat4 proj = makePerspectiveProj(45, window_size, this_window->getNearZ(), this_window->getFarZ());
     		this_window->setProjectionMatrix(proj);
 		};
 	}
@@ -948,9 +948,10 @@ shared_ptr<Texture> Window::getTextureFromJSON(const json& data, int base_buf_in
 			serial_bufs->push_back(buf);
 		}
 
-		//std::ofstream fout("/tmp/test.jpg", std::ios::binary);
-		//fout.write(reinterpret_cast<const char*>(buf.data()), buf.size());
-    	//fout.close();
+		/*static int frame = 0;
+		std::ofstream fout("/tmp/test_"+std::to_string(frame)+".jpg", std::ios::binary);
+		fout.write(reinterpret_cast<const char*>(buf.data()), buf.size());
+    	fout.close();*/
 
 		int width, height, numChannels;
 		unsigned char *image_data = stbi_load_from_memory(
@@ -966,9 +967,10 @@ shared_ptr<Texture> Window::getTextureFromJSON(const json& data, int base_buf_in
 
 		/*Image<uint8_t> test_im(width, height, numChannels);
 		test_im.copyFromBuffer(reinterpret_cast<const char*>(image_data), width*height*numChannels);
-		saveImage("/tmp/test_v4.png", test_im);*/
-		
-		auto tex = getTextureFromBuffer(reinterpret_cast<char*>(image_data), data["channels"], readVec2i(data["size"]), filter_nearest);
+		saveImage("/tmp/test_v4_"+std::to_string(frame)+".png", test_im);
+		frame++;*/
+
+		auto tex = getTextureFromBuffer(reinterpret_cast<char*>(image_data), numChannels, Vec2i(width, height), filter_nearest);
 
 		stbi_image_free(image_data);
 

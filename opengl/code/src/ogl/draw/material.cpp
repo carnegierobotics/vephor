@@ -245,19 +245,25 @@ string vertexShaderMain = R"(
     gl_Position = proj_from_model * vec4(curr_pos_in_model, 1);
 )";
 
+string vertexShaderOffsetMain = R"(
+    vec4 center_in_proj = proj_from_model * vec4(in_offset, 1);
+    gl_Position = proj_from_model * vec4(curr_pos_in_model, 1) + center_in_proj;
+)";
+
 string vertexShaderBillboardMain = R"(
     gl_Position = proj_from_camera * vec4(curr_pos_in_model, 1);
+)";
+
+string vertexShaderBillboardOffsetMain = R"(
+    vec4 center_in_proj = proj_from_model * vec4(in_offset, 1);
+    gl_Position.xy = (proj_from_camera * vec4(curr_pos_in_model, 1)).xy + center_in_proj.xy;
+    gl_Position.zw = center_in_proj.zw;
 )";
 
 string vertexShaderScreenSpaceMain = R"(
     vec4 center_in_proj = proj_from_model * vec4(in_offset, 1);
     vec4 ss_offset = vec4(2 * curr_pos_in_model.x / aspect, 2 * curr_pos_in_model.y, 0.0, 0.0) * center_in_proj.w; 
     gl_Position = ss_offset + center_in_proj;
-)";
-
-string vertexShaderOffsetMain = R"(
-    vec4 center_in_proj = proj_from_model * vec4(in_offset, 1);
-    gl_Position += center_in_proj;
 )";
 
 string vertexShaderLightingMain = R"(
@@ -415,16 +421,18 @@ std::string MaterialBuilder::produceVertexShader() const
         shader += vertexShaderScreenSpaceMain;
     else if (billboard)
     {
-        shader += vertexShaderBillboardMain;
+        if (offset)
+            shader += vertexShaderBillboardOffsetMain;
+        else
+            shader += vertexShaderBillboardMain;
+    }
+    else 
+    {
         if (offset)
             shader += vertexShaderOffsetMain;
+        else
+            shader += vertexShaderMain;
     }
-    else if (offset)
-        shader += vertexShaderOffsetMain;
-    else
-        shader += vertexShaderMain;
-
-    
 
     if (tex || normal_map)
         shader += vertexShaderTexMain;
@@ -505,10 +513,6 @@ uniform sampler2D tex_sampler;
 
 string fragmentShaderNormalMapUniforms = R"(
 uniform sampler2D normal_sampler;
-)";
-
-string fragmentShaderLightingUniforms = R"(
-uniform sampler2D cam_from_model;
 )";
 
 string fragmentShaderDirLightUniforms = R"(
@@ -680,9 +684,6 @@ std::string MaterialBuilder::produceFragmentShader() const
 
     if (normal_map)
         shader += fragmentShaderNormalMapUniforms;
-
-    if (normal_map)
-        shader += fragmentShaderLightingUniforms;
 
     if (dir_light)
         shader += fragmentShaderDirLightUniforms;

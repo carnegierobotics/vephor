@@ -87,7 +87,7 @@ int main()
 
     window.setCamFromWorld(makeLookAtTransform(
         Vec3(0,0,-40.0f),
-        Vec3(-10,0,-40.0f),
+        Vec3(-100,0,-40.0f),
         Vec3(0,0,-1)
     ));
 

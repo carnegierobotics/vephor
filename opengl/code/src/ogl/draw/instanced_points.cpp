@@ -121,7 +121,6 @@ void InstancedPoints::generateMaterial()
 		builder.uniform_size = true;
 	builder.billboard = true;
 	builder.screen_space = ss_mode;
-	builder.saveShaders();
 	material = builder.build();
 
 	material->setOpacity(opacity);

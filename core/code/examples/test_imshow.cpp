@@ -28,7 +28,7 @@ int main()
 		Vec2i(4,8),
 		Vec3(1,1,0),
 		Vec3(1,0,1));
-	plt.imshow(*image);
+	plt.imshow(*image, true);
 
 	auto image_2 = generateGradientImage(
 		Vec2i(256,116),
@@ -47,9 +47,9 @@ int main()
 		Vec2i(4,8),
 		Vec4(1,1,0,0),
 		Vec4(1,0,1,1));
-	plt.imshow(*image_4, false, Vec2(408,0));
+	plt.imshow(*image_4, true, Vec2(408,0));
 	
-	saveImage(getTempDir()+"/write_test.png", *image);
+	saveImage(getTempDir()+"/write_test.png", *image_3);
 	
 	{
 		vector<float> x;

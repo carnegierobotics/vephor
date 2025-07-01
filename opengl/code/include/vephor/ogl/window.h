@@ -582,6 +582,23 @@ public:
     {
         return canonical_time;
     }
+
+    void setNearZ(float p_near_z)
+    {
+        near_z = p_near_z;
+    }
+    float getNearZ() const
+    {
+        return near_z;
+    }
+    void setFarZ(float p_far_z)
+    {
+        far_z = p_far_z;
+    }
+    float getFarZ() const
+    {
+        return far_z;
+    }
 private:
     void removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects);
 
@@ -589,6 +606,8 @@ private:
     Vec2i window_size;
     Vec2i window_position; ///< Position of the window's upper-left corner.
     string title;
+    float near_z = 0.1f;
+    float far_z = 1000.0f;
 	Vec2 content_scale = Vec2(1,1);
     GLFWwindow* window = NULL;
     int id;

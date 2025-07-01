@@ -15,13 +15,7 @@ using namespace vephor;
 
 int main()
 {
-    Window window(-1, -1, "basic", [&](Window* this_window, const Vec2i& window_size){
-		v4print "Window 1 resize:", window_size.transpose();
-		Mat4 proj = makePerspectiveProj(45, window_size, 0.1f, 200.0f);
-		this_window->setProjectionMatrix(proj);
-	});
-	Mat4 proj_1 = makePerspectiveProj(45, window.getSize(), 0.1f, 200.0f);
-	window.setProjectionMatrix(proj_1);
+    Window window(-1, -1, "basic");
 
     window.setFrameLock(60.0f);
     window.setClearColor(Vec3(0.1,0.1,0.1));
@@ -69,15 +63,17 @@ int main()
     shared_ptr<Material> normal_only_material;
     {
         MaterialBuilder builder;
-        builder.tex = false;
+        builder.tex = true;
         builder.normal_map = true;
         builder.dir_light = true;
         builder.point_lights = true;
 
         auto normal_image = generateFlatNormalImage(Vec2i(128,128));
+        auto circle_image = generateSimpleImage(Vec2i(128,128), Vec4(1,1,1,1));
 
-        float rad = 50;
+        float rad = 45;
         float rad_spread = 10;
+        float dist_spread = 5;
         for (int x = 0; x < normal_image->getSize()[0]; x++)
         {
             for (int y = 0; y < normal_image->getSize()[1]; y++)
@@ -92,12 +88,24 @@ int main()
                     float s_ang = sin(angle);
                     (*normal_image)(x,y) = Vec3(s_ang*dir[0], s_ang*dir[1], cos(angle));
                 }
+                if (dist > rad + rad_spread)
+                {
+                    float peru = (dist - rad - rad_spread) / dist_spread;
+                    (*circle_image)(x,y) = Vec4(255,255,255,(1-peru)*255).cast<uint8_t>();
+                }
+                if (dist > rad + rad_spread + dist_spread)
+                {
+                    (*circle_image)(x,y) = Vec4(255,255,255,0).cast<uint8_t>();
+                }
             }
         }
 
+        builder.saveShaders();
         normal_only_material = builder.build();
         auto normal_map = convertNormalImageToNormalMap(*normal_image);
         normal_only_material->setNormalMap(window.getTextureFromImage(*normal_map, false));
+
+        normal_only_material->setTexture(window.getTextureFromImage(*circle_image, false));
     }
 
     shared_ptr<Material> time_varying_material;
@@ -158,7 +166,6 @@ int main()
 		Vec3(0.0,0.0,0.0),
 		1.0f
 	));
-
 
 
     {

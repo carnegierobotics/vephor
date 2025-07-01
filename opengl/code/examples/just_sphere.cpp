@@ -36,6 +36,7 @@ int main()
 
 
     auto mesh = make_shared<Sphere>();
+    mesh->setColor(Vec3(0,1,0));
     
     auto mesh_render = window.add(mesh, TransformSim3(
 		Vec3(0.0,0.0,0.0),
