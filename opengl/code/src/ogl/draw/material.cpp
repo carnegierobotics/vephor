@@ -17,23 +17,28 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
 {
     glUseProgram(program_id);
 
-    Mat4 world_from_body_mat = world_from_body.matrix();
-	Mat4 MV = window->getCamFromWorldMatrix() * world_from_body_mat;
-    Mat4 P = window->getProjectionMatrix();
-    Mat4 MVP = P * MV;
-
-    glUniformMatrix4fv(mvp_matrix_id, 1, GL_FALSE, MVP.data());
-
-    if (proj_from_camera_id != std::numeric_limits<GLuint>::max())
+    Mat4 M = world_from_body.matrix();
+    Mat4 V = window->getCamFromWorldMatrix();
+    if (infinite_depth)
     {
-        glUniformMatrix4fv(proj_from_camera_id, 1, GL_FALSE, P.data());
+        V.block(0,3,3,1).setZero();
+    }
+	Mat4 P = window->getProjectionMatrix();
+    Mat4 VM = V * M;
+    Mat4 PVM = P * VM;
+
+    glUniformMatrix4fv(proj_from_model_matrix_id, 1, GL_FALSE, PVM.data());
+
+    if (proj_from_camera_matrix_id != std::numeric_limits<GLuint>::max())
+    {
+        glUniformMatrix4fv(proj_from_camera_matrix_id, 1, GL_FALSE, P.data());
     }
 
-    if (model_matrix_id != std::numeric_limits<GLuint>::max())
+    if (world_from_model_matrix_id != std::numeric_limits<GLuint>::max())
     {
-        glUniformMatrix4fv(model_matrix_id, 1, GL_FALSE, world_from_body_mat.data());
-        glUniformMatrix4fv(view_matrix_id, 1, GL_FALSE, window->getCamFromWorldMatrix().data());
-        glUniformMatrix4fv(modelview_matrix_id, 1, GL_FALSE, MV.data());
+        glUniformMatrix4fv(world_from_model_matrix_id, 1, GL_FALSE, M.data());
+        glUniformMatrix4fv(camera_from_world_matrix_id, 1, GL_FALSE, V.data());
+        glUniformMatrix4fv(camera_from_model_matrix_id, 1, GL_FALSE, VM.data());
     }
 
     if (diffuse_id != std::numeric_limits<GLuint>::max())
@@ -70,6 +75,18 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, normal_map->getID());
         glUniform1i(normal_sampler_id, 1);
+    }
+
+    if (cube_tex_sampler_id != std::numeric_limits<GLuint>::max())
+    {
+        if (!cube_tex)
+        {
+            throw std::runtime_error("No cube texture found in material.");
+        }
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cube_tex->getID());
+        glUniform1i(cube_tex_sampler_id, 0);
     }
 
     if (light_dir_id != std::numeric_limits<GLuint>::max())
@@ -173,6 +190,10 @@ out vec3 vo_tangent_in_camera;
 out vec3 vo_bitangent_in_camera;
 )";
 
+string vertexShaderCubeTexOut = R"(
+out vec3 vo_cube_vec;
+)";
+
 string vertexShaderDirLightOut = R"(
 out vec3 vo_dir_light_dir_in_camera;
 )";
@@ -266,6 +287,11 @@ string vertexShaderScreenSpaceMain = R"(
     gl_Position = ss_offset + center_in_proj;
 )";
 
+string vertexShaderInfiniteDepthMain = R"(
+    vec4 id_pos = proj_from_model * vec4(curr_pos_in_model, 1);
+    gl_Position = id_pos.xyww;
+)";
+
 string vertexShaderLightingMain = R"(
     vec3 pos_in_world = (world_from_model * vec4(curr_pos_in_model,1)).xyz;
     
@@ -281,6 +307,10 @@ string vertexShaderLightingMain = R"(
 
 string vertexShaderTexMain = R"(
     vo_uv = in_uv;
+)";
+
+string vertexShaderCubeTexMain = R"(
+    vo_cube_vec = curr_pos_in_model;
 )";
 
 string vertexShaderNormalMapMain = R"(
@@ -358,6 +388,9 @@ std::string MaterialBuilder::produceVertexShader() const
     if (normal_map)
         shader += vertexShaderNormalMapOut;
 
+    if (cube_tex)
+        shader += vertexShaderCubeTexOut;
+
     if (dir_light)
         shader += vertexShaderDirLightOut;
 
@@ -417,7 +450,9 @@ std::string MaterialBuilder::produceVertexShader() const
         }
     }
 
-    if (screen_space)
+    if (infinite_depth)
+        shader += vertexShaderInfiniteDepthMain;
+    else if (screen_space)
         shader += vertexShaderScreenSpaceMain;
     else if (billboard)
     {
@@ -436,6 +471,9 @@ std::string MaterialBuilder::produceVertexShader() const
 
     if (tex || normal_map)
         shader += vertexShaderTexMain;
+
+    if (cube_tex)
+        shader += vertexShaderCubeTexMain;
 
     if (normal_map)
         shader += vertexShaderNormalMapMain;
@@ -467,6 +505,10 @@ string fragmentShaderPointLightHeader = R"(
 
 string fragmentShaderTexIn = R"(
 in vec2 vo_uv;
+)";
+
+string fragmentShaderCubeTexIn = R"(
+in vec3 vo_cube_vec;
 )";
 
 string fragmentShaderLightingIn = R"(
@@ -515,6 +557,10 @@ string fragmentShaderNormalMapUniforms = R"(
 uniform sampler2D normal_sampler;
 )";
 
+string fragmentShaderCubeTexUniforms = R"(
+uniform samplerCube cube_tex_sampler;
+)";
+
 string fragmentShaderDirLightUniforms = R"(
 uniform float dir_light_strength = 0.0f;
 )";
@@ -532,6 +578,10 @@ void main()
 
 string fragmentShaderTexMain = R"(
     vec4 tex_rgba = texture(tex_sampler, vo_uv).rgba;
+)";
+
+string fragmentShaderCubeTexMain = R"(
+    vec4 tex_rgba = texture(cube_tex_sampler, vo_cube_vec);
 )";
 
 string fragmentShaderNoTexMain = R"(
@@ -657,6 +707,9 @@ std::string MaterialBuilder::produceFragmentShader() const
     if (tex || normal_map)
         shader += fragmentShaderTexIn;
 
+    if (cube_tex)
+        shader += fragmentShaderCubeTexIn;
+
     if (normal_map)
         shader += fragmentShaderNormalMapIn;
 
@@ -685,6 +738,9 @@ std::string MaterialBuilder::produceFragmentShader() const
     if (normal_map)
         shader += fragmentShaderNormalMapUniforms;
 
+    if (cube_tex)
+        shader += fragmentShaderCubeTexUniforms;
+
     if (dir_light)
         shader += fragmentShaderDirLightUniforms;
 
@@ -693,7 +749,9 @@ std::string MaterialBuilder::produceFragmentShader() const
 
     shader += fragmentShaderMain;
 
-    if (tex)
+    if (cube_tex)
+        shader += fragmentShaderCubeTexMain;
+    else if (tex)
         shader += fragmentShaderTexMain;
     else
         shader += fragmentShaderNoTexMain;
@@ -765,6 +823,8 @@ std::string MaterialBuilder::getTag() const
         tag += "_tex";
     if (normal_map)
         tag += "_nm";
+    if (cube_tex)
+        tag += "_ctex";
     if (dir_light)
         tag += "_dl";
     if (point_lights)
@@ -785,6 +845,8 @@ std::string MaterialBuilder::getTag() const
         tag += "_b";
     if (screen_space)
         tag += "_ss";
+    if (infinite_depth)
+        tag += "_id";
     for (const auto& sections : extra_sections)
     {
         for (const auto& section : sections.second)
@@ -836,7 +898,7 @@ std::shared_ptr<Material> MaterialBuilder::build() const
         material->program_id = buildProgram(tag, produceVertexShader(), produceFragmentShader());
 
     material->pos_attr_loc = glGetAttribLocation(material->program_id, "in_pos_in_model");
-    material->mvp_matrix_id = glGetUniformLocation(material->program_id, "proj_from_model");
+    material->proj_from_model_matrix_id = glGetUniformLocation(material->program_id, "proj_from_model");
     
 
     if (tex || normal_map)
@@ -857,9 +919,9 @@ std::shared_ptr<Material> MaterialBuilder::build() const
     {
         material->norm_attr_loc = glGetAttribLocation(material->program_id, "in_normal_in_model");
 
-        material->view_matrix_id = glGetUniformLocation(material->program_id, "cam_from_world");
-        material->model_matrix_id = glGetUniformLocation(material->program_id, "world_from_model");
-        material->modelview_matrix_id = glGetUniformLocation(material->program_id, "cam_from_model");
+        material->camera_from_world_matrix_id = glGetUniformLocation(material->program_id, "cam_from_world");
+        material->world_from_model_matrix_id = glGetUniformLocation(material->program_id, "world_from_model");
+        material->camera_from_model_matrix_id = glGetUniformLocation(material->program_id, "cam_from_model");
     }
 
     if (offset)
@@ -889,7 +951,7 @@ std::shared_ptr<Material> MaterialBuilder::build() const
 
     if (billboard)
     {
-        material->proj_from_camera_id = glGetUniformLocation(material->program_id, "proj_from_camera");
+        material->proj_from_camera_matrix_id = glGetUniformLocation(material->program_id, "proj_from_camera");
     }
 
     if (dir_light)
@@ -922,8 +984,13 @@ std::shared_ptr<Material> MaterialBuilder::build() const
         material->normal_sampler_id  = glGetUniformLocation(material->program_id, "normal_sampler");
     }
 
+    if (cube_tex)
+        material->cube_tex_sampler_id  = glGetUniformLocation(material->program_id, "cube_tex_sampler");
+
     if (time)
         material->time_id = glGetUniformLocation(material->program_id, "time");
+
+    material->infinite_depth = infinite_depth;
 
     return material;
 }

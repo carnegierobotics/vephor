@@ -909,6 +909,39 @@ shared_ptr<Texture> Window::getTextureFromImage(const Image<uint8_t>& img, bool 
 	return getTextureFromBuffer(buf_data, img.getChannels(), img.getSize(), nearest);
 }
 
+shared_ptr<CubeTexture> Window::getCubeTextureFromImages(const vector<string>& faces, bool nearest)
+{
+	GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        int width, height, channels;
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &channels, 0);
+        if (data)
+        {
+            glTexImage2D(
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
+                GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+            );
+            stbi_image_free(data);
+        }
+        else {
+            std::cerr << "Failed to load: " << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return make_shared<CubeTexture>(textureID);
+}
+
 shared_ptr<Texture> Window::getTextureFromJSON(const json& data, int base_buf_index, const vector<vector<char>>& bufs, TexturePathResolveCallback path_callback, json* serial_header, vector<vector<char>>* serial_bufs)
 {
 	bool filter_nearest = false;

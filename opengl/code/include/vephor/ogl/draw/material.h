@@ -32,6 +32,8 @@ public:
     shared_ptr<Texture> getTexture() const {return tex;}
 	void setNormalMap(const shared_ptr<Texture>& p_normal_map){normal_map = p_normal_map;}
     shared_ptr<Texture> getNormalMap() const {return normal_map;}
+    void setCubeTexture(const shared_ptr<CubeTexture>& p_cube_tex){cube_tex = p_cube_tex;}
+    shared_ptr<CubeTexture> getCubeTexture() const {return cube_tex;}
 
 	void setDiffuse(const Color& p_color){diffuse = p_color.getRGB();}
 	Color getDiffuse() const {return diffuse;}
@@ -76,6 +78,7 @@ private:
 
     shared_ptr<Texture> tex;
 	shared_ptr<Texture> normal_map;
+    shared_ptr<CubeTexture> cube_tex;
 
     GLuint pos_attr_loc = std::numeric_limits<GLuint>::max();
     GLuint uv_attr_loc = std::numeric_limits<GLuint>::max();
@@ -86,11 +89,11 @@ private:
     GLuint color_attr_loc = std::numeric_limits<GLuint>::max();
     GLuint size_attr_loc = std::numeric_limits<GLuint>::max();
     
-    GLuint mvp_matrix_id = std::numeric_limits<GLuint>::max();
-    GLuint proj_from_camera_id = std::numeric_limits<GLuint>::max();
-    GLuint view_matrix_id = std::numeric_limits<GLuint>::max();
-    GLuint model_matrix_id = std::numeric_limits<GLuint>::max();
-    GLuint modelview_matrix_id = std::numeric_limits<GLuint>::max();
+    GLuint proj_from_model_matrix_id = std::numeric_limits<GLuint>::max();
+    GLuint proj_from_camera_matrix_id = std::numeric_limits<GLuint>::max();
+    GLuint camera_from_world_matrix_id = std::numeric_limits<GLuint>::max();
+    GLuint world_from_model_matrix_id = std::numeric_limits<GLuint>::max();
+    GLuint camera_from_model_matrix_id = std::numeric_limits<GLuint>::max();
     GLuint diffuse_id = std::numeric_limits<GLuint>::max();
     GLuint ambient_id = std::numeric_limits<GLuint>::max();
     GLuint emissive_id = std::numeric_limits<GLuint>::max();
@@ -104,9 +107,12 @@ private:
     GLuint opacity_id = std::numeric_limits<GLuint>::max();
     GLuint tex_sampler_id = std::numeric_limits<GLuint>::max();
     GLuint normal_sampler_id = std::numeric_limits<GLuint>::max();
+    GLuint cube_tex_sampler_id = std::numeric_limits<GLuint>::max();
     GLuint time_id = std::numeric_limits<GLuint>::max();
     GLuint size_id = std::numeric_limits<GLuint>::max();
     GLuint aspect_id = std::numeric_limits<GLuint>::max();
+
+    bool infinite_depth = false;
 };
 
 class MaterialBuilder
@@ -114,6 +120,7 @@ class MaterialBuilder
 public:
     bool tex = false;
     bool normal_map = false;
+    bool cube_tex = false;
     bool dir_light = false;
     bool point_lights = false;
     bool time = false;
@@ -124,6 +131,7 @@ public:
     bool instanced_size = false;
     bool billboard = false;
     bool screen_space = false;
+    bool infinite_depth = false;
 
     unordered_map<string, vector<string>> extra_sections;
 

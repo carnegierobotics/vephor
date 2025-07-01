@@ -16,6 +16,7 @@
 
 namespace vephor
 {
+
 class Texture
 {
 public:
@@ -52,6 +53,22 @@ public:
 private:
     GLuint id;
 	Vec2i size_wh;
+};
+
+class CubeTexture
+{
+public:
+    CubeTexture(GLuint p_id)
+    : id(p_id)
+    {
+    }
+    ~CubeTexture()
+    {
+        glDeleteTextures(1, &id);
+    }
+    GLuint getID() const {return id;}
+private:
+    GLuint id;
 };
 
 }

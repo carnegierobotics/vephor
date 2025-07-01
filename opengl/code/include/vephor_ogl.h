@@ -17,6 +17,7 @@
 #include "vephor/ogl/draw/thick_lines.h"
 #include "vephor/ogl/draw/sprite.h"
 #include "vephor/ogl/draw/background.h"
+#include "vephor/ogl/draw/skybox.h"
 #include "vephor/ogl/draw/particle.h"
 #include "vephor/ogl/draw/points.h"
 #include "vephor/ogl/draw/instanced_points.h"
