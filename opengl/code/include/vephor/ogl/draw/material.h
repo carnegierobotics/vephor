@@ -102,8 +102,10 @@ private:
     GLuint num_point_lights_id = std::numeric_limits<GLuint>::max();
     GLuint light_point_pos_id[MAX_NUM_POINT_LIGHTS];
     GLuint light_point_strength_id[MAX_NUM_POINT_LIGHTS];
-    GLuint light_dir_id = std::numeric_limits<GLuint>::max();
-    GLuint light_dir_strength_id = std::numeric_limits<GLuint>::max();
+    GLuint dir_light_dir_id = std::numeric_limits<GLuint>::max();
+    GLuint dir_light_strength_id = std::numeric_limits<GLuint>::max();
+    GLuint dir_light_proj_from_world_id = std::numeric_limits<GLuint>::max();
+    GLuint dir_light_shadow_map_sampler_id = std::numeric_limits<GLuint>::max();
     GLuint opacity_id = std::numeric_limits<GLuint>::max();
     GLuint tex_sampler_id = std::numeric_limits<GLuint>::max();
     GLuint normal_sampler_id = std::numeric_limits<GLuint>::max();
@@ -115,6 +117,8 @@ private:
 
     bool infinite_depth = false;
 };
+
+using MaterialSet = unordered_map<string, shared_ptr<Material>>;
 
 class MaterialBuilder
 {
@@ -134,6 +138,8 @@ public:
     bool screen_space = false;
     bool infinite_depth = false;
     bool screen_space_tex_coords = false;
+    bool no_color = false;
+    bool dir_light_shadows = false;
 
     unordered_map<string, vector<string>> extra_sections;
 
@@ -142,6 +148,15 @@ public:
     std::string getTag() const;
     void saveShaders() const;
     std::shared_ptr<Material> build() const;
+    MaterialSet buildSet() const;
+
+    static void enableShadows()
+    {
+        produce_shadow_shaders = false;
+    }
+
+private:
+    inline static bool produce_shadow_shaders = false;
 };
 
 }

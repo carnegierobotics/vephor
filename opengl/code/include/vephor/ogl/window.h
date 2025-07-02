@@ -16,6 +16,7 @@ namespace vephor
 {
 
 class Window;
+class Material;
 
 using MouseActionCallback = std::function<void()>;
 using ScrollCallback = std::function<void(float)>;
@@ -373,14 +374,16 @@ public:
         }
 
         glGenFramebuffers(1, &dir_light_shadow_map_fbo);
+
+        GLuint dir_light_shadow_map_id;
         
         if (shadow_map_size != dir_light_shadow_map_size)
         {
             if (dir_light_shadow_map_size > 0)
-                glDeleteTextures(1, &dir_light_shadow_map);
+                glDeleteTextures(1, &dir_light_shadow_map_id);
 
-            glGenTextures(1, &dir_light_shadow_map);
-            glBindTexture(GL_TEXTURE_2D, dir_light_shadow_map);
+            glGenTextures(1, &dir_light_shadow_map_id);
+            glBindTexture(GL_TEXTURE_2D, dir_light_shadow_map_id);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 
                         shadow_map_size, shadow_map_size, 0, 
                         GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
@@ -388,7 +391,7 @@ public:
             dir_light_shadow_map_size = shadow_map_size;
         }
 
-        glBindTexture(GL_TEXTURE_2D, dir_light_shadow_map);
+        glBindTexture(GL_TEXTURE_2D, dir_light_shadow_map_id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -397,10 +400,12 @@ public:
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
 
         glBindFramebuffer(GL_FRAMEBUFFER, dir_light_shadow_map_fbo);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, dir_light_shadow_map, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, dir_light_shadow_map_id, 0);
         glDrawBuffer(GL_NONE); // no color buffer is drawn to
         glReadBuffer(GL_NONE);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        dir_light_shadow_map = make_shared<Texture>(dir_light_shadow_map_id, Vec2i(dir_light_shadow_map_size,dir_light_shadow_map_size));
     }
     const LightInfo& getDirLight() const
     {
@@ -471,12 +476,16 @@ public:
     }
     const Mat4& getProjectionMatrix() const
     {
+        if (shadow_phase)
+            return dir_light_proj_matrix;
         if (overlay_phase)
             return overlay_proj_matrix;
         return proj_matrix;
     }
     const Mat4& getCamFromWorldMatrix() const
     {
+        if (shadow_phase)
+            return dir_light_cam_from_world_matrix;
         if (reflection_phase)
             return reflect_cam_from_world_matrix;
         if (overlay_phase)
@@ -646,14 +655,26 @@ public:
     }
 
     GLuint getActiveReflectiveTexture() const {return reflect_texture;}
-    bool reflectionPhase() const {return reflection_phase;}
+    bool isReflectionPhase() const {return reflection_phase;}
     shared_ptr<Texture> addReflectiveSurface(const Vec4& plane);
+    shared_ptr<Material> getForcedMaterial() const {return forced_material;}
+
+    bool getDirLightShadowInfo(Mat4& out_dir_light_proj_from_world, shared_ptr<Texture>& out_dir_light_shadow_map)
+    {
+        if (!dir_light_shadows)
+            return false;
+        
+        out_dir_light_proj_from_world = dir_light_proj_matrix * dir_light_cam_from_world_matrix;
+        out_dir_light_shadow_map = dir_light_shadow_map;
+        return true;
+    }
 private:
     void removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects);
     void renderDirLightShadowMap();
     void renderScene();
 
     Image<uint8_t> getFBOImage(GLuint fbo, int width, int height);
+    Image<uint8_t> getFBODepthImage(GLuint fbo, int width, int height);
 
     struct ReflectiveSurface
     {
@@ -690,6 +711,7 @@ private:
     Mat4 cam_from_world_matrix;
     Mat4 pure_proj_matrix;
     Mat4 gl_from_world;
+    shared_ptr<Material> forced_material;
 
     MouseActionCallback left_press_callback = NULL;
     MouseActionCallback left_release_callback = NULL;
@@ -702,6 +724,7 @@ private:
 
     bool overlay_phase = false;
     bool reflection_phase = false;
+    bool shadow_phase = false;
     Mat4 reflect_cam_from_world_matrix;
     GLuint reflect_texture = std::numeric_limits<GLuint>::max();
 
@@ -711,8 +734,11 @@ private:
     LightInfo dir_light;
     bool dir_light_shadows = false;
     int dir_light_shadow_map_size = 0;
-    GLuint dir_light_shadow_map = std::numeric_limits<GLuint>::max();
+    shared_ptr<Texture> dir_light_shadow_map;
     GLuint dir_light_shadow_map_fbo = std::numeric_limits<GLuint>::max();
+    Mat4 dir_light_proj_matrix;
+    Mat4 dir_light_cam_from_world_matrix;
+    shared_ptr<Material> depth_only_material;
 	Vec3 overlay_ambient_light_strength = Vec3(1,1,1);
 	Vec3 ambient_light_strength;
     int light_id = 0;

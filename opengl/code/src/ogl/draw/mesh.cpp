@@ -95,6 +95,8 @@ norms(p_data.norms.transpose())
     builder.point_lights = true;
     builder.tex = true;
     builder.normal_map = false;
+    builder.dir_light_shadows = true;
+    builder.saveShaders();
     material = builder.build();
 
     material->setDiffuse(Color((Vec3)(p_color.getRGB()*p_diffuse_strength)));
@@ -110,27 +112,32 @@ Mesh::~Mesh()
 void Mesh::setMaterial(const shared_ptr<Material>& p_material)
 {
     material = p_material;
-    setupVAO();
-}
-
-void Mesh::setupVAO()
-{
-    if (!curr_window)
-        return;
 
     if (vao_id != std::numeric_limits<GLuint>::max())
         glDeleteVertexArrays(1, &vao_id);
 
-    glGenVertexArrays(1, &vao_id);
-    glBindVertexArray(vao_id);
+    vao_id = setupVAO(material);
+}
 
-    addOpenGLBufferToActiveVAO(pos_buffer_id, material->getPosAttrLoc(), 3);
-    addOpenGLBufferToActiveVAO(uv_buffer_id, material->getUVAttrLoc(), 2);
-    addOpenGLBufferToActiveVAO(norm_buffer_id, material->getNormAttrLoc(), 3);
-    addOpenGLBufferToActiveVAO(tangent_buffer_id, material->getTangentAttrLoc(), 3);
-    addOpenGLBufferToActiveVAO(bitangent_buffer_id, material->getBitangentAttrLoc(), 3);
+GLuint Mesh::setupVAO(const shared_ptr<Material>& curr_material)
+{
+    if (!curr_window)
+        return std::numeric_limits<GLuint>::max();
+
+    GLuint curr_vao_id;
+
+    glGenVertexArrays(1, &curr_vao_id);
+    glBindVertexArray(curr_vao_id);
+
+    addOpenGLBufferToActiveVAO(pos_buffer_id, curr_material->getPosAttrLoc(), 3);
+    addOpenGLBufferToActiveVAO(uv_buffer_id, curr_material->getUVAttrLoc(), 2);
+    addOpenGLBufferToActiveVAO(norm_buffer_id, curr_material->getNormAttrLoc(), 3);
+    addOpenGLBufferToActiveVAO(tangent_buffer_id, curr_material->getTangentAttrLoc(), 3);
+    addOpenGLBufferToActiveVAO(bitangent_buffer_id, curr_material->getBitangentAttrLoc(), 3);
 
     glBindVertexArray(0);
+
+    return curr_vao_id;
 }
 
 void Mesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
@@ -151,7 +158,7 @@ void Mesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
     createOpenGLBufferForMatX(tangent_buffer_id, tangents);
     createOpenGLBufferForMatX(bitangent_buffer_id, bitangents);
         
-    setupVAO();
+    vao_id = setupVAO(material);
 }
 
 void Mesh::onRemoveFromWindow(Window*)
@@ -169,6 +176,10 @@ void Mesh::onRemoveFromWindow(Window*)
         glDeleteBuffers(1, &tangent_buffer_id);
         glDeleteBuffers(1, &bitangent_buffer_id);
         glDeleteVertexArrays(1, &vao_id);
+        for (const auto& item : vaos_for_materials)
+        {
+            glDeleteVertexArrays(1, &item.second);
+        }
 
         curr_window = NULL;
     }
@@ -176,19 +187,36 @@ void Mesh::onRemoveFromWindow(Window*)
 
 void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
 {
-    if (!material)
+    auto curr_material = material;
+    GLuint curr_vao_id = vao_id;
+
+    auto forced_material = window->getForcedMaterial();
+    if (forced_material)
+    {
+        curr_material = forced_material;
+        // Set up and store VAO for this material
+        if (find(vaos_for_materials, curr_material->getTag()))
+            curr_vao_id = vaos_for_materials[curr_material->getTag()];
+        else
+        {
+            curr_vao_id = setupVAO(curr_material);
+            vaos_for_materials[curr_material->getTag()] = curr_vao_id;
+        }
+    }
+
+    if (!curr_material)
         return;
 
-    if (window->reflectionPhase())
+    if (window->isReflectionPhase())
     {
-        auto tex = material->getTexture();
+        auto tex = curr_material->getTexture();
         if (tex && window->getActiveReflectiveTexture() == tex->getID())
             return;
     }
 
-    material->activate(window, world_from_body);
+    curr_material->activate(window, world_from_body);
 
-	glBindVertexArray(vao_id);
+	glBindVertexArray(curr_vao_id);
 	
 	if (!cull)
 		glDisable(GL_CULL_FACE);
@@ -204,7 +232,7 @@ void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
 
     glBindVertexArray(0);
 
-    material->deactivate();
+    curr_material->deactivate();
 }
 
 WrappedMesh::WrappedMesh(

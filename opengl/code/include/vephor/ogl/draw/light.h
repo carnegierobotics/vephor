@@ -82,7 +82,7 @@ public:
         if (curr_window)
             curr_window->setDirLight(dir, strength, shadows, shadow_map_size);
     }
-    void enableShadows(int map_size = 512)
+    void enableShadows(int map_size = 2048)
     {
         shadows = true;
         shadow_map_size = map_size;
@@ -96,7 +96,7 @@ private:
     Vec3 dir;
     float strength;
     bool shadows = false;
-    int shadow_map_size = 512;
+    int shadow_map_size = 2048;
 };
 
 }

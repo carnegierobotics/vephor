@@ -26,7 +26,7 @@ int main()
 
     cam_mgr.setup({
 		{"to", {0,0,0}},
-		{"from", {-50,0,0}},
+		{"from", {50,-50,-50}},
 		{"up", {0,0,-1}},
         {"3d", false}
 	}, window, asset_mgr);
@@ -45,7 +45,7 @@ int main()
         float j_peru = (j + 250) / 500.0f;
         mesh->setColor(Vec3(i_peru,0,j_peru));
         auto mesh_render = window.add(mesh, TransformSim3(
-            Vec3(i,j,-2.0),
+            Vec3(i,j,-5.0),
             Vec3(0.0,0.0,0.0),
             1.0f
         ));
@@ -55,17 +55,40 @@ int main()
 
     auto grid = make_shared<Grid>(250, Vec3(0,0,1), Vec3(1,0,0), 25.0f);
     window.add(grid);
-    bound_mgr.addBoundSphere(10.0f, Transform3(Vec3(0,0,0)));
+    bound_mgr.addBoundSphere(150.0f, Transform3(Vec3(0,0,0)));
 
 
-    Vec3 light_dir(-1,-1,1);
+    auto plane = make_shared<Plane>(Vec2(250,250));
+    plane->setColor(Vec3(0,0.5,0));
+    window.add(plane, Transform3(Vec3(250,0,50.0)));
+    bound_mgr.addBoundSphere(150.0f, Transform3(Vec3(250,0,50.0)));
+
+
+    auto sphere = make_shared<Sphere>(20.0);
+    sphere->setColor(Vec3(1,1,0));
+    auto sphere_node = window.add(sphere, Transform3(Vec3(350,0,0)));
+
+    auto sphere_2 = make_shared<Sphere>(15.0);
+    sphere_2->setColor(Vec3(1,0,1));
+    auto sphere_2_node = window.add(sphere_2, Transform3(Vec3(350,0,-50)));
+
+    auto sphere_3 = make_shared<Sphere>(10.0);
+    sphere_3->setColor(Vec3(0,1,0));
+    auto sphere_3_node = window.add(sphere_3, Transform3(Vec3(350,0,-100)));
+
+    auto cube = make_shared<Cube>(10.0);
+    cube->setColor(Vec3(1,0,0));
+    auto cube_node = window.add(cube, Transform3(Vec3(425,0,0)));
+    
+
+    Vec3 light_dir(0,0,1);
     light_dir /= light_dir.norm();
-    auto dir_light = make_shared<DirLight>(light_dir, 0.4f);
+    auto dir_light = make_shared<DirLight>(light_dir, 0.6f);
     dir_light->enableShadows();
     window.add(dir_light, Transform3());
 
-    auto ambient_light = make_shared<AmbientLight>(Vec3(0.6f,0.6f,0.6f));
-    window.add(ambient_light);
+    //auto ambient_light = make_shared<AmbientLight>(Vec3(0.6f,0.6f,0.6f));
+    //window.add(ambient_light);
 
     Mat4 proj = makePerspectiveProj(45, window.getSize(), 0.1f, 100.0f);
     window.setProjectionMatrix(proj);
@@ -77,6 +100,12 @@ int main()
     {
         cam_mgr.update(window, dt, control_info);
 		control_info.onUpdate();
+
+        sphere_node->setPos(Vec3(350,sin(t)*200,0));
+        sphere_2_node->setPos(Vec3(350,sin(t+2*M_PI/3)*200,-50));
+        sphere_3_node->setPos(Vec3(350,sin(t+4*M_PI/3)*200,-100));
+
+        cube_node->setOrient(Vec3(sin(t),sin(t)*5,sin(t)*13));
 
         t += dt;
     }

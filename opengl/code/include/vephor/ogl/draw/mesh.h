@@ -52,12 +52,13 @@ public:
     void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
 	void onRemoveFromWindow(Window* window);
 private:
-    void setupVAO();
+    GLuint setupVAO(const shared_ptr<Material>& curr_material);
 
     Window* curr_window = NULL;
     size_t curr_window_count = 0;
 
     GLuint vao_id = std::numeric_limits<GLuint>::max();
+    unordered_map<string, GLuint> vaos_for_materials;
 
     GLuint pos_buffer_id = std::numeric_limits<GLuint>::max();
     GLuint uv_buffer_id = std::numeric_limits<GLuint>::max();

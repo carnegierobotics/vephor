@@ -89,12 +89,27 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
         glUniform1i(cube_tex_sampler_id, 0);
     }
 
-    if (light_dir_id != std::numeric_limits<GLuint>::max())
+    if (dir_light_dir_id != std::numeric_limits<GLuint>::max())
     {
         auto dir_light = window->getDirLight();
 
-        glUniform3fv(light_dir_id, 1, dir_light.pos.data());
-        glUniform1f(light_dir_strength_id, dir_light.strength);
+        glUniform3fv(dir_light_dir_id, 1, dir_light.pos.data());
+        glUniform1f(dir_light_strength_id, dir_light.strength);
+    }
+
+    Mat4 dir_light_proj_from_world;
+    shared_ptr<Texture> dir_light_shadow_map;
+    if (dir_light_proj_from_world_id != std::numeric_limits<GLuint>::max() && 
+        window->getDirLightShadowInfo(
+            dir_light_proj_from_world,
+            dir_light_shadow_map
+        ))
+    {
+        glUniformMatrix4fv(dir_light_proj_from_world_id, 1, GL_FALSE, dir_light_proj_from_world.data());
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, dir_light_shadow_map->getID());
+        glUniform1i(dir_light_shadow_map_sampler_id, 1);
     }
 
     if (num_point_lights_id != std::numeric_limits<GLuint>::max())
@@ -571,6 +586,12 @@ uniform samplerCube cube_tex_sampler;
 
 string fragmentShaderDirLightUniforms = R"(
 uniform float dir_light_strength = 0.0f;
+uniform vec3 dir_light_color = vec3(1,1,1);
+)";
+
+string fragmentShaderDirLightShadowsUniforms = R"(
+uniform mat4 dir_light_proj_from_world;
+uniform sampler2D dir_light_shadow_map_sampler;
 )";
 
 string fragmentShaderPointLightUniforms = R"(
@@ -630,8 +651,6 @@ string fragmentShaderLightingMain = R"(
 )";
 
 string fragmentShaderDirLightMain = R"(
-    vec3 dir_light_color = vec3(1,1,1);
-
     float dirLightCosTheta = clamp(dot(n,vo_dir_light_dir_in_camera), 0, 1);
 
     vec3 dir_R = reflect(-vo_dir_light_dir_in_camera,n);
@@ -642,6 +661,26 @@ string fragmentShaderDirLightMain = R"(
 
     diffuse_light_strength += dir_diffuse_light;
     specular_light_strength += dir_specular_light;
+)";
+
+string fragmentShaderDirLightShadowsMain = R"(
+    vec4 pos_in_dir_light = dir_light_proj_from_world * vec4(vo_pos_in_world, 1.0);
+    vec3 proj_pos_in_dir_light = pos_in_dir_light.xyz / pos_in_dir_light.w * 0.5 + 0.5;
+    float depth = texture(dir_light_shadow_map_sampler, proj_pos_in_dir_light.xy).r;
+    
+    if (clamp(proj_pos_in_dir_light.z, 0, 1) < depth + 0.001)
+    {
+        float dirLightCosTheta = clamp(dot(n,vo_dir_light_dir_in_camera), 0, 1);
+
+        vec3 dir_R = reflect(-vo_dir_light_dir_in_camera,n);
+        float dir_specular_cos = clamp(dot(E, dir_R), 0, 1);
+
+        vec3 dir_diffuse_light = dir_light_color * dir_light_strength * dirLightCosTheta;
+        vec3 dir_specular_light = dir_light_color * dir_light_strength * pow(dir_specular_cos, specular_power) * specular;
+
+        diffuse_light_strength += dir_diffuse_light;
+        specular_light_strength += dir_specular_light;
+    }
 )";
 
 string fragmentShaderPointLightMain = R"(
@@ -708,6 +747,11 @@ string fragmentShaderMainFooter = R"(
 }
 )";
 
+string fragmentShaderNoColorMainFooter = R"(
+}
+)";
+
+
 
 
 std::string MaterialBuilder::produceFragmentShader() const
@@ -742,7 +786,8 @@ std::string MaterialBuilder::produceFragmentShader() const
     if (vertex_color)
         shader += fragmentShaderVertexColorIn;
 
-    shader += fragmentShaderOut;
+    if (!no_color)
+        shader += fragmentShaderOut;
 
     shader += "\n";
 
@@ -760,6 +805,9 @@ std::string MaterialBuilder::produceFragmentShader() const
 
     if (dir_light)
         shader += fragmentShaderDirLightUniforms;
+
+    if (dir_light_shadows)
+        shader += fragmentShaderDirLightShadowsUniforms;
 
     if (point_lights)
         shader += fragmentShaderPointLightUniforms;
@@ -780,19 +828,24 @@ std::string MaterialBuilder::produceFragmentShader() const
             shader += fragmentShaderNoNormalMapMain;
     }
 
-    if (screen_space_tex_coords)
-        shader += fragmentShaderScreenSpaceTexCoordsMain;
-    else if (cube_tex)
-        shader += fragmentShaderCubeTexMain;
-    else if (tex)
-        shader += fragmentShaderTexMain;
-    else
-        shader += fragmentShaderNoTexMain;
+    if (!no_color)
+    {
+        if (screen_space_tex_coords)
+            shader += fragmentShaderScreenSpaceTexCoordsMain;
+        else if (cube_tex)
+            shader += fragmentShaderCubeTexMain;
+        else if (tex)
+            shader += fragmentShaderTexMain;
+        else
+            shader += fragmentShaderNoTexMain;
+    }
 
     if (materials)
         shader += fragmentShaderMaterialsMain;
 
-    if (dir_light)
+    if (dir_light_shadows)
+        shader += fragmentShaderDirLightShadowsMain;
+    else if (dir_light)
         shader += fragmentShaderDirLightMain;
 
     if (point_lights)
@@ -806,15 +859,21 @@ std::string MaterialBuilder::produceFragmentShader() const
         }
     }
 
-    if (materials)
-        shader += fragmentShaderMaterialsMainEnd;
-    else
-        shader += fragmentShaderNoMaterialsMainEnd;
+    if (!no_color)
+    {
+        if (materials)
+            shader += fragmentShaderMaterialsMainEnd;
+        else
+            shader += fragmentShaderNoMaterialsMainEnd;
+    }
 
     if (vertex_color)
         shader += fragmentShaderVertexColorMainEnd;
 
-    shader += fragmentShaderMainFooter;
+    if (no_color)
+        shader += fragmentShaderNoColorMainFooter;
+    else
+        shader += fragmentShaderMainFooter;
 
     return shader;
 }
@@ -857,6 +916,8 @@ std::string MaterialBuilder::getTag() const
         tag += "_ctex";
     if (dir_light)
         tag += "_dl";
+    if (dir_light_shadows)
+        tag += "_dlsh";
     if (point_lights)
         tag += "_pl";
     if (time)
@@ -864,7 +925,7 @@ std::string MaterialBuilder::getTag() const
     if (vertex_color)
         tag += "_vc";
     if (!materials)
-        tag += "_nm";
+        tag += "_nomat";
     if (offset)
         tag += "_o";
     if (uniform_size)
@@ -879,6 +940,8 @@ std::string MaterialBuilder::getTag() const
         tag += "_id";
     if (screen_space_tex_coords)
         tag += "_sstc";
+    if (no_color)
+        tag += "_nocol";
     for (const auto& sections : extra_sections)
     {
         for (const auto& section : sections.second)
@@ -922,6 +985,9 @@ std::shared_ptr<Material> MaterialBuilder::build() const
 
     if (screen_space_tex_coords && !tex)
         throw std::runtime_error("Can't use screen space tex coords without a texture.");
+
+    if (dir_light_shadows && !dir_light)
+        throw std::runtime_error("Can't use dir light shadows without dir lights.");
 
     auto tag = getTag();
 
@@ -996,8 +1062,14 @@ std::shared_ptr<Material> MaterialBuilder::build() const
 
     if (dir_light)
     {
-        material->light_dir_id = glGetUniformLocation(material->program_id, "dir_light_dir_in_world");
-        material->light_dir_strength_id = glGetUniformLocation(material->program_id, "dir_light_strength");
+        material->dir_light_dir_id = glGetUniformLocation(material->program_id, "dir_light_dir_in_world");
+        material->dir_light_strength_id = glGetUniformLocation(material->program_id, "dir_light_strength");
+    }
+
+    if (dir_light_shadows)
+    {
+        material->dir_light_proj_from_world_id = glGetUniformLocation(material->program_id, "dir_light_proj_from_world");
+        material->dir_light_shadow_map_sampler_id = glGetUniformLocation(material->program_id, "dir_light_shadow_map_sampler");
     }
 
     if (point_lights)
@@ -1033,6 +1105,15 @@ std::shared_ptr<Material> MaterialBuilder::build() const
     material->infinite_depth = infinite_depth;
 
     return material;
+}
+
+MaterialSet MaterialBuilder::buildSet() const
+{
+    MaterialSet set;
+
+    set["main"] = build();
+
+    return set;
 }
 
 }
