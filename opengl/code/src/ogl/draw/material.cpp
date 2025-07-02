@@ -128,6 +128,12 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
     {
         glUniform1f(aspect_id, (float)window->getSize()[0] / (float)window->getSize()[1]);
     }
+
+    if (screen_size_id != std::numeric_limits<GLuint>::max())
+    {
+        Vec2 size = window->getSize().cast<float>();
+        glUniform2fv(screen_size_id, 1, size.data());
+    }
 }
 
 void Material::deactivate()
@@ -469,7 +475,9 @@ std::string MaterialBuilder::produceVertexShader() const
             shader += vertexShaderMain;
     }
 
-    if (tex || normal_map)
+    /*if (screen_space_tex_coords)
+        shader += vertexShaderScreenSpaceTexCoordsMain;
+    else*/ if (tex || normal_map)
         shader += vertexShaderTexMain;
 
     if (cube_tex)
@@ -571,10 +579,19 @@ uniform int num_point_lights;
 uniform float point_light_strength[MAX_POINT_LIGHTS];
 )";
 
+string fragmentShaderScreenSpaceTexCoordsUniforms = R"(
+uniform vec2 screen_size;
+)";
+
 string fragmentShaderMain = R"(
 
 void main()
 {)";
+
+string fragmentShaderScreenSpaceTexCoordsMain = R"(
+    vec2 uv = gl_FragCoord.xy / screen_size;
+    vec4 tex_rgba = texture(tex_sampler, uv).rgba;
+)";
 
 string fragmentShaderTexMain = R"(
     vec4 tex_rgba = texture(tex_sampler, vo_uv).rgba;
@@ -747,14 +764,13 @@ std::string MaterialBuilder::produceFragmentShader() const
     if (point_lights)
         shader += fragmentShaderPointLightUniforms;
 
+    if (screen_space_tex_coords)
+        shader += fragmentShaderScreenSpaceTexCoordsUniforms;
+
     shader += fragmentShaderMain;
 
-    if (cube_tex)
-        shader += fragmentShaderCubeTexMain;
-    else if (tex)
-        shader += fragmentShaderTexMain;
-    else
-        shader += fragmentShaderNoTexMain;
+    if (lighting)
+        shader += fragmentShaderLightingMain;
 
     if (lighting)
     {
@@ -764,17 +780,31 @@ std::string MaterialBuilder::produceFragmentShader() const
             shader += fragmentShaderNoNormalMapMain;
     }
 
+    if (screen_space_tex_coords)
+        shader += fragmentShaderScreenSpaceTexCoordsMain;
+    else if (cube_tex)
+        shader += fragmentShaderCubeTexMain;
+    else if (tex)
+        shader += fragmentShaderTexMain;
+    else
+        shader += fragmentShaderNoTexMain;
+
     if (materials)
         shader += fragmentShaderMaterialsMain;
-
-    if (lighting)
-        shader += fragmentShaderLightingMain;
 
     if (dir_light)
         shader += fragmentShaderDirLightMain;
 
     if (point_lights)
         shader += fragmentShaderPointLightMain;
+
+    if (find(extra_sections, string("frag_main")))
+    {
+        for (const auto& section : extra_sections.at("frag_main"))
+        {
+            shader += section;
+        }
+    }
 
     if (materials)
         shader += fragmentShaderMaterialsMainEnd;
@@ -847,6 +877,8 @@ std::string MaterialBuilder::getTag() const
         tag += "_ss";
     if (infinite_depth)
         tag += "_id";
+    if (screen_space_tex_coords)
+        tag += "_sstc";
     for (const auto& sections : extra_sections)
     {
         for (const auto& section : sections.second)
@@ -887,6 +919,9 @@ std::shared_ptr<Material> MaterialBuilder::build() const
 
     if (screen_space && (!billboard || !offset))
         throw std::runtime_error("Screen space must be used with billboard and offset.");
+
+    if (screen_space_tex_coords && !tex)
+        throw std::runtime_error("Can't use screen space tex coords without a texture.");
 
     auto tag = getTag();
 
@@ -947,6 +982,11 @@ std::shared_ptr<Material> MaterialBuilder::build() const
     if (screen_space)
     {
         material->aspect_id = glGetUniformLocation(material->program_id, "aspect");
+    }
+
+    if (screen_space_tex_coords)
+    {
+        material->screen_size_id = glGetUniformLocation(material->program_id, "screen_size");
     }
 
     if (billboard)

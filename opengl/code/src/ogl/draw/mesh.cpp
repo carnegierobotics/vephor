@@ -179,6 +179,13 @@ void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
     if (!material)
         return;
 
+    if (window->reflectionPhase())
+    {
+        auto tex = material->getTexture();
+        if (tex && window->getActiveReflectiveTexture() == tex->getID())
+            return;
+    }
+
     material->activate(window, world_from_body);
 
 	glBindVertexArray(vao_id);

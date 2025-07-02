@@ -571,7 +571,10 @@ void Window::renderDirLightShadowMap()
 	{
 		for (const auto& obj : objects)
 		{
-			obj->render(this);
+			if (obj->isShow())
+			{
+				obj->render(this);
+			}
 		}
 	}
 
@@ -587,28 +590,65 @@ void Window::renderDirLightShadowMap()
 	//	Add support for adding shadow map to regular shaders
 }
 
-bool Window::render()
+void Window::renderReflectiveSurface(ReflectiveSurface& surface)
 {
-	if (window == NULL)
-		return false;
-	
-	glfwMakeContextCurrent(window);
+	reflection_phase = true;
+	reflect_cam_from_world_matrix = cam_from_world_matrix * surface.reflection;
+	reflect_texture = surface.texture;
 
-	if (dir_light_shadows)
-	{
-		renderDirLightShadowMap();
-	}
-	
+	glBindFramebuffer(GL_FRAMEBUFFER, surface.fbo);
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	overlay_phase = false;
+	renderScene();
 
-	int objects_rendered = 0;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	reflection_phase = false;
+	reflect_texture = std::numeric_limits<GLuint>::max();
+}
+
+shared_ptr<Texture> Window::addReflectiveSurface(const Vec4& plane)
+{
+	ReflectiveSurface surface;
+	surface.plane = plane;
+	surface.reflection = reflectMatrix(plane);
+
+	glGenFramebuffers(1, &surface.fbo);
+
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
+
+	// Color texture
+	glGenTextures(1, &surface.texture);
+	glBindTexture(GL_TEXTURE_2D, surface.texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	// Depth renderbuffer
+	glGenRenderbuffers(1, &surface.depth_buffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, surface.depth_buffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+
+	// Attach
+	glBindFramebuffer(GL_FRAMEBUFFER, surface.fbo);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, surface.texture, 0);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, surface.depth_buffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	surface.width = width;
+	surface.height = height;
+
+	reflective_surfaces.push_back(surface);
+
+	return make_shared<Texture>(surface.texture, Vec2i(width, height));
+}
+
+void Window::renderScene()
+{
 	for (auto& objects : object_layers)
 	{
-		removeDestroyedObjects(objects);
-		
 		vector<size_t> obj_inds;
 		obj_inds.reserve(objects.size());
 		
@@ -631,10 +671,38 @@ bool Window::render()
 			if (objects[ind]->isShow())
 			{
 				objects[ind]->render(this);
-				objects_rendered++;
 			}
 		}
 	}
+}
+
+bool Window::render()
+{
+	if (window == NULL)
+		return false;
+	
+	glfwMakeContextCurrent(window);
+
+	for (auto& objects : object_layers)
+	{
+		removeDestroyedObjects(objects);
+	}
+
+	if (dir_light_shadows)
+	{
+		renderDirLightShadowMap();
+	}
+
+	for (auto& surface : reflective_surfaces)
+	{
+		renderReflectiveSurface(surface);
+	}
+	
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	overlay_phase = false;
+	
+	renderScene();
 
 	overlay_phase = true;
 
@@ -649,7 +717,6 @@ bool Window::render()
 			if (obj->isShow())
 			{
 				obj->render(this);
-				objects_rendered++;
 			}
 		}
 	}
@@ -1097,6 +1164,22 @@ Image<uint8_t> Window::getDepthImage()
 	final_image.flipYInPlace();
 	
 	return final_image;
+}
+
+Image<uint8_t> Window::getFBOImage(GLuint fbo, int width, int height)
+{
+	glfwMakeContextCurrent(window);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+	glReadBuffer(GL_COLOR_ATTACHMENT0);      
+	
+	Image<uint8_t> image(width, height, 3);
+	glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, (uint8_t*)image.getData().data());
+
+	image.flipYInPlace();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	return image;
 }
 
 void Window::clear()

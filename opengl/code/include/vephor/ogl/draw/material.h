@@ -111,6 +111,7 @@ private:
     GLuint time_id = std::numeric_limits<GLuint>::max();
     GLuint size_id = std::numeric_limits<GLuint>::max();
     GLuint aspect_id = std::numeric_limits<GLuint>::max();
+    GLuint screen_size_id = std::numeric_limits<GLuint>::max();
 
     bool infinite_depth = false;
 };
@@ -132,6 +133,7 @@ public:
     bool billboard = false;
     bool screen_space = false;
     bool infinite_depth = false;
+    bool screen_space_tex_coords = false;
 
     unordered_map<string, vector<string>> extra_sections;
 

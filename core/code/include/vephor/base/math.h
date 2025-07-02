@@ -59,6 +59,7 @@ using std::chrono::duration_cast;
 using std::numeric_limits;
 using std::pair;
 using std::swap;
+using std::clamp;
 
 //
 // Utility macros
@@ -285,6 +286,35 @@ public:
 		Eigen::AngleAxisf aa;
 		aa.fromRotationMatrix(R);
 		return Orient3(Eigen::Quaternionf(aa));
+	}
+	static Orient3 rotateTo(Vec3 from, Vec3 to)
+	{
+		float from_mag = from.norm();
+
+		if (from_mag < 1e-3)
+			return Orient3();
+
+		float to_mag = to.norm();
+
+		if (to_mag < 1e-3)
+			return Orient3();
+
+		from /= from_mag;
+		to /= to_mag;
+
+		float angle = acos(clamp(from.dot(to),-1.0f,1.0f));
+
+		if (angle < 1e-3)
+			return Orient3();
+
+		Vec3 rvec = from.cross(to);
+
+		float rvec_mag = rvec.norm();
+		rvec /= rvec_mag;
+
+		rvec = rvec * angle;
+
+		return Orient3(rvec);
 	}
 	Orient3 inverse() const
 	{
@@ -569,6 +599,24 @@ inline Mat3 rodrigues(const Vec3& v)
     Mat3 skew_axis = skew(axis);
 
     return Mat3::Identity() + sin(angle)*skew_axis + (1-cos(angle))*skew_axis*skew_axis;
+}
+
+inline Mat4 reflectMatrix(const Vec4& plane)
+{
+	float a = plane[0];
+	float b = plane[1];
+	float c = plane[2];
+	float d = plane[3];
+
+	Mat4 m;
+
+	m <<
+		1 - 2*a*a, -2*a*b,   -2*a*c,   -2*a*d,
+		-2*a*b,   1 - 2*b*b, -2*b*c,   -2*b*d,
+		-2*a*c,   -2*b*c,   1 - 2*c*c, -2*c*d,
+		0,        0,        0,         1;
+
+	return m;
 }
 
 }

@@ -477,6 +477,8 @@ public:
     }
     const Mat4& getCamFromWorldMatrix() const
     {
+        if (reflection_phase)
+            return reflect_cam_from_world_matrix;
         if (overlay_phase)
             return overlay_cam_from_world_matrix;
         return cam_from_world_matrix;
@@ -642,50 +644,31 @@ public:
     {
         return far_z;
     }
+
+    GLuint getActiveReflectiveTexture() const {return reflect_texture;}
+    bool reflectionPhase() const {return reflection_phase;}
+    shared_ptr<Texture> addReflectiveSurface(const Vec4& plane);
 private:
     void removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects);
     void renderDirLightShadowMap();
+    void renderScene();
+
+    Image<uint8_t> getFBOImage(GLuint fbo, int width, int height);
 
     struct ReflectiveSurface
     {
         Vec4 plane;
+        Mat4 reflection;
         GLuint fbo;
         GLuint texture;
         GLuint depth_buffer;
+        int width;
+        int height;
     };
 
+    void renderReflectiveSurface(ReflectiveSurface& surface);
+
     vector<ReflectiveSurface> reflective_surfaces;
-
-    void addReflectiveSurface(const Vec4& plane)
-    {
-        ReflectiveSurface surface;
-        surface.plane = plane;
-
-        glGenFramebuffers(1, &surface.fbo);
-
-        int width, height;
-	    glfwGetFramebufferSize(window, &width, &height);
-
-        // Color texture
-        glGenTextures(1, &surface.texture);
-        glBindTexture(GL_TEXTURE_2D, surface.texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        // Depth renderbuffer
-        glGenRenderbuffers(1, &surface.depth_buffer);
-        glBindRenderbuffer(GL_RENDERBUFFER, surface.depth_buffer);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
-
-        // Attach
-        glBindFramebuffer(GL_FRAMEBUFFER, surface.fbo);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, surface.texture, 0);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, surface.depth_buffer);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        reflective_surfaces.push_back(surface);
-    }
 
     WindowResizeCallback resize_callback;
     Vec2i window_size;
@@ -718,6 +701,9 @@ private:
     bool escape_pressed = false;
 
     bool overlay_phase = false;
+    bool reflection_phase = false;
+    Mat4 reflect_cam_from_world_matrix;
+    GLuint reflect_texture = std::numeric_limits<GLuint>::max();
 
     shared_ptr<Texture> default_tex;
 	shared_ptr<Texture> default_normal_map;

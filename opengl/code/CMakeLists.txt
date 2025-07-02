@@ -166,6 +166,7 @@ else (VEPHOR_BUILD_PYTHON_BINDINGS)
 		physics_constraints
 		physics_height_map
 		physics_solid
+		reflect_test
 		screenshot_test
 		shadows_test
 		skybox_test
