@@ -473,12 +473,6 @@ Window::Window(int p_width,
     }
 
     onResize(window_size);
-
-	MaterialBuilder builder;
-	builder.materials = false;
-	builder.no_color = true;
-	builder.saveShaders();
-	depth_only_material = builder.build();
 }
 
 Window::~Window() = default;
@@ -572,13 +566,11 @@ void Window::renderDirLightShadowMap()
 	glBindFramebuffer(GL_FRAMEBUFFER, dir_light_shadow_map_fbo);
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	forced_material = depth_only_material;
-
 	Mat4 world_from_cam_matrix = cam_from_world_matrix.inverse();
 	Vec3 world_t_cam = world_from_cam_matrix.block(0,3,3,1);
 	Vec3 cam_forward = -world_from_cam_matrix.block(0,2,3,1);
 
-	float shadow_rad_m = 450;
+	float shadow_rad_m = 600;
 	float light_height = 100;
 	dir_light_proj_matrix = makeOrthoProj(Vec3(-shadow_rad_m,-shadow_rad_m,1),Vec3(shadow_rad_m,shadow_rad_m,1000));
 	dir_light_proj_matrix = dir_light_proj_matrix.transpose().eval();
@@ -612,7 +604,6 @@ void Window::renderDirLightShadowMap()
 	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
 
-	forced_material = NULL;
 	shadow_phase = false;
 }
 

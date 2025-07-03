@@ -18,7 +18,9 @@ int main()
     AssetManager asset_mgr;
     TrackballCamera cam_mgr;
 
-    Window window(-1, -1, "basic");
+    Window window(-1, -1, "basic", [&](Window* this_window, const Vec2i& window_size){
+        cam_mgr.resizeWindow(*this_window);
+	});
 
     float fps = 60.0f;
 	window.setFrameLock(fps);
@@ -73,7 +75,7 @@ int main()
     auto sphere_2_node = window.add(sphere_2, Transform3(Vec3(350,0,-50)));
 
     auto sphere_3 = make_shared<Sphere>(10.0);
-    sphere_3->setColor(Vec3(0,1,0));
+    sphere_3->setColor(Vec3(0,1,1));
     auto sphere_3_node = window.add(sphere_3, Transform3(Vec3(350,0,-100)));
 
     auto cube = make_shared<Cube>(10.0);

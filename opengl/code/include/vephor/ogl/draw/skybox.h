@@ -26,14 +26,12 @@ public:
         builder.infinite_depth = true;
         builder.materials = false;
 
-        builder.saveShaders();
-
-        auto material = builder.build();
-        material->setCubeTexture(p_tex);
+        auto materials = builder.buildSet();
 
         auto data = formCube();
-		mesh = make_shared<Mesh>(data, material);
+		mesh = make_shared<Mesh>(data, materials);
         mesh->setCull(false);
+		mesh->setCubeTexture(p_tex);
 	}
 	void renderOGL(Window* window, const TransformSim3& world_from_body)
 	{

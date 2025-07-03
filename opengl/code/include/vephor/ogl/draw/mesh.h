@@ -22,7 +22,7 @@ class Mesh
 public:
     Mesh(
         const MeshData& data, 
-        const shared_ptr<Material>& material
+        const Material& material
     );
     Mesh(
         const MeshData& data, 
@@ -34,30 +34,31 @@ public:
     ~Mesh();
 	void setCull(bool p_cull){cull = p_cull;}
 
-    void setMaterial(const shared_ptr<Material>& p_material);
-    shared_ptr<Material> getMaterial() {return material;}
+    void setMaterial(const Material& p_material);
+    Material getMaterial() {return material;}
+    void setMaterialState(const MaterialState& state){material.state = state;}
 
-    void setDiffuse(const Color& p_color){material->setDiffuse(p_color);}
-	Color getDiffuse() const {return material->getDiffuse();}
-	void setAmbient(const Color& p_color){material->setAmbient(p_color);}
-	Color getAmbient() const {return material->getAmbient();}
-    void setEmissive(const Color& p_color){material->setEmissive(p_color);}
-	Color getEmissive() const {return material->getEmissive();}
-    void setSpecular(bool p_specular){material->setSpecular(p_specular);}
-	void setOpacity(const float& p_opacity){material->setOpacity(p_opacity);}
-    void setTexture(const shared_ptr<Texture>& p_tex){material->setTexture(p_tex);}
-	void setNormalMap(const shared_ptr<Texture>& p_normal_map){material->setTexture(p_normal_map);}
+    void setDiffuse(const Color& p_color){material.state.diffuse = p_color.getRGB();}
+	Color getDiffuse() const {return material.state.diffuse;}
+	void setAmbient(const Color& p_color){material.state.ambient = p_color.getRGB();}
+	Color getAmbient() const {return material.state.ambient;}
+    void setEmissive(const Color& p_color){material.state.emissive = p_color.getRGB();}
+	Color getEmissive() const {return material.state.emissive;}
+    void setSpecular(bool p_specular){material.state.specular = p_specular;}
+	void setOpacity(const float& p_opacity){material.state.opacity = p_opacity;}
+    void setTexture(const shared_ptr<Texture>& p_tex){material.state.tex = p_tex;}
+	void setNormalMap(const shared_ptr<Texture>& p_normal_map){material.state.normal_map = p_normal_map;}
+    void setCubeTexture(const shared_ptr<CubeTexture>& p_cube_texture){material.state.cube_tex = p_cube_texture;}
 
     void renderOGL(Window* window, const TransformSim3& world_from_body);
     void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
 	void onRemoveFromWindow(Window* window);
 private:
-    GLuint setupVAO(const shared_ptr<Material>& curr_material);
+    GLuint setupVAO(const shared_ptr<MaterialProgram>& curr_material);
 
     Window* curr_window = NULL;
     size_t curr_window_count = 0;
 
-    GLuint vao_id = std::numeric_limits<GLuint>::max();
     unordered_map<string, GLuint> vaos_for_materials;
 
     GLuint pos_buffer_id = std::numeric_limits<GLuint>::max();
@@ -74,7 +75,7 @@ private:
 
     bool cull = true;
 
-    shared_ptr<Material> material;
+    Material material;
 };
 
 // Allows render parameters of a mesh to be changed without needing to store the memory of the mesh multiple times
@@ -83,14 +84,14 @@ class WrappedMesh
 public:
     WrappedMesh(
         const shared_ptr<Mesh>& mesh,
-        const shared_ptr<Material>& material
+        const Material& material
     );
     void renderOGL(Window* window, const TransformSim3& world_from_body);
     void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
 	void onRemoveFromWindow(Window* window);
 private:
     shared_ptr<Mesh> mesh;
-    shared_ptr<Material> material;
+    Material material;
 };
 
 }

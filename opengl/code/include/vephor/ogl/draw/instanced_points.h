@@ -27,7 +27,7 @@ public:
     ~InstancedPoints();
 	void setTexture(const shared_ptr<Texture>& p_tex)
 	{
-		material->setTexture(p_tex);
+		material_state.tex = p_tex;
 	}
 	void setSize(float p_size)
 	{
@@ -52,7 +52,7 @@ public:
 	}
 	void setOpacity(const float& p_opacity)
 	{
-		material->setOpacity(p_opacity);
+		material_state.opacity = p_opacity;
 	}
 	void setScreenSpaceMode(bool p_ss_mode)
 	{
@@ -76,7 +76,8 @@ private:
 	float size = 0.03f;
 	bool ss_mode = false;
 
-	shared_ptr<Material> material;
+	shared_ptr<MaterialProgram> material;
+	MaterialState material_state;
 
 	GLuint vao_id = std::numeric_limits<GLuint>::max();
 

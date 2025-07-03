@@ -27,8 +27,7 @@ public:
 		MaterialBuilder builder;
 		builder.dir_light = true;
 		builder.point_lights = true;
-		builder.dir_light_shadows = true;
-		mesh = make_shared<Mesh>(data, builder.build());
+		mesh = make_shared<Mesh>(data, builder.buildSet());
 	}
 	void setColor(const Vec3& p_color)
 	{

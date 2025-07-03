@@ -656,8 +656,9 @@ public:
 
     GLuint getActiveReflectiveTexture() const {return reflect_texture;}
     bool isReflectionPhase() const {return reflection_phase;}
+    bool isShadowPhase() const {return shadow_phase;}
+    bool areShadowsActive() const {return dir_light_shadows;}
     shared_ptr<Texture> addReflectiveSurface(const Vec4& plane);
-    shared_ptr<Material> getForcedMaterial() const {return forced_material;}
 
     bool getDirLightShadowInfo(Mat4& out_dir_light_proj_from_world, shared_ptr<Texture>& out_dir_light_shadow_map)
     {
@@ -667,6 +668,15 @@ public:
         out_dir_light_proj_from_world = dir_light_proj_matrix * dir_light_cam_from_world_matrix;
         out_dir_light_shadow_map = dir_light_shadow_map;
         return true;
+    }
+
+    void setResizeCallback(const WindowResizeCallback p_resize_callback)
+    {
+        resize_callback = p_resize_callback;
+    }
+    void triggerResize()
+    {
+        onResize(window_size);
     }
 private:
     void removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects);
@@ -711,7 +721,6 @@ private:
     Mat4 cam_from_world_matrix;
     Mat4 pure_proj_matrix;
     Mat4 gl_from_world;
-    shared_ptr<Material> forced_material;
 
     MouseActionCallback left_press_callback = NULL;
     MouseActionCallback left_release_callback = NULL;

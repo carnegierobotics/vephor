@@ -15,7 +15,7 @@ namespace vephor
 
 Mesh::Mesh(
     const MeshData& p_data,
-    const shared_ptr<Material>& p_material
+    const Material& p_material
 )
 : verts(p_data.verts.transpose()), 
 uvs(p_data.uvs.transpose()), 
@@ -95,31 +95,32 @@ norms(p_data.norms.transpose())
     builder.point_lights = true;
     builder.tex = true;
     builder.normal_map = false;
-    builder.dir_light_shadows = true;
-    builder.saveShaders();
-    material = builder.build();
+    material.set = builder.buildSet();
 
-    material->setDiffuse(Color((Vec3)(p_color.getRGB()*p_diffuse_strength)));
-    material->setAmbient(Color((Vec3)(p_color.getRGB()*p_ambient_strength)));
-    material->setEmissive(Color((Vec3)(p_color.getRGB()*p_emissive_strength)));
-    material->setOpacity(p_color.getAlpha());
+    material.state.diffuse = p_color.getRGB()*p_diffuse_strength;
+    material.state.ambient = p_color.getRGB()*p_ambient_strength;
+    material.state.emissive = p_color.getRGB()*p_emissive_strength;
+    material.state.opacity = p_color.getAlpha();
 }
 
 Mesh::~Mesh()
 {
 }
 
-void Mesh::setMaterial(const shared_ptr<Material>& p_material)
+void Mesh::setMaterial(const Material& p_material)
 {
     material = p_material;
 
-    if (vao_id != std::numeric_limits<GLuint>::max())
-        glDeleteVertexArrays(1, &vao_id);
+    for (const auto& material : material.set)
+    {
+        if (find(vaos_for_materials, material.first))
+            glDeleteVertexArrays(1, &vaos_for_materials[material.first]);
 
-    vao_id = setupVAO(material);
+        vaos_for_materials[material.first] = setupVAO(material.second);
+    }
 }
 
-GLuint Mesh::setupVAO(const shared_ptr<Material>& curr_material)
+GLuint Mesh::setupVAO(const shared_ptr<MaterialProgram>& curr_material)
 {
     if (!curr_window)
         return std::numeric_limits<GLuint>::max();
@@ -157,8 +158,11 @@ void Mesh::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
     createOpenGLBufferForMatX(norm_buffer_id, norms);
     createOpenGLBufferForMatX(tangent_buffer_id, tangents);
     createOpenGLBufferForMatX(bitangent_buffer_id, bitangents);
-        
-    vao_id = setupVAO(material);
+
+    for (const auto& material : material.set)
+    {
+        vaos_for_materials[material.first] = setupVAO(material.second);
+    }
 }
 
 void Mesh::onRemoveFromWindow(Window*)
@@ -175,7 +179,6 @@ void Mesh::onRemoveFromWindow(Window*)
         glDeleteBuffers(1, &norm_buffer_id);
         glDeleteBuffers(1, &tangent_buffer_id);
         glDeleteBuffers(1, &bitangent_buffer_id);
-        glDeleteVertexArrays(1, &vao_id);
         for (const auto& item : vaos_for_materials)
         {
             glDeleteVertexArrays(1, &item.second);
@@ -187,34 +190,33 @@ void Mesh::onRemoveFromWindow(Window*)
 
 void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
 {
-    auto curr_material = material;
-    GLuint curr_vao_id = vao_id;
+    shared_ptr<MaterialProgram> curr_material;
+    GLuint curr_vao_id;
 
-    auto forced_material = window->getForcedMaterial();
-    if (forced_material)
+    if (window->isShadowPhase())
     {
-        curr_material = forced_material;
-        // Set up and store VAO for this material
-        if (find(vaos_for_materials, curr_material->getTag()))
-            curr_vao_id = vaos_for_materials[curr_material->getTag()];
-        else
-        {
-            curr_vao_id = setupVAO(curr_material);
-            vaos_for_materials[curr_material->getTag()] = curr_vao_id;
-        }
+        curr_material = material.set["depth"];
+        curr_vao_id = vaos_for_materials["depth"];
     }
-
-    if (!curr_material)
-        return;
+    else if (window->areShadowsActive())
+    {
+        curr_material = material.set["shadows"];
+        curr_vao_id = vaos_for_materials["shadows"];
+    }
+    else
+    {
+        curr_material = material.set["main"];
+        curr_vao_id = vaos_for_materials["main"];
+    }
 
     if (window->isReflectionPhase())
     {
-        auto tex = curr_material->getTexture();
-        if (tex && window->getActiveReflectiveTexture() == tex->getID())
+        if (material.state.tex && 
+            window->getActiveReflectiveTexture() == material.state.tex->getID())
             return;
     }
 
-    curr_material->activate(window, world_from_body);
+    curr_material->activate(window, world_from_body, material.state);
 
 	glBindVertexArray(curr_vao_id);
 	
@@ -237,7 +239,7 @@ void Mesh::renderOGL(Window* window, const TransformSim3& world_from_body)
 
 WrappedMesh::WrappedMesh(
     const shared_ptr<Mesh>& p_mesh,
-    const shared_ptr<Material>& p_material
+    const Material& p_material
 )
 : mesh(p_mesh), material(p_material)
 {

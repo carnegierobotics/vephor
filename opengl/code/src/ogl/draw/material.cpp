@@ -13,7 +13,7 @@
 namespace vephor
 {
 
-void Material::activate(Window* window, const TransformSim3& world_from_body)
+void MaterialProgram::activate(Window* window, const TransformSim3& world_from_body, const MaterialState& state)
 {
     glUseProgram(program_id);
 
@@ -43,11 +43,11 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
 
     if (diffuse_id != std::numeric_limits<GLuint>::max())
     {
-        glUniform3fv(diffuse_id, 1, diffuse.data());
-        glUniform3fv(ambient_id, 1, ambient.data());
-        glUniform3fv(emissive_id, 1, emissive.data());
-        glUniform1f(specular_id, specular);
-        glUniform1f(opacity_id, opacity);
+        glUniform3fv(diffuse_id, 1, state.diffuse.data());
+        glUniform3fv(ambient_id, 1, state.ambient.data());
+        glUniform3fv(emissive_id, 1, state.emissive.data());
+        glUniform1f(specular_id, state.specular);
+        glUniform1f(opacity_id, state.opacity);
 
         Vec3 ambient_light_strength = window->getAmbientLight();
         glUniform3fv(light_ambient_id, 1, ambient_light_strength.data());
@@ -55,6 +55,7 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
 
     if (tex_sampler_id != std::numeric_limits<GLuint>::max())
     {
+        auto tex = state.tex;
         if (!tex)
         {
             tex = window->getDefaultTex();
@@ -67,25 +68,25 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
 	
     if (normal_sampler_id != std::numeric_limits<GLuint>::max())
     {
-        if (!normal_map)
+        if (!state.normal_map)
 	    {
             throw std::runtime_error("No normal map found in material.");
         }
 
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, normal_map->getID());
+        glBindTexture(GL_TEXTURE_2D, state.normal_map->getID());
         glUniform1i(normal_sampler_id, 1);
     }
 
     if (cube_tex_sampler_id != std::numeric_limits<GLuint>::max())
     {
-        if (!cube_tex)
+        if (!state.cube_tex)
         {
             throw std::runtime_error("No cube texture found in material.");
         }
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cube_tex->getID());
+        glBindTexture(GL_TEXTURE_CUBE_MAP, state.cube_tex->getID());
         glUniform1i(cube_tex_sampler_id, 0);
     }
 
@@ -107,9 +108,9 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
     {
         glUniformMatrix4fv(dir_light_proj_from_world_id, 1, GL_FALSE, dir_light_proj_from_world.data());
 
-        glActiveTexture(GL_TEXTURE1);
+        glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, dir_light_shadow_map->getID());
-        glUniform1i(dir_light_shadow_map_sampler_id, 1);
+        glUniform1i(dir_light_shadow_map_sampler_id, 2);
     }
 
     if (num_point_lights_id != std::numeric_limits<GLuint>::max())
@@ -136,7 +137,7 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
 
     if (size_id != std::numeric_limits<GLuint>::max())
     {
-        glUniform1f(size_id, size);
+        glUniform1f(size_id, state.size);
     }
 
     if (aspect_id != std::numeric_limits<GLuint>::max())
@@ -151,7 +152,7 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
     }
 }
 
-void Material::deactivate()
+void MaterialProgram::deactivate()
 {
 }
 
@@ -967,7 +968,9 @@ void MaterialBuilder::saveShaders() const
     f_out.close();
 }
 
-std::shared_ptr<Material> MaterialBuilder::build() const
+unordered_map<string, shared_ptr<MaterialProgram>> material_bank;
+
+std::shared_ptr<MaterialProgram> MaterialBuilder::build() const
 {
     bool lighting = materials && (dir_light || point_lights);
 
@@ -991,7 +994,10 @@ std::shared_ptr<Material> MaterialBuilder::build() const
 
     auto tag = getTag();
 
-    auto material = std::make_shared<Material>();
+    if (find(material_bank, tag))
+        return material_bank[tag];
+
+    auto material = std::make_shared<MaterialProgram>();
 
     material->tag = tag;
     material->program_id = findProgram(tag);
@@ -1076,7 +1082,7 @@ std::shared_ptr<Material> MaterialBuilder::build() const
     {
         material->num_point_lights_id = glGetUniformLocation(material->program_id, "num_point_lights");
 
-        for (size_t i = 0; i < Material::MAX_NUM_POINT_LIGHTS; i++)
+        for (size_t i = 0; i < MaterialProgram::MAX_NUM_POINT_LIGHTS; i++)
         {
             material->light_point_pos_id[i] = glGetUniformLocation(material->program_id, ("point_light_pos_in_world["+std::to_string(i)+"]").c_str());
             material->light_point_strength_id[i] = glGetUniformLocation(material->program_id, ("point_light_strength["+std::to_string(i)+"]").c_str());
@@ -1104,14 +1110,37 @@ std::shared_ptr<Material> MaterialBuilder::build() const
 
     material->infinite_depth = infinite_depth;
 
+    material_bank[tag] = material;
+
     return material;
 }
 
-MaterialSet MaterialBuilder::buildSet() const
+MaterialProgramSet MaterialBuilder::buildSet(bool simple_depth) const
 {
-    MaterialSet set;
+    MaterialProgramSet set;
 
     set["main"] = build();
+
+    MaterialBuilder depth_builder = *this;
+    if (simple_depth)
+    {
+        depth_builder.tex = false;
+        depth_builder.normal_map = false;
+        depth_builder.cube_tex = false;
+        depth_builder.dir_light = false;
+        depth_builder.point_lights = false;
+        depth_builder.vertex_color = false;
+        depth_builder.materials = true;
+        depth_builder.screen_space_tex_coords = false;
+        depth_builder.no_color = true;
+        depth_builder.dir_light_shadows = false;
+    }
+    set["depth"] = depth_builder.build();
+
+    MaterialBuilder dir_light_shadow_builder = *this;
+    if (dir_light_shadow_builder.dir_light)
+        dir_light_shadow_builder.dir_light_shadows = true;
+    set["shadows"] = dir_light_shadow_builder.build();
 
     return set;
 }

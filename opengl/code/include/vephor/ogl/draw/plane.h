@@ -26,8 +26,8 @@ public:
 		MaterialBuilder builder;
 		builder.dir_light = true;
 		builder.point_lights = true;
-		builder.dir_light_shadows = true;
-		mesh = make_shared<Mesh>(data, builder.build());
+		builder.tex = true;
+		mesh = make_shared<Mesh>(data, builder.buildSet());
 	}
 	void setColor(const Color& p_color)
 	{
