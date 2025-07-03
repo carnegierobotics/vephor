@@ -117,7 +117,10 @@ void plotIrisesSize()
                        sepal_lengths,
                        vector<float>{},
                        petal_lengths,
-                       PlotScatterOptions{.label = species, .marker = PlotScatterMarker::CIRCLE});
+                       PlotScatterOptions{.label = species,
+                                          .size_in_screen_perc = 2.0F,
+                                          .marker = PlotScatterMarker::CIRCLE,
+                                          .size_axis_limits = {0.5, 2.0}});
     }
 
     plt.show();
@@ -148,11 +151,12 @@ void plotIrisesColormap()
     plt.xlabel("Sepal Width");
     plt.ylabel("Sepal Length");
 
-    plt.scatter_cs(sepal_widths,
-                   sepal_lengths,
-                   petal_lengths,
-                   vector<float>{},
-                   PlotScatterOptions{.label = "Petal Length", .marker = PlotScatterMarker::CIRCLE});
+    plt.scatter_cs(
+        sepal_widths,
+        sepal_lengths,
+        petal_lengths,
+        vector<float>{},
+        PlotScatterOptions{.label = "Petal Length", .size_in_screen_perc = 2.0F, .marker = PlotScatterMarker::CIRCLE});
 
     plt.show();
 }
