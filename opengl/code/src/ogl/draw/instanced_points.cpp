@@ -13,66 +13,119 @@
 namespace vephor
 {
 
-InstancedPoints::InstancedPoints(
-	const MatXRef& p_pts,
-    const MatXRef& p_colors,
-	const Vec4& p_default_color)
-: offsets(p_pts.transpose())
+InstancedPoints::InstancedPoints(const MatXRef& p_pts,
+                                 const MatXRef& p_colors,
+                                 const VecXRef& p_sizes,
+                                 const Vec4& p_default_color,
+                                 const float p_default_size) :
+    offsets(p_pts.transpose())
 {
-    colors.resize(4,p_pts.rows());
-	
-	if (p_colors.cols() == 3 && p_colors.rows() > 0)
-	{
-        colors.block(0,0,3,p_colors.rows()) = p_colors.transpose();
-		colors.block(3,0,1,p_colors.rows()).fill(1);
-	}
-    else if (p_colors.cols() == 4 && p_colors.rows() > 0)
-        colors.block(0,0,4,p_colors.rows()) = p_colors.transpose();
-    colors.block(0,p_colors.rows(),4,p_pts.rows()-p_colors.rows()).colwise() = p_default_color;
-	
-	verts.resize(6,3);
-	uvs.resize(6,2);
-	
-	verts.row(0) = Vec3(0,0,0);
-	verts.row(1) = Vec3(0,1,0);
-	verts.row(2) = Vec3(1,1,0);
-	verts.row(3) = Vec3(0,0,0);
-	verts.row(4) = Vec3(1,1,0);
-	verts.row(5) = Vec3(1,0,0);
-	
-	Vec3 center(0.5f,0.5f,0);
-	
-	for (int i = 0; i < 6; i++)
-		verts.row(i) -= center;
-	
-	uvs.row(0) = Vec2(0,1);
-	uvs.row(1) = Vec2(0,0);
-	uvs.row(2) = Vec2(1,0);
-	uvs.row(3) = Vec2(0,1);
-	uvs.row(4) = Vec2(1,0);
-	uvs.row(5) = Vec2(1,1);
-	
-	verts = verts.transpose().eval();
-	uvs = uvs.transpose().eval();
+    //
+    // Colors
+    //
 
-	{
-		MaterialBuilder builder;
-		builder.tex = true;
-		builder.normal_map = false;
-		builder.dir_light = false;
-		builder.point_lights = false;
-		builder.vertex_color = true;
-		builder.materials = false;
-		builder.offset = true;
-		builder.uniform_size = true;
-		builder.billboard = true;
-		material = builder.build();
-	}
+    {
+        colors.resize(4, p_pts.rows());
+
+        if (p_colors.cols() == 3 && p_colors.rows() > 0)
+        {
+            colors.block(0, 0, 3, p_colors.rows()) = p_colors.transpose();
+            colors.block(3, 0, 1, p_colors.rows()).fill(1);
+        }
+        else if (p_colors.cols() == 4 && p_colors.rows() > 0)
+        {
+            colors.block(0, 0, 4, p_colors.rows()) = p_colors.transpose();
+        }
+        colors.block(0, p_colors.rows(), 4, p_pts.rows() - p_colors.rows()).colwise() = p_default_color;
+    }
+
+    //
+    // Sizes
+    //
+
+    {
+        sizes.resize(p_pts.rows());
+        sizes.fill(p_default_size);
+
+        if (p_sizes.rows() == 0)
+        {
+        }
+        else if (p_sizes.rows() == 1)
+        {
+            sizes.fill(p_sizes[0]);
+        }
+        else if (p_sizes.rows() < p_pts.rows())
+        {
+            sizes.head(p_sizes.rows()) = p_sizes;
+        }
+        else if (p_sizes.rows() == p_pts.rows())
+        {
+            sizes = p_sizes.transpose();
+        }
+        else // p_sizes.rows() > p_pts.rows()
+        {
+            sizes = p_sizes.head(p_pts.rows()).transpose();
+        }
+    }
+
+    //
+    // Vertices and textures
+    //
+
+    {
+        verts.resize(6, 3);
+        uvs.resize(6, 2);
+
+        verts.row(0) = Vec3(0, 0, 0);
+        verts.row(1) = Vec3(0, 1, 0);
+        verts.row(2) = Vec3(1, 1, 0);
+        verts.row(3) = Vec3(0, 0, 0);
+        verts.row(4) = Vec3(1, 1, 0);
+        verts.row(5) = Vec3(1, 0, 0);
+
+        Vec3 center(0.5f, 0.5f, 0);
+
+        for (int i = 0; i < 6; i++)
+        {
+            verts.row(i) -= center;
+        }
+
+        uvs.row(0) = Vec2(0, 1);
+        uvs.row(1) = Vec2(0, 0);
+        uvs.row(2) = Vec2(1, 0);
+        uvs.row(3) = Vec2(0, 1);
+        uvs.row(4) = Vec2(1, 0);
+        uvs.row(5) = Vec2(1, 1);
+
+        verts = verts.transpose().eval();
+        uvs = uvs.transpose().eval();
+    }
+
+    //
+    // Material
+    //
+
+    {
+        MaterialBuilder builder;
+        builder.tex = true;
+        builder.normal_map = false;
+        builder.dir_light = false;
+        builder.point_lights = false;
+        builder.vertex_color = true;
+        builder.materials = false;
+        builder.offset = true;
+        builder.uniform_size = true;
+        builder.billboard = true;
+        material = builder.build();
+    }
 }
 
-InstancedPoints::~InstancedPoints()
+InstancedPoints::InstancedPoints(const MatXRef& p_pts, const MatXRef& p_colors, const Vec4& p_default_color) :
+    InstancedPoints(/* pts */ p_pts, /* colors */ p_colors, /* sizes */ VecX(), /* default_color */ p_default_color)
 {
 }
+
+InstancedPoints::~InstancedPoints() = default;
 
 void InstancedPoints::onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
 {
@@ -175,6 +228,38 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
 	glBindVertexArray(0);
 
 	material->deactivate();
+}
+
+void InstancedPoints::setTexture(const shared_ptr<Texture>& p_tex) { material->setTexture(p_tex); }
+
+void InstancedPoints::setSize(float p_size) { size = p_size; }
+
+void InstancedPoints::setSizes(const MatXRef& p_sizes)
+{
+    sizes = p_sizes.transpose();
+
+    if (!curr_window)
+    {
+        generateMaterial();
+        return;
+    }
+
+    if (size_buffer_id != std::numeric_limits<GLuint>::max())
+    {
+        throw std::runtime_error("InstancedPoints size buffer already set.");
+    }
+
+    createOpenGLBufferForMatX(size_buffer_id, sizes);
+
+    generateMaterial();
+}
+
+void InstancedPoints::setOpacity(const float& p_opacity) { material->setOpacity(p_opacity); }
+
+void InstancedPoints::setScreenSpaceMode(bool p_ss_mode)
+{
+    ss_mode = p_ss_mode;
+    generateMaterial();
 }
 
 }

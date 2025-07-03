@@ -43,7 +43,7 @@ public:
         }
     }
 
-    Particle(const vector<Vec3>& p_verts, const vector<Vec4>& p_colors, const float p_size) : default_size(p_size)
+    Particle(const vector<Vec3>& p_verts, const vector<Vec4>& p_colors, const float p_size) : size(p_size)
     {
         verts = MatXMap(reinterpret_cast<const float*>(p_verts.data()), 3, p_verts.size());
 
