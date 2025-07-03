@@ -18,8 +18,6 @@ const float TRACKBALL_BASE_FAR_Z = 10.0f;
 
 void TrackballCamera::resizeWindow(Window& window)
 {
-	v4print "Resize:", curr_near_z, curr_far_z;
-
 	Mat4 proj = makePerspectiveProj(fov, window.getSize(), curr_near_z, curr_far_z);
 	window.setProjectionMatrix(proj);
 }

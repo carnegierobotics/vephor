@@ -80,7 +80,52 @@ int main()
 
     auto cube = make_shared<Cube>(10.0);
     cube->setColor(Vec3(1,0,0));
-    auto cube_node = window.add(cube, Transform3(Vec3(425,0,0)));
+    auto cube_node = window.add(cube, Transform3(Vec3(425,125,0)));
+
+
+
+    Material time_varying_material;
+    {
+        MaterialBuilder builder;
+        builder.tex = false;
+        builder.normal_map = false;
+        builder.dir_light = true;
+        builder.point_lights = true;
+        builder.time = true;
+
+        builder.extra_sections["vertex_main"].push_back(R"(
+            curr_pos_in_model[0] *= (0.6 + 0.4 * sin(time * 3 + curr_pos_in_model[1]*0.25));
+        )");
+
+        time_varying_material.set = builder.buildSet();
+    }
+
+    auto plane_mesh_data = formPlaneGrid(Vec2(30,100), Vec2i(100,100));
+
+    {
+        auto mesh = make_shared<Mesh>(
+            plane_mesh_data,
+            time_varying_material);
+
+        auto mesh_render = window.add(mesh, TransformSim3(
+            Vec3(425,-125,0),
+            Vec3(0.0,0.0,0.0),
+            1.0f
+        ));
+    }
+
+    {
+        auto mesh = make_shared<Mesh>(
+            plane_mesh_data,
+            time_varying_material);
+
+        auto mesh_render = window.add(mesh, TransformSim3(
+            Vec3(425,-125,-150),
+            Vec3(0.0,0.0,M_PI / 2),
+            1.0f
+        ));
+    }
+
     
 
     Vec3 light_dir(0,0,1);
@@ -108,6 +153,8 @@ int main()
         sphere_3_node->setPos(Vec3(350,sin(t+4*M_PI/3)*200,-100));
 
         cube_node->setOrient(Vec3(sin(t),sin(t)*5,sin(t)*13));
+
+        window.setCanonicalTime(t);
 
         t += dt;
     }
