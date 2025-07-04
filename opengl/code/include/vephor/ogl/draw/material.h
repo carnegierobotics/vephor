@@ -135,6 +135,8 @@ public:
     bool screen_space_tex_coords = false;
     bool no_color = false;
     bool dir_light_shadows = false;
+    bool vert_world_from_model = false;
+    bool frag_cam_from_world = false;
 
     unordered_map<string, vector<string>> extra_sections;
 

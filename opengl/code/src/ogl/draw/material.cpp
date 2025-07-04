@@ -265,6 +265,10 @@ string vertexShaderScreenSpaceUniforms = R"(
 uniform float aspect;
 )";
 
+string vertexShaderWorldFromModelUniforms = R"(
+uniform mat4 world_from_model;
+)";
+
 string vertexShaderMainHeader = R"(
 
 void main()
@@ -445,6 +449,9 @@ std::string MaterialBuilder::produceVertexShader() const
     if (screen_space)
         shader += vertexShaderScreenSpaceUniforms;
 
+    if (vert_world_from_model)
+        shader += vertexShaderWorldFromModelUniforms;
+
     if (find(extra_sections, string("vertex_func")))
     {
         for (const auto& section : extra_sections.at("vertex_func"))
@@ -491,9 +498,7 @@ std::string MaterialBuilder::produceVertexShader() const
             shader += vertexShaderMain;
     }
 
-    /*if (screen_space_tex_coords)
-        shader += vertexShaderScreenSpaceTexCoordsMain;
-    else*/ if (tex || normal_map)
+    if (tex || normal_map)
         shader += vertexShaderTexMain;
 
     if (cube_tex)
@@ -603,6 +608,14 @@ uniform float point_light_strength[MAX_POINT_LIGHTS];
 
 string fragmentShaderScreenSpaceTexCoordsUniforms = R"(
 uniform vec2 screen_size;
+)";
+
+string fragmentShaderTimeUniforms = R"(
+uniform float time;
+)";
+
+string fragmentShaderCamFromWorldUniforms = R"(
+uniform mat4 cam_from_world;
 )";
 
 string fragmentShaderMain = R"(
@@ -816,6 +829,20 @@ std::string MaterialBuilder::produceFragmentShader() const
     if (screen_space_tex_coords)
         shader += fragmentShaderScreenSpaceTexCoordsUniforms;
 
+    if (time)
+        shader += fragmentShaderTimeUniforms;
+
+    if (frag_cam_from_world)
+        shader += fragmentShaderCamFromWorldUniforms;
+
+    if (find(extra_sections, string("frag_func")))
+    {
+        for (const auto& section : extra_sections.at("frag_func"))
+        {
+            shader += section;
+        }
+    }
+
     shader += fragmentShaderMain;
 
     if (lighting)
@@ -831,7 +858,14 @@ std::string MaterialBuilder::produceFragmentShader() const
 
     if (!no_color)
     {
-        if (screen_space_tex_coords)
+        if (find(extra_sections, string("frag_tex")))
+        {
+            for (const auto& section : extra_sections.at("frag_tex"))
+            {
+                shader += section;
+            }
+        }
+        else if (screen_space_tex_coords)
             shader += fragmentShaderScreenSpaceTexCoordsMain;
         else if (cube_tex)
             shader += fragmentShaderCubeTexMain;
@@ -943,6 +977,10 @@ std::string MaterialBuilder::getTag() const
         tag += "_sstc";
     if (no_color)
         tag += "_nocol";
+    if (vert_world_from_model)
+        tag += "_vwfm";
+    if (frag_cam_from_world)
+        tag += "_fcfw";
     for (const auto& sections : extra_sections)
     {
         for (const auto& section : sections.second)

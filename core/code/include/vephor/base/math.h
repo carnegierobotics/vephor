@@ -59,7 +59,6 @@ using std::chrono::duration_cast;
 using std::numeric_limits;
 using std::pair;
 using std::swap;
-using std::clamp;
 
 //
 // Utility macros
@@ -302,7 +301,7 @@ public:
 		from /= from_mag;
 		to /= to_mag;
 
-		float angle = acos(clamp(from.dot(to),-1.0f,1.0f));
+		float angle = acos(std::clamp(from.dot(to),-1.0f,1.0f));
 
 		if (angle < 1e-3)
 			return Orient3();

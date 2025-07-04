@@ -36,7 +36,7 @@ public:
 	void renderOGL(Window* window, const TransformSim3& world_from_body)
 	{
         glDepthFunc(GL_LEQUAL);
-		mesh->renderOGL(window, Transform3(Vec3::Zero(), Vec3(-M_PI/2,0,0)));
+		mesh->renderOGL(window, world_from_body * Transform3(Vec3::Zero(), Vec3(-M_PI/2,0,0)));
         glDepthFunc(GL_LESS);
 	}
 	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
