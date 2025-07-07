@@ -37,7 +37,15 @@ void MaterialProgram::activate(Window* window, const TransformSim3& world_from_b
     if (world_from_model_matrix_id != std::numeric_limits<GLuint>::max())
     {
         glUniformMatrix4fv(world_from_model_matrix_id, 1, GL_FALSE, M.data());
+    }
+
+    if (camera_from_world_matrix_id != std::numeric_limits<GLuint>::max())
+    {
         glUniformMatrix4fv(camera_from_world_matrix_id, 1, GL_FALSE, V.data());
+    }
+
+    if (camera_from_model_matrix_id != std::numeric_limits<GLuint>::max())
+    {
         glUniformMatrix4fv(camera_from_model_matrix_id, 1, GL_FALSE, VM.data());
     }
 
@@ -241,6 +249,9 @@ uniform mat4 proj_from_camera;
 string vertexShaderLightingUniforms = R"(
 uniform mat4 cam_from_world;
 uniform mat4 world_from_model;
+)";
+
+string vertexShaderCamFromModelUniforms = R"(
 uniform mat4 cam_from_model;
 )";
 
@@ -302,9 +313,8 @@ string vertexShaderBillboardMain = R"(
 )";
 
 string vertexShaderBillboardOffsetMain = R"(
-    vec4 center_in_proj = proj_from_model * vec4(in_offset, 1);
-    gl_Position.xyw = ((proj_from_camera * vec4(curr_pos_in_model, 1)) + center_in_proj).xyw;
-    gl_Position.z = center_in_proj.z;
+    vec3 pos_in_camera = curr_pos_in_model + (cam_from_model * vec4(in_offset,1)).xyz;
+    gl_Position = proj_from_camera * vec4(pos_in_camera, 1);
 )";
 
 string vertexShaderScreenSpaceMain = R"(
@@ -433,6 +443,9 @@ std::string MaterialBuilder::produceVertexShader() const
 
     if (lighting)
         shader += vertexShaderLightingUniforms;
+
+    if (billboard || lighting)
+        shader += vertexShaderCamFromModelUniforms;
 
     if (dir_light)
         shader += vertexShaderDirLightUniforms;
@@ -1066,6 +1079,10 @@ std::shared_ptr<MaterialProgram> MaterialBuilder::build() const
 
         material->camera_from_world_matrix_id = glGetUniformLocation(material->program_id, "cam_from_world");
         material->world_from_model_matrix_id = glGetUniformLocation(material->program_id, "world_from_model");
+    }
+
+    if (billboard || lighting)
+    {
         material->camera_from_model_matrix_id = glGetUniformLocation(material->program_id, "cam_from_model");
     }
 
