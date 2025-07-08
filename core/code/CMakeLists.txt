@@ -153,6 +153,7 @@ else ()
 		mini_test_show_trajectory_camera
 		mini_test_server
 		test_plot
+		test_scatter
 		test_imshow
 		test_plot_render
 		test_show_two_windows

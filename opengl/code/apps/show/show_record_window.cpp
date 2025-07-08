@@ -970,12 +970,13 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		serialization.header = obj;
 		serialization.valid = true;
 		
-		Vec4 default_color = readDefault(obj, "default_color_rgb", Vec4(1,1,1,1));
+		const Vec4 default_color = readDefault(obj, "default_color_rgb", Vec4(1,1,1,1));
+		const float default_size = readDefault(obj, "default_size", 0.1F);
 
-		VertexDataRecord verts_record, colors_record;
-
+        VertexDataRecord verts_record;
 		readVertexData(obj["verts"], base_buf_index, bufs, verts_record, &serialization.header["verts"], &serialization.payloads);
-		
+
+        VertexDataRecord colors_record;
 		if (obj.contains("colors"))
 		{
 			readVertexData(obj["colors"], base_buf_index, bufs, colors_record, &serialization.header["colors"], &serialization.payloads);
@@ -988,11 +989,32 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 			}
 		}
 
-		auto draw_obj = make_shared<InstancedPoints>(
-			verts_record.map.transpose(),
-			colors_record.map.transpose(),
-			readDefault(obj, "default_color_rgba", Vec4(1,1,1,1)));
-		
+        VertexDataRecord sizes_record;
+        if (obj.contains("sizes"))
+        {
+            readVertexData(obj["sizes"],
+                           base_buf_index,
+                           bufs,
+                           sizes_record,
+                           &serialization.header["sizes"],
+                           &serialization.payloads);
+
+            if (verts_record.map.cols() != sizes_record.map.cols())
+            {
+                v4print "Verts:", verts_record.map.rows(), verts_record.map.cols();
+                v4print "Colors:", colors_record.map.rows(), colors_record.map.cols();
+                v4print "Sizes:", sizes_record.map.rows(), sizes_record.map.cols();
+                throw std::runtime_error("Verts, colors, and sizes must have same size.");
+            }
+        }
+
+        auto draw_obj = make_shared<InstancedPoints>(
+            /* pts */ verts_record.map.transpose(),
+            /* colors */ colors_record.map.transpose(),
+            /* sizes */ sizes_record.map.transpose(),
+            /* default_color */ default_color,
+            /* default_size */ default_size);
+
 		if (obj.contains("tex") && !string(obj["tex"]).empty())
 		{
 			bool filter_nearest = false;
@@ -1001,10 +1023,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 			auto tex = loadTexture(obj["tex"], filter_nearest, assets);
 			draw_obj->setTexture(tex);
 		}
-		
-		if (obj.contains("size"))
-			draw_obj->setSize(obj["size"]);
-		
+
 		if (obj.contains("ss_mode"))
 			draw_obj->setScreenSpaceMode(obj["ss_mode"]);
 

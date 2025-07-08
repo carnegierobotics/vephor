@@ -19,72 +19,51 @@ namespace vephor
 class InstancedPoints
 {
 public:
-    InstancedPoints(
-        const MatXRef& pts,
-        const MatXRef& colors = MatX(),
-		const Vec4& default_color = Vec4(1,1,1,1)
-    );
+    InstancedPoints(const MatXRef& pts,
+                    const MatXRef& colors = MatX(),
+                    const VecXRef& sizes = VecX(),
+                    const Vec4& default_color = Vec4(1, 1, 1, 1),
+                    float default_size = 0.03F);
+
+    // Kept for backwards compatibility.
+    InstancedPoints(const MatXRef& pts, const MatXRef& colors, const Vec4& default_color);
+
     ~InstancedPoints();
-	void setTexture(const shared_ptr<Texture>& p_tex)
-	{
-		material->setTexture(p_tex);
-	}
-	void setSize(float p_size)
-	{
-		size = p_size;
-	}
-	void setSizes(const MatXRef& p_sizes)
-	{
-		sizes = p_sizes.transpose();
 
-		if (!curr_window)
-		{
-			generateMaterial();
-			return;
-		}
+    void setTexture(const shared_ptr<Texture>& p_tex);
+    void setSize(float p_size);
+    void setSizes(const MatXRef& p_sizes);
+    void setOpacity(const float& p_opacity);
+    void setScreenSpaceMode(bool p_ss_mode);
 
-		if (size_buffer_id != std::numeric_limits<GLuint>::max())
-			throw std::runtime_error("InstancedPoints size buffer already set.");
-
-		createOpenGLBufferForMatX(size_buffer_id, sizes);
-
-		generateMaterial();
-	}
-	void setOpacity(const float& p_opacity)
-	{
-		material->setOpacity(p_opacity);
-	}
-	void setScreenSpaceMode(bool p_ss_mode)
-	{
-		ss_mode = p_ss_mode;
-		generateMaterial();
-	}
     void renderOGL(Window* window, const TransformSim3& world_from_body);
-	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
-	void onRemoveFromWindow(Window* window);
-private:
-	void generateMaterial();
-	void setupVAO();
 
-	Window* curr_window = NULL;
+    void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
+    void onRemoveFromWindow(Window* window);
+
+private:
+    void generateMaterial();
+    void setupVAO();
+
+    Window* curr_window = nullptr;
 
     MatX verts;
-	MatX uvs;
-	MatX offsets;
-	MatX colors;
-	MatX sizes;
-	float size = 0.03f;
-	bool ss_mode = false;
+    MatX uvs;
+    MatX offsets;
+    MatX colors;
+    RVecX sizes;
+    float size = 0.03f;
+    bool ss_mode = false;
 
-	shared_ptr<Material> material;
+    shared_ptr<Material> material;
 
-	GLuint vao_id = std::numeric_limits<GLuint>::max();
+    GLuint vao_id = std::numeric_limits<GLuint>::max();
 
     GLuint pos_buffer_id = std::numeric_limits<GLuint>::max();
-	GLuint uv_buffer_id = std::numeric_limits<GLuint>::max();
-	GLuint offset_buffer_id = std::numeric_limits<GLuint>::max();
-	GLuint color_buffer_id = std::numeric_limits<GLuint>::max();
-	GLuint size_buffer_id = std::numeric_limits<GLuint>::max();
+    GLuint uv_buffer_id = std::numeric_limits<GLuint>::max();
+    GLuint offset_buffer_id = std::numeric_limits<GLuint>::max();
+    GLuint color_buffer_id = std::numeric_limits<GLuint>::max();
+    GLuint size_buffer_id = std::numeric_limits<GLuint>::max();
 };
 
 }
