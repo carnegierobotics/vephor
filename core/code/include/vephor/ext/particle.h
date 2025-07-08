@@ -97,9 +97,11 @@ public:
 			json_data["tex"] = tex;
 			VEPHOR_SERIALIZE_IF_STANDARD(nearest);
 		}
+
 		VEPHOR_SERIALIZE_IF_STANDARD(default_color_rgba);
 		VEPHOR_SERIALIZE_IF_STANDARD(size);
 		VEPHOR_SERIALIZE_IF_STANDARD(ss_mode);
+
         if (bufs)
         {
             json_data["verts"] = produceVertDataRaw(verts, bufs);
@@ -111,7 +113,6 @@ public:
 
         if (colors.rows() > 0)
         {
-            //{"colors", toJson(colors)},
             if (bufs)
             {
                 json_data["colors"] = produceVertDataRaw(colors, bufs);

@@ -248,7 +248,7 @@ void InstancedPoints::setSizes(const MatXRef& p_sizes)
     generateMaterial();
 }
 
-void InstancedPoints::setOpacity(const float& p_opacity) { material->setOpacity(p_opacity); }
+void InstancedPoints::setOpacity(const float& p_opacity) { material_state.opacity = p_opacity; }
 
 void InstancedPoints::setScreenSpaceMode(bool p_ss_mode)
 {
