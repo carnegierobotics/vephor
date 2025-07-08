@@ -22,7 +22,7 @@ int main()
 
 
 
-    shared_ptr<Material> lighting_only_material;
+    Material lighting_only_material;
     {
         MaterialBuilder builder;
         builder.tex = false;
@@ -30,10 +30,10 @@ int main()
         builder.dir_light = true;
         builder.point_lights = true;
 
-        lighting_only_material = builder.build();
+        lighting_only_material.set = builder.buildSet();
     }
 
-    shared_ptr<Material> gradient_material;
+    Material gradient_material;
     {
         MaterialBuilder builder;
         builder.tex = true;
@@ -41,13 +41,15 @@ int main()
         builder.dir_light = true;
         builder.point_lights = true;
 
-        gradient_material = builder.build();
+        gradient_material.set = builder.buildSet();
+
         auto gradient_img = generateGradientImage(Vec2i(64,64), Vec3(1,0,0), Vec3(0,0,1));
-        gradient_material->setTexture(window.getTextureFromImage(*gradient_img, true));
-        gradient_material->setOpacity(0.25);
+
+        gradient_material.state.tex = window.getTextureFromImage(*gradient_img, true);
+        gradient_material.state.opacity = 0.25;
     }
 
-    shared_ptr<Material> checker_material;
+    Material checker_material;
     {
         MaterialBuilder builder;
         builder.tex = true;
@@ -55,12 +57,14 @@ int main()
         builder.dir_light = true;
         builder.point_lights = true;
 
-        checker_material = builder.build();
+        checker_material.set = builder.buildSet();
+
         auto checker_img = generateCheckerboardImage(Vec2i(64,64), Vec2i(32,32), Vec3(0.33,0.33,0.33), Vec3(0.66,0.66,0.66));
-        checker_material->setTexture(window.getTextureFromImage(*checker_img, true));
+
+        checker_material.state.tex = window.getTextureFromImage(*checker_img, true);
     }
 
-    shared_ptr<Material> normal_only_material;
+    Material normal_only_material;
     {
         MaterialBuilder builder;
         builder.tex = true;
@@ -100,15 +104,15 @@ int main()
             }
         }
 
-        builder.saveShaders();
-        normal_only_material = builder.build();
-        auto normal_map = convertNormalImageToNormalMap(*normal_image);
-        normal_only_material->setNormalMap(window.getTextureFromImage(*normal_map, false));
+        normal_only_material.set = builder.buildSet();
 
-        normal_only_material->setTexture(window.getTextureFromImage(*circle_image, false));
+        auto normal_map = convertNormalImageToNormalMap(*normal_image);
+
+        normal_only_material.state.normal_map = window.getTextureFromImage(*normal_map, false);
+        normal_only_material.state.tex = window.getTextureFromImage(*circle_image, false);
     }
 
-    shared_ptr<Material> time_varying_material;
+    Material time_varying_material;
     {
         MaterialBuilder builder;
         builder.tex = false;
@@ -139,18 +143,13 @@ int main()
             curr_normal_in_model = normalize(cross(dy, dx)); // dy × dx = normal
         )");
 
-        time_varying_material = builder.build();
+        time_varying_material.set = builder.buildSet(/*simple_depth*/false);
     }
 
-    vector<shared_ptr<Material>> materials;
+    vector<Material> materials;
     materials.push_back(time_varying_material);
     materials.push_back(normal_only_material);
     materials.push_back(gradient_material);
-
-    for (const auto& mat : materials)
-    {
-        v4print "Material tag:", mat->getTag();
-    }
 
     int curr_material = 0;
 

@@ -13,7 +13,7 @@
 namespace vephor
 {
 
-void Material::activate(Window* window, const TransformSim3& world_from_body)
+void MaterialProgram::activate(Window* window, const TransformSim3& world_from_body, const MaterialState& state)
 {
     glUseProgram(program_id);
 
@@ -37,17 +37,25 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
     if (world_from_model_matrix_id != std::numeric_limits<GLuint>::max())
     {
         glUniformMatrix4fv(world_from_model_matrix_id, 1, GL_FALSE, M.data());
+    }
+
+    if (camera_from_world_matrix_id != std::numeric_limits<GLuint>::max())
+    {
         glUniformMatrix4fv(camera_from_world_matrix_id, 1, GL_FALSE, V.data());
+    }
+
+    if (camera_from_model_matrix_id != std::numeric_limits<GLuint>::max())
+    {
         glUniformMatrix4fv(camera_from_model_matrix_id, 1, GL_FALSE, VM.data());
     }
 
     if (diffuse_id != std::numeric_limits<GLuint>::max())
     {
-        glUniform3fv(diffuse_id, 1, diffuse.data());
-        glUniform3fv(ambient_id, 1, ambient.data());
-        glUniform3fv(emissive_id, 1, emissive.data());
-        glUniform1f(specular_id, specular);
-        glUniform1f(opacity_id, opacity);
+        glUniform3fv(diffuse_id, 1, state.diffuse.data());
+        glUniform3fv(ambient_id, 1, state.ambient.data());
+        glUniform3fv(emissive_id, 1, state.emissive.data());
+        glUniform1f(specular_id, state.specular);
+        glUniform1f(opacity_id, state.opacity);
 
         Vec3 ambient_light_strength = window->getAmbientLight();
         glUniform3fv(light_ambient_id, 1, ambient_light_strength.data());
@@ -55,6 +63,7 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
 
     if (tex_sampler_id != std::numeric_limits<GLuint>::max())
     {
+        auto tex = state.tex;
         if (!tex)
         {
             tex = window->getDefaultTex();
@@ -67,34 +76,49 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
 	
     if (normal_sampler_id != std::numeric_limits<GLuint>::max())
     {
-        if (!normal_map)
+        if (!state.normal_map)
 	    {
             throw std::runtime_error("No normal map found in material.");
         }
 
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, normal_map->getID());
+        glBindTexture(GL_TEXTURE_2D, state.normal_map->getID());
         glUniform1i(normal_sampler_id, 1);
     }
 
     if (cube_tex_sampler_id != std::numeric_limits<GLuint>::max())
     {
-        if (!cube_tex)
+        if (!state.cube_tex)
         {
             throw std::runtime_error("No cube texture found in material.");
         }
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cube_tex->getID());
+        glBindTexture(GL_TEXTURE_CUBE_MAP, state.cube_tex->getID());
         glUniform1i(cube_tex_sampler_id, 0);
     }
 
-    if (light_dir_id != std::numeric_limits<GLuint>::max())
+    if (dir_light_dir_id != std::numeric_limits<GLuint>::max())
     {
         auto dir_light = window->getDirLight();
 
-        glUniform3fv(light_dir_id, 1, dir_light.pos.data());
-        glUniform1f(light_dir_strength_id, dir_light.strength);
+        glUniform3fv(dir_light_dir_id, 1, dir_light.pos.data());
+        glUniform1f(dir_light_strength_id, dir_light.strength);
+    }
+
+    Mat4 dir_light_proj_from_world;
+    shared_ptr<Texture> dir_light_shadow_map;
+    if (dir_light_proj_from_world_id != std::numeric_limits<GLuint>::max() && 
+        window->getDirLightShadowInfo(
+            dir_light_proj_from_world,
+            dir_light_shadow_map
+        ))
+    {
+        glUniformMatrix4fv(dir_light_proj_from_world_id, 1, GL_FALSE, dir_light_proj_from_world.data());
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, dir_light_shadow_map->getID());
+        glUniform1i(dir_light_shadow_map_sampler_id, 2);
     }
 
     if (num_point_lights_id != std::numeric_limits<GLuint>::max())
@@ -121,7 +145,7 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
 
     if (size_id != std::numeric_limits<GLuint>::max())
     {
-        glUniform1f(size_id, size);
+        glUniform1f(size_id, state.size);
     }
 
     if (aspect_id != std::numeric_limits<GLuint>::max())
@@ -136,7 +160,7 @@ void Material::activate(Window* window, const TransformSim3& world_from_body)
     }
 }
 
-void Material::deactivate()
+void MaterialProgram::deactivate()
 {
 }
 
@@ -225,6 +249,9 @@ uniform mat4 proj_from_camera;
 string vertexShaderLightingUniforms = R"(
 uniform mat4 cam_from_world;
 uniform mat4 world_from_model;
+)";
+
+string vertexShaderCamFromModelUniforms = R"(
 uniform mat4 cam_from_model;
 )";
 
@@ -247,6 +274,10 @@ uniform float size;
 
 string vertexShaderScreenSpaceUniforms = R"(
 uniform float aspect;
+)";
+
+string vertexShaderWorldFromModelUniforms = R"(
+uniform mat4 world_from_model;
 )";
 
 string vertexShaderMainHeader = R"(
@@ -282,9 +313,8 @@ string vertexShaderBillboardMain = R"(
 )";
 
 string vertexShaderBillboardOffsetMain = R"(
-    vec4 center_in_proj = proj_from_model * vec4(in_offset, 1);
-    gl_Position.xyw = ((proj_from_camera * vec4(curr_pos_in_model, 1)) + center_in_proj).xyw;
-    gl_Position.z = center_in_proj.z;
+    vec3 pos_in_camera = curr_pos_in_model + (cam_from_model * vec4(in_offset,1)).xyz;
+    gl_Position = proj_from_camera * vec4(pos_in_camera, 1);
 )";
 
 string vertexShaderScreenSpaceMain = R"(
@@ -414,6 +444,9 @@ std::string MaterialBuilder::produceVertexShader() const
     if (lighting)
         shader += vertexShaderLightingUniforms;
 
+    if (billboard || lighting)
+        shader += vertexShaderCamFromModelUniforms;
+
     if (dir_light)
         shader += vertexShaderDirLightUniforms;
 
@@ -428,6 +461,9 @@ std::string MaterialBuilder::produceVertexShader() const
 
     if (screen_space)
         shader += vertexShaderScreenSpaceUniforms;
+
+    if (vert_world_from_model)
+        shader += vertexShaderWorldFromModelUniforms;
 
     if (find(extra_sections, string("vertex_func")))
     {
@@ -475,9 +511,7 @@ std::string MaterialBuilder::produceVertexShader() const
             shader += vertexShaderMain;
     }
 
-    /*if (screen_space_tex_coords)
-        shader += vertexShaderScreenSpaceTexCoordsMain;
-    else*/ if (tex || normal_map)
+    if (tex || normal_map)
         shader += vertexShaderTexMain;
 
     if (cube_tex)
@@ -571,6 +605,12 @@ uniform samplerCube cube_tex_sampler;
 
 string fragmentShaderDirLightUniforms = R"(
 uniform float dir_light_strength = 0.0f;
+uniform vec3 dir_light_color = vec3(1,1,1);
+)";
+
+string fragmentShaderDirLightShadowsUniforms = R"(
+uniform mat4 dir_light_proj_from_world;
+uniform sampler2D dir_light_shadow_map_sampler;
 )";
 
 string fragmentShaderPointLightUniforms = R"(
@@ -581,6 +621,14 @@ uniform float point_light_strength[MAX_POINT_LIGHTS];
 
 string fragmentShaderScreenSpaceTexCoordsUniforms = R"(
 uniform vec2 screen_size;
+)";
+
+string fragmentShaderTimeUniforms = R"(
+uniform float time;
+)";
+
+string fragmentShaderCamFromWorldUniforms = R"(
+uniform mat4 cam_from_world;
 )";
 
 string fragmentShaderMain = R"(
@@ -630,8 +678,6 @@ string fragmentShaderLightingMain = R"(
 )";
 
 string fragmentShaderDirLightMain = R"(
-    vec3 dir_light_color = vec3(1,1,1);
-
     float dirLightCosTheta = clamp(dot(n,vo_dir_light_dir_in_camera), 0, 1);
 
     vec3 dir_R = reflect(-vo_dir_light_dir_in_camera,n);
@@ -642,6 +688,26 @@ string fragmentShaderDirLightMain = R"(
 
     diffuse_light_strength += dir_diffuse_light;
     specular_light_strength += dir_specular_light;
+)";
+
+string fragmentShaderDirLightShadowsMain = R"(
+    vec4 pos_in_dir_light = dir_light_proj_from_world * vec4(vo_pos_in_world, 1.0);
+    vec3 proj_pos_in_dir_light = pos_in_dir_light.xyz / pos_in_dir_light.w * 0.5 + 0.5;
+    float depth = texture(dir_light_shadow_map_sampler, proj_pos_in_dir_light.xy).r;
+    
+    if (clamp(proj_pos_in_dir_light.z, 0, 1) < depth + 0.001)
+    {
+        float dirLightCosTheta = clamp(dot(n,vo_dir_light_dir_in_camera), 0, 1);
+
+        vec3 dir_R = reflect(-vo_dir_light_dir_in_camera,n);
+        float dir_specular_cos = clamp(dot(E, dir_R), 0, 1);
+
+        vec3 dir_diffuse_light = dir_light_color * dir_light_strength * dirLightCosTheta;
+        vec3 dir_specular_light = dir_light_color * dir_light_strength * pow(dir_specular_cos, specular_power) * specular;
+
+        diffuse_light_strength += dir_diffuse_light;
+        specular_light_strength += dir_specular_light;
+    }
 )";
 
 string fragmentShaderPointLightMain = R"(
@@ -708,6 +774,11 @@ string fragmentShaderMainFooter = R"(
 }
 )";
 
+string fragmentShaderNoColorMainFooter = R"(
+}
+)";
+
+
 
 
 std::string MaterialBuilder::produceFragmentShader() const
@@ -742,7 +813,8 @@ std::string MaterialBuilder::produceFragmentShader() const
     if (vertex_color)
         shader += fragmentShaderVertexColorIn;
 
-    shader += fragmentShaderOut;
+    if (!no_color)
+        shader += fragmentShaderOut;
 
     shader += "\n";
 
@@ -761,11 +833,28 @@ std::string MaterialBuilder::produceFragmentShader() const
     if (dir_light)
         shader += fragmentShaderDirLightUniforms;
 
+    if (dir_light_shadows)
+        shader += fragmentShaderDirLightShadowsUniforms;
+
     if (point_lights)
         shader += fragmentShaderPointLightUniforms;
 
     if (screen_space_tex_coords)
         shader += fragmentShaderScreenSpaceTexCoordsUniforms;
+
+    if (time)
+        shader += fragmentShaderTimeUniforms;
+
+    if (frag_cam_from_world)
+        shader += fragmentShaderCamFromWorldUniforms;
+
+    if (find(extra_sections, string("frag_func")))
+    {
+        for (const auto& section : extra_sections.at("frag_func"))
+        {
+            shader += section;
+        }
+    }
 
     shader += fragmentShaderMain;
 
@@ -780,19 +869,31 @@ std::string MaterialBuilder::produceFragmentShader() const
             shader += fragmentShaderNoNormalMapMain;
     }
 
-    if (screen_space_tex_coords)
-        shader += fragmentShaderScreenSpaceTexCoordsMain;
-    else if (cube_tex)
-        shader += fragmentShaderCubeTexMain;
-    else if (tex)
-        shader += fragmentShaderTexMain;
-    else
-        shader += fragmentShaderNoTexMain;
+    if (!no_color)
+    {
+        if (find(extra_sections, string("frag_tex")))
+        {
+            for (const auto& section : extra_sections.at("frag_tex"))
+            {
+                shader += section;
+            }
+        }
+        else if (screen_space_tex_coords)
+            shader += fragmentShaderScreenSpaceTexCoordsMain;
+        else if (cube_tex)
+            shader += fragmentShaderCubeTexMain;
+        else if (tex)
+            shader += fragmentShaderTexMain;
+        else
+            shader += fragmentShaderNoTexMain;
+    }
 
     if (materials)
         shader += fragmentShaderMaterialsMain;
 
-    if (dir_light)
+    if (dir_light_shadows)
+        shader += fragmentShaderDirLightShadowsMain;
+    else if (dir_light)
         shader += fragmentShaderDirLightMain;
 
     if (point_lights)
@@ -806,15 +907,21 @@ std::string MaterialBuilder::produceFragmentShader() const
         }
     }
 
-    if (materials)
-        shader += fragmentShaderMaterialsMainEnd;
-    else
-        shader += fragmentShaderNoMaterialsMainEnd;
+    if (!no_color)
+    {
+        if (materials)
+            shader += fragmentShaderMaterialsMainEnd;
+        else
+            shader += fragmentShaderNoMaterialsMainEnd;
+    }
 
     if (vertex_color)
         shader += fragmentShaderVertexColorMainEnd;
 
-    shader += fragmentShaderMainFooter;
+    if (no_color)
+        shader += fragmentShaderNoColorMainFooter;
+    else
+        shader += fragmentShaderMainFooter;
 
     return shader;
 }
@@ -857,6 +964,8 @@ std::string MaterialBuilder::getTag() const
         tag += "_ctex";
     if (dir_light)
         tag += "_dl";
+    if (dir_light_shadows)
+        tag += "_dlsh";
     if (point_lights)
         tag += "_pl";
     if (time)
@@ -864,7 +973,7 @@ std::string MaterialBuilder::getTag() const
     if (vertex_color)
         tag += "_vc";
     if (!materials)
-        tag += "_nm";
+        tag += "_nomat";
     if (offset)
         tag += "_o";
     if (uniform_size)
@@ -879,6 +988,12 @@ std::string MaterialBuilder::getTag() const
         tag += "_id";
     if (screen_space_tex_coords)
         tag += "_sstc";
+    if (no_color)
+        tag += "_nocol";
+    if (vert_world_from_model)
+        tag += "_vwfm";
+    if (frag_cam_from_world)
+        tag += "_fcfw";
     for (const auto& sections : extra_sections)
     {
         for (const auto& section : sections.second)
@@ -904,7 +1019,9 @@ void MaterialBuilder::saveShaders() const
     f_out.close();
 }
 
-std::shared_ptr<Material> MaterialBuilder::build() const
+unordered_map<string, shared_ptr<MaterialProgram>> material_bank;
+
+std::shared_ptr<MaterialProgram> MaterialBuilder::build() const
 {
     bool lighting = materials && (dir_light || point_lights);
 
@@ -923,9 +1040,15 @@ std::shared_ptr<Material> MaterialBuilder::build() const
     if (screen_space_tex_coords && !tex)
         throw std::runtime_error("Can't use screen space tex coords without a texture.");
 
+    if (dir_light_shadows && !dir_light)
+        throw std::runtime_error("Can't use dir light shadows without dir lights.");
+
     auto tag = getTag();
 
-    auto material = std::make_shared<Material>();
+    if (find(material_bank, tag))
+        return material_bank[tag];
+
+    auto material = std::make_shared<MaterialProgram>();
 
     material->tag = tag;
     material->program_id = findProgram(tag);
@@ -956,6 +1079,10 @@ std::shared_ptr<Material> MaterialBuilder::build() const
 
         material->camera_from_world_matrix_id = glGetUniformLocation(material->program_id, "cam_from_world");
         material->world_from_model_matrix_id = glGetUniformLocation(material->program_id, "world_from_model");
+    }
+
+    if (billboard || lighting)
+    {
         material->camera_from_model_matrix_id = glGetUniformLocation(material->program_id, "cam_from_model");
     }
 
@@ -996,15 +1123,21 @@ std::shared_ptr<Material> MaterialBuilder::build() const
 
     if (dir_light)
     {
-        material->light_dir_id = glGetUniformLocation(material->program_id, "dir_light_dir_in_world");
-        material->light_dir_strength_id = glGetUniformLocation(material->program_id, "dir_light_strength");
+        material->dir_light_dir_id = glGetUniformLocation(material->program_id, "dir_light_dir_in_world");
+        material->dir_light_strength_id = glGetUniformLocation(material->program_id, "dir_light_strength");
+    }
+
+    if (dir_light_shadows)
+    {
+        material->dir_light_proj_from_world_id = glGetUniformLocation(material->program_id, "dir_light_proj_from_world");
+        material->dir_light_shadow_map_sampler_id = glGetUniformLocation(material->program_id, "dir_light_shadow_map_sampler");
     }
 
     if (point_lights)
     {
         material->num_point_lights_id = glGetUniformLocation(material->program_id, "num_point_lights");
 
-        for (size_t i = 0; i < Material::MAX_NUM_POINT_LIGHTS; i++)
+        for (size_t i = 0; i < MaterialProgram::MAX_NUM_POINT_LIGHTS; i++)
         {
             material->light_point_pos_id[i] = glGetUniformLocation(material->program_id, ("point_light_pos_in_world["+std::to_string(i)+"]").c_str());
             material->light_point_strength_id[i] = glGetUniformLocation(material->program_id, ("point_light_strength["+std::to_string(i)+"]").c_str());
@@ -1032,7 +1165,39 @@ std::shared_ptr<Material> MaterialBuilder::build() const
 
     material->infinite_depth = infinite_depth;
 
+    material_bank[tag] = material;
+
     return material;
+}
+
+MaterialProgramSet MaterialBuilder::buildSet(bool simple_depth) const
+{
+    MaterialProgramSet set;
+
+    set["main"] = build();
+
+    MaterialBuilder depth_builder = *this;
+    if (simple_depth)
+    {
+        depth_builder.tex = false;
+        depth_builder.normal_map = false;
+        depth_builder.cube_tex = false;
+        depth_builder.dir_light = false;
+        depth_builder.point_lights = false;
+        depth_builder.vertex_color = false;
+        depth_builder.materials = true;
+        depth_builder.screen_space_tex_coords = false;
+        depth_builder.no_color = true;
+        depth_builder.dir_light_shadows = false;
+    }
+    set["depth"] = depth_builder.build();
+
+    MaterialBuilder dir_light_shadow_builder = *this;
+    if (dir_light_shadow_builder.dir_light)
+        dir_light_shadow_builder.dir_light_shadows = true;
+    set["shadows"] = dir_light_shadow_builder.build();
+
+    return set;
 }
 
 }

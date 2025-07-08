@@ -157,9 +157,6 @@ void InstancedPoints::onRemoveFromWindow(Window*)
 
 void InstancedPoints::generateMaterial()
 {
-	auto opacity = material->getOpacity();
-	auto tex = material->getTexture();
-	
 	MaterialBuilder builder;
 	builder.tex = true;
 	builder.normal_map = false;
@@ -175,9 +172,6 @@ void InstancedPoints::generateMaterial()
 	builder.billboard = true;
 	builder.screen_space = ss_mode;
 	material = builder.build();
-
-	material->setOpacity(opacity);
-	material->setTexture(tex);
 
 	setupVAO();
 }
@@ -210,8 +204,8 @@ void InstancedPoints::setupVAO()
 
 void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_body)
 {
-	material->setSize(size * world_from_body.scale);
-	material->activate(window, world_from_body);
+	material_state.size = size * world_from_body.scale;
+	material->activate(window, world_from_body, material_state);
 	
 
 	glBindVertexArray(vao_id);
@@ -230,7 +224,7 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
 	material->deactivate();
 }
 
-void InstancedPoints::setTexture(const shared_ptr<Texture>& p_tex) { material->setTexture(p_tex); }
+void InstancedPoints::setTexture(const shared_ptr<Texture>& p_tex) { material_state.tex = p_tex; }
 
 void InstancedPoints::setSize(float p_size) { size = p_size; }
 

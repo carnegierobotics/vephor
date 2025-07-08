@@ -26,19 +26,17 @@ public:
         builder.infinite_depth = true;
         builder.materials = false;
 
-        builder.saveShaders();
-
-        auto material = builder.build();
-        material->setCubeTexture(p_tex);
+        auto materials = builder.buildSet();
 
         auto data = formCube();
-		mesh = make_shared<Mesh>(data, material);
+		mesh = make_shared<Mesh>(data, materials);
         mesh->setCull(false);
+		mesh->setCubeTexture(p_tex);
 	}
 	void renderOGL(Window* window, const TransformSim3& world_from_body)
 	{
         glDepthFunc(GL_LEQUAL);
-		mesh->renderOGL(window, Transform3(Vec3::Zero(), Vec3(-M_PI/2,0,0)));
+		mesh->renderOGL(window, world_from_body * Transform3(Vec3::Zero(), Vec3(-M_PI/2,0,0)));
         glDepthFunc(GL_LESS);
 	}
 	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)

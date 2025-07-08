@@ -1047,6 +1047,8 @@ namespace objl
 		// Load Materials from .mtl file
 		bool LoadMaterials(std::string path)
 		{
+			trim(path);
+
 			// If the file is not a material file return false
 			if (path.substr(path.size() - 4, path.size()) != ".mtl")
 				return false;

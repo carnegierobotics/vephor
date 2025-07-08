@@ -22,7 +22,12 @@ public:
     Plane(const Vec2& p_size)
 	{
 		auto data = formPlane(p_size);
-		mesh = make_shared<Mesh>(data);
+
+		MaterialBuilder builder;
+		builder.dir_light = true;
+		builder.point_lights = true;
+		builder.tex = true;
+		mesh = make_shared<Mesh>(data, builder.buildSet());
 	}
 	void setColor(const Color& p_color)
 	{

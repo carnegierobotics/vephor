@@ -175,11 +175,10 @@ int main()
             tex_rgba = mix(surface_color, tex_rgba, fresnel);
         )");
 
-        auto material = builder.build();
+        auto materials = builder.buildSet(/*simple_depth*/false);
 
-        material->setTexture(mirror_tex);
-
-		auto plane_mesh = make_shared<Mesh>(plane_data, material);
+		auto plane_mesh = make_shared<Mesh>(plane_data, materials);
+        plane_mesh->setTexture(mirror_tex);
         window.add(plane_mesh, Transform3(plane_pt, Orient3::rotateTo(Vec3(0,0,1), normal)));
         bound_mgr.addBoundSphere(10.0f, Transform3(plane_pt));
     }
@@ -242,11 +241,10 @@ int main()
             tex_rgba = mix(surface_color, tex_rgba, fresnel);
         )");
 
-        auto material = builder.build();
+        auto materials = builder.buildSet(/*simple_depth*/false);
 
-        material->setTexture(mirror_tex);
-
-		auto plane_mesh = make_shared<Mesh>(plane_data, material);
+		auto plane_mesh = make_shared<Mesh>(plane_data, materials);
+        plane_mesh->setTexture(mirror_tex);
         window.add(plane_mesh, Transform3(plane_pt, Orient3::rotateTo(Vec3(0,0,1), normal)));
         bound_mgr.addBoundSphere(10.0f, Transform3(plane_pt));
     }

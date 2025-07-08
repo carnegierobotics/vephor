@@ -9,6 +9,7 @@
 **/
 
 #include "vephor/ogl/window.h"
+#include "vephor/ogl/draw/material.h"
 
 namespace vephor
 {
@@ -561,11 +562,30 @@ void Window::getWorldRayForMousePos(const Vec2& mpos, Vec3& origin, Vec3& ray)
 
 void Window::renderDirLightShadowMap()
 {
-	v4print "Rendering shadow map...";
-
 	glViewport(0, 0, dir_light_shadow_map_size, dir_light_shadow_map_size);
 	glBindFramebuffer(GL_FRAMEBUFFER, dir_light_shadow_map_fbo);
 	glClear(GL_DEPTH_BUFFER_BIT);
+
+	Mat4 world_from_cam_matrix = cam_from_world_matrix.inverse();
+	Vec3 world_t_cam = world_from_cam_matrix.block(0,3,3,1);
+	Vec3 cam_forward = -world_from_cam_matrix.block(0,2,3,1);
+
+	float shadow_rad_m = 600;
+	float light_height = 100;
+	dir_light_proj_matrix = makeOrthoProj(Vec3(-shadow_rad_m,-shadow_rad_m,1),Vec3(shadow_rad_m,shadow_rad_m,1000));
+	dir_light_proj_matrix = dir_light_proj_matrix.transpose().eval();
+
+	
+	
+	Vec3 light_offset = cam_forward * (shadow_rad_m - 10.0f);
+	light_offset = light_offset - light_offset.dot(dir_light.pos)*dir_light.pos;
+
+	dir_light_cam_from_world_matrix = makeLookAtTransform(
+		world_t_cam + light_offset, 
+		world_t_cam + dir_light.pos * light_height + light_offset, 
+		findCrossVec(dir_light.pos)).matrix();
+
+	shadow_phase = true;
 
 	for (auto& objects : object_layers)
 	{
@@ -584,10 +604,7 @@ void Window::renderDirLightShadowMap()
 	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
 
-
-	// TODO for shadows:
-	//	Figure out how to instruct all objects to render with depth shaders
-	//	Add support for adding shadow map to regular shaders
+	shadow_phase = false;
 }
 
 void Window::renderReflectiveSurface(ReflectiveSurface& surface)
@@ -1151,15 +1168,10 @@ Image<uint8_t> Window::getDepthImage()
 	glfwMakeContextCurrent(window);
 	Image<float> image(window_size[0], window_size[1], 1);
 	glReadPixels(0, 0, window_size[0], window_size[1], GL_DEPTH_COMPONENT, GL_FLOAT, (float*)image.getData().data());
-	
-	//v4print "Depth range:", image.min(), image.max(); 
 
 	float mult = 255.0 / (image.max() - image.min());
 
-	//auto final_image = image.cast<uint8_t>(-255.0 / (image.max() - image.min()), 255.0);
 	auto final_image = image.cast<uint8_t>(mult, -mult * image.min());
-	
-	//v4print "Depth range (uint8):", (int)final_image.min(), (int)final_image.max(); 
 
 	final_image.flipYInPlace();
 	
@@ -1170,7 +1182,7 @@ Image<uint8_t> Window::getFBOImage(GLuint fbo, int width, int height)
 {
 	glfwMakeContextCurrent(window);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	glReadBuffer(GL_COLOR_ATTACHMENT0);      
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	
 	Image<uint8_t> image(width, height, 3);
 	glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, (uint8_t*)image.getData().data());
@@ -1180,6 +1192,25 @@ Image<uint8_t> Window::getFBOImage(GLuint fbo, int width, int height)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	return image;
+}
+
+Image<uint8_t> Window::getFBODepthImage(GLuint fbo, int width, int height)
+{
+	glfwMakeContextCurrent(window);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+	
+	Image<float> image(width, height, 1);
+	glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, (uint8_t*)image.getData().data());
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	float mult = 255.0 / (image.max() - image.min());
+
+	auto final_image = image.cast<uint8_t>(mult, -mult * image.min());
+
+	final_image.flipYInPlace();
+
+	return final_image;
 }
 
 void Window::clear()

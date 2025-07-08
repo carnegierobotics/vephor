@@ -55,7 +55,8 @@ private:
     float size = 0.03f;
     bool ss_mode = false;
 
-    shared_ptr<Material> material;
+	shared_ptr<MaterialProgram> material;
+	MaterialState material_state;
 
     GLuint vao_id = std::numeric_limits<GLuint>::max();
 

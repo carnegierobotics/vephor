@@ -17,58 +17,8 @@ namespace vephor
 
 class MaterialBuilder;
 
-class Material
+struct MaterialState
 {
-public:
-    Material()
-    {
-        for (size_t i = 0; i < MAX_NUM_POINT_LIGHTS; i++)
-        {
-            light_point_pos_id[i] = std::numeric_limits<GLuint>::max();
-            light_point_strength_id[i] = std::numeric_limits<GLuint>::max();
-        }
-    }
-    void setTexture(const shared_ptr<Texture>& p_tex){tex = p_tex;}
-    shared_ptr<Texture> getTexture() const {return tex;}
-	void setNormalMap(const shared_ptr<Texture>& p_normal_map){normal_map = p_normal_map;}
-    shared_ptr<Texture> getNormalMap() const {return normal_map;}
-    void setCubeTexture(const shared_ptr<CubeTexture>& p_cube_tex){cube_tex = p_cube_tex;}
-    shared_ptr<CubeTexture> getCubeTexture() const {return cube_tex;}
-
-	void setDiffuse(const Color& p_color){diffuse = p_color.getRGB();}
-	Color getDiffuse() const {return diffuse;}
-	void setAmbient(const Color& p_color){ambient = p_color.getRGB();}
-	Color getAmbient() const {return ambient;}
-    void setEmissive(const Color& p_color){emissive = p_color.getRGB();}
-	Color getEmissive() const {return emissive;}
-    void setSpecular(bool p_specular){specular = p_specular;}
-    float getSpecular() const {return specular;}
-	void setOpacity(const float& p_opacity){opacity = p_opacity;}
-    float getOpacity() const {return opacity;}
-    void setSize(const float& p_size){size = p_size;}
-    float getSize() const {return size;}
-
-    GLuint getPosAttrLoc() const {return pos_attr_loc;}
-    GLuint getUVAttrLoc() const {return uv_attr_loc;}
-    GLuint getNormAttrLoc() const {return norm_attr_loc;}
-    GLuint getTangentAttrLoc() const {return tangent_attr_loc;}
-    GLuint getBitangentAttrLoc() const {return bitangent_attr_loc;}
-    GLuint getOffsetAttrLoc() const {return offset_attr_loc;}
-    GLuint getColorAttrLoc() const {return color_attr_loc;}
-    GLuint getSizeAttrLoc() const {return size_attr_loc;}
-
-    void activate(Window* window, const TransformSim3& world_from_body);
-    void deactivate();
-
-    string getTag() const {return tag;}
-private:
-    friend MaterialBuilder;
-
-    static const int MAX_NUM_POINT_LIGHTS = 4;
-
-    string tag;
-    GLuint program_id = std::numeric_limits<GLuint>::max();
-
     Vec3 diffuse = Vec3(1,1,1);
     Vec3 ambient = Vec3(1,1,1);
 	Vec3 emissive = Vec3(0,0,0);
@@ -79,6 +29,40 @@ private:
     shared_ptr<Texture> tex;
 	shared_ptr<Texture> normal_map;
     shared_ptr<CubeTexture> cube_tex;
+};
+
+class MaterialProgram
+{
+public:
+    MaterialProgram()
+    {
+        for (size_t i = 0; i < MAX_NUM_POINT_LIGHTS; i++)
+        {
+            light_point_pos_id[i] = std::numeric_limits<GLuint>::max();
+            light_point_strength_id[i] = std::numeric_limits<GLuint>::max();
+        }
+    }
+
+    GLuint getPosAttrLoc() const {return pos_attr_loc;}
+    GLuint getUVAttrLoc() const {return uv_attr_loc;}
+    GLuint getNormAttrLoc() const {return norm_attr_loc;}
+    GLuint getTangentAttrLoc() const {return tangent_attr_loc;}
+    GLuint getBitangentAttrLoc() const {return bitangent_attr_loc;}
+    GLuint getOffsetAttrLoc() const {return offset_attr_loc;}
+    GLuint getColorAttrLoc() const {return color_attr_loc;}
+    GLuint getSizeAttrLoc() const {return size_attr_loc;}
+
+    void activate(Window* window, const TransformSim3& world_from_body, const MaterialState& state);
+    void deactivate();
+
+    string getTag() const {return tag;}
+private:
+    friend MaterialBuilder;
+
+    static const int MAX_NUM_POINT_LIGHTS = 4;
+
+    string tag;
+    GLuint program_id = std::numeric_limits<GLuint>::max();
 
     GLuint pos_attr_loc = std::numeric_limits<GLuint>::max();
     GLuint uv_attr_loc = std::numeric_limits<GLuint>::max();
@@ -102,8 +86,10 @@ private:
     GLuint num_point_lights_id = std::numeric_limits<GLuint>::max();
     GLuint light_point_pos_id[MAX_NUM_POINT_LIGHTS];
     GLuint light_point_strength_id[MAX_NUM_POINT_LIGHTS];
-    GLuint light_dir_id = std::numeric_limits<GLuint>::max();
-    GLuint light_dir_strength_id = std::numeric_limits<GLuint>::max();
+    GLuint dir_light_dir_id = std::numeric_limits<GLuint>::max();
+    GLuint dir_light_strength_id = std::numeric_limits<GLuint>::max();
+    GLuint dir_light_proj_from_world_id = std::numeric_limits<GLuint>::max();
+    GLuint dir_light_shadow_map_sampler_id = std::numeric_limits<GLuint>::max();
     GLuint opacity_id = std::numeric_limits<GLuint>::max();
     GLuint tex_sampler_id = std::numeric_limits<GLuint>::max();
     GLuint normal_sampler_id = std::numeric_limits<GLuint>::max();
@@ -114,6 +100,19 @@ private:
     GLuint screen_size_id = std::numeric_limits<GLuint>::max();
 
     bool infinite_depth = false;
+};
+
+using MaterialProgramSet = unordered_map<string, shared_ptr<MaterialProgram>>;
+
+struct Material
+{
+    MaterialProgramSet set;
+    MaterialState state;
+
+    Material(){}
+    Material(const MaterialProgramSet& p_set)
+    : set(p_set)
+    {}
 };
 
 class MaterialBuilder
@@ -134,6 +133,10 @@ public:
     bool screen_space = false;
     bool infinite_depth = false;
     bool screen_space_tex_coords = false;
+    bool no_color = false;
+    bool dir_light_shadows = false;
+    bool vert_world_from_model = false;
+    bool frag_cam_from_world = false;
 
     unordered_map<string, vector<string>> extra_sections;
 
@@ -141,7 +144,8 @@ public:
     std::string produceFragmentShader() const;
     std::string getTag() const;
     void saveShaders() const;
-    std::shared_ptr<Material> build() const;
+    std::shared_ptr<MaterialProgram> build() const;
+    MaterialProgramSet buildSet(bool simple_depth=true) const;
 };
 
 }
