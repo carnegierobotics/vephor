@@ -123,7 +123,7 @@ void plotIrisesSize()
                                           .size_axis_limits = {0.5, 2.0}});
     }
 
-    plt.show();
+    plt.show(false);
 }
 
 void plotIrisesColormap()
@@ -156,7 +156,7 @@ void plotIrisesColormap()
         sepal_lengths,
         petal_lengths,
         vector<float>{},
-        PlotScatterOptions{.label = "Petal Length", .size_in_screen_perc = 1.0F, .marker = PlotScatterMarker::CIRCLE});
+        PlotScatterOptions{.label = "Petal Length", .size_in_screen_perc = 2.0F, .marker = PlotScatterMarker::CIRCLE});
 
     plt.show();
 }

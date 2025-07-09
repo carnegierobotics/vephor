@@ -508,6 +508,7 @@ PYBIND11_MODULE(_core, m) {
                 	throw py::error_already_set();
 			});
 		}, py::arg("wait_close")=true, py::arg("wait_key")=false, py::arg("time_increment_s")=0.0f)
+		.def_static("renderInWaiting", &Window::renderInWaiting)
 		.def("layoutAbsolute", &Window::layoutAbsolute, 
 			py::arg("width"), 
 			py::arg("height"), 

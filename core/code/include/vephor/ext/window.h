@@ -887,7 +887,7 @@ public:
     shared_ptr<TransformNode> getWindowBottomRightNode() const { return window_bottom_right_node; }
 
 private:
-	int writeMessages(
+	inline static int writeMessages(
 		const string& path, 
 		const vector<JSONBMessage>& messages_to_write, 
 		bool skip_meta = false, 
@@ -1245,8 +1245,6 @@ public:
 		}
 		else
 		{
-			string temp_dir = getTempDir();
-			
 			JSONBMessage msg;
 			json scene = produceSceneJSON(LOCAL_CONN_ID_PROGRESSIVE, &msg.payloads);
 			msg.header = {
@@ -1258,33 +1256,7 @@ public:
 
 			if (wait_close || wait_key)
 			{
-				{
-					std::lock_guard<std::mutex> lock(recorded_messages_written_lock);
-
-					if (!find(recorded_messages_written, LOCAL_CONN_ID_PROGRESSIVE))
-						recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = 0;
-					recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = writeMessages(
-						temp_dir, 
-						recorded_messages_to_write, 
-						true, 
-						recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE]);
-				}
-
-				string show_path = getBaseDir()+"/bin/vephor_show";
-				if (!fs::exists(show_path))
-					show_path = "vephor_show"; // Hope it is on PATH
-				v4print "Calling show:", show_path, "-i", temp_dir, "-r";
-				Process proc({show_path, "-i", temp_dir, "-r"});
-				int result = proc.join();
-				if (result != 0)
-				{
-					v4print "Show exited without success.";
-					proc.printOutput();
-				}
-				else
-					v4print "Show exited with success.";
-
-				recorded_messages_to_write.clear();
+				renderInWaiting();
 			}
 			else
 			{
@@ -1309,6 +1281,43 @@ public:
 		objects.resize(objects.size() - removed_objs);
 		
 		return !shutdown && !close_event;
+	}
+
+	static void renderInWaiting()
+	{
+		if (manager.mode == WindowManager::Mode::Record ||
+			manager.network_mode)
+			return;
+
+		string temp_dir = getTempDir();
+
+		{
+			std::lock_guard<std::mutex> lock(recorded_messages_written_lock);
+
+			if (!find(recorded_messages_written, LOCAL_CONN_ID_PROGRESSIVE))
+				recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = 0;
+			recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE] = writeMessages(
+				temp_dir, 
+				recorded_messages_to_write, 
+				true, 
+				recorded_messages_written[LOCAL_CONN_ID_PROGRESSIVE]);
+		}
+
+		string show_path = getBaseDir()+"/bin/vephor_show";
+		if (!fs::exists(show_path))
+			show_path = "vephor_show"; // Hope it is on PATH
+		v4print "Calling show:", show_path, "-i", temp_dir, "-r";
+		Process proc({show_path, "-i", temp_dir, "-r"});
+		int result = proc.join();
+		if (result != 0)
+		{
+			v4print "Show exited without success.";
+			proc.printOutput();
+		}
+		else
+			v4print "Show exited with success.";
+
+		recorded_messages_to_write.clear();
 	}
 
 	void save(string path)
@@ -1826,8 +1835,6 @@ private:
 	bool shutdown = false;
 	json camera_control;
 	unordered_map<ConnectionID, bool> camera_up_to_date;
-	std::mutex recorded_messages_written_lock;
-	inline static unordered_map<ConnectionID, int> recorded_messages_written;
 	KeyActionCallback key_press_callback = NULL;
 	KeyActionWithMessageCallback key_press_with_message_callback = NULL;
 	MouseClickActionCallback mouse_click_callback = NULL;
@@ -1835,13 +1842,15 @@ private:
 	size_t total_network_use_bytes = 0;
 	bool network_use_start_time_set = false;
 	std::chrono::time_point<std::chrono::high_resolution_clock> network_use_start_time;
-	vector<JSONBMessage> recorded_messages_to_write;
 	float last_record_time = 0.0;
 
 	inline static bool print_flag_network_use = false;
 	inline static float default_opacity = 1.0f;
 	inline static unique_ptr<Process> server_proc;
 	inline static string record_path;
+	inline static std::mutex recorded_messages_written_lock;
+	inline static unordered_map<ConnectionID, int> recorded_messages_written;
+	inline static vector<JSONBMessage> recorded_messages_to_write;
 	inline static std::chrono::time_point<std::chrono::high_resolution_clock> record_start_time;
 };
 

@@ -373,7 +373,7 @@ public:
             }
 
             // All fill-in possibilities exhausted
-            if (c.rows() > 0 && (c.rows() != n_points || c.cols() != 3 * y.cols()))
+            if (c.rows() > 0 && (c.rows() != n_points || (c.cols() != 3 * y.cols() && c.cols() != 3)))
             {
                 throw std::runtime_error("Invalid C specified in scatter.");
             }
@@ -381,7 +381,7 @@ public:
 
         // Check validity of S values
         {
-            if (s.rows() > 0 && (s.rows() != n_points || s.cols() != y.cols()))
+            if (s.rows() > 0 && (s.rows() != n_points || (s.cols() != y.cols() && s.cols() != 1)))
             {
                 throw std::runtime_error("Invalid S specified in scatter.");
             }
@@ -405,17 +405,34 @@ public:
 
             if (c.rows() > 0)
             {
-                const MatX& set_colors = c.middleCols(3 * set, 3);
-                icon_color = set_colors.row(0).transpose();
+                MatX set_colors;
 
-                if (s.rows() > 0)
+                if (c.cols() == 3)
                 {
-                    const VecX& set_sizes = s.col(set);
-                    particle = make_shared<Particle>(points, set_colors, set_sizes);
+                    set_colors = c;
                 }
                 else
                 {
-                    particle = make_shared<Particle>(points, set_colors);
+                    set_colors = c.middleCols(3 * set, 3);
+                }
+                
+                icon_color = set_colors.row(0).transpose();
+
+                particle = make_shared<Particle>(points, set_colors);
+                if (s.rows() > 0)
+                {
+                    if (s.cols() == 1)
+                    {
+                        particle->setSizes(s);
+                    }
+                    else
+                    {
+                        const VecX& set_sizes = s.col(set);
+                        particle->setSizes(set_sizes);
+                    }
+                }
+                else
+                {
                     particle->setSize(opts.size_in_screen_perc * 0.01);
                 }
             }
@@ -430,14 +447,19 @@ public:
 
                 icon_color = curr_color;
 
-                v4print "Color:", curr_color.transpose();
-
                 particle = make_shared<Particle>(points);
                 particle->setColor(curr_color);
                 if (s.rows() > 0)
                 {
-                    const VecX& set_sizes = s.col(set);
-                    particle->setSizes(set_sizes);
+                    if (s.cols() == 1)
+                    {
+                        particle->setSizes(s);
+                    }
+                    else
+                    {
+                        const VecX& set_sizes = s.col(set);
+                        particle->setSizes(set_sizes);
+                    }
                 }
                 else
                 {
