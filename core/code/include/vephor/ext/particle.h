@@ -59,7 +59,7 @@ public:
         sizes = RVecX{};
     }
 
-    void setSizes(const VecX& p_sizes) { sizes = p_sizes; }
+    void setSizes(const VecX& p_sizes) { sizes = p_sizes.transpose(); }
 
 	void setColor(const Color& p_color){ default_color_rgba = p_color.getRGBA(); }
 	void setTexture(const string& p_tex, bool p_filter_nearest = nearest_default)
@@ -97,9 +97,7 @@ public:
 			json_data["tex"] = tex;
 			VEPHOR_SERIALIZE_IF_STANDARD(nearest);
 		}
-
-		VEPHOR_SERIALIZE_IF_STANDARD(default_color_rgba);
-		VEPHOR_SERIALIZE_IF_STANDARD(size);
+		
 		VEPHOR_SERIALIZE_IF_STANDARD(ss_mode);
 
         if (bufs)
@@ -122,6 +120,10 @@ public:
                 json_data["colors"] = produceVertDataBase64(colors);
             }
         }
+        else
+        {
+            VEPHOR_SERIALIZE_IF_STANDARD(default_color_rgba);
+        }
 
         if (sizes.cols() > 0)
         {
@@ -133,6 +135,10 @@ public:
             {
                 json_data["sizes"] = produceVertDataBase64(sizes);
             }
+        }
+        else
+        {
+            VEPHOR_SERIALIZE_IF_STANDARD(size);
         }
 
         return json_data;

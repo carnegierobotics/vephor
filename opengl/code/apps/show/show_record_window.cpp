@@ -970,7 +970,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		serialization.header = obj;
 		serialization.valid = true;
 		
-		const Vec4 default_color = readDefault(obj, "default_color_rgb", Vec4(1,1,1,1));
+		const Vec4 default_color = readDefault(obj, "default_color_rgba", Vec4(1,1,1,1));
 		const float default_size = readDefault(obj, "default_size", 0.1F);
 
         VertexDataRecord verts_record;

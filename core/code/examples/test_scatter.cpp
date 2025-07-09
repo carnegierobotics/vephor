@@ -156,7 +156,7 @@ void plotIrisesColormap()
         sepal_lengths,
         petal_lengths,
         vector<float>{},
-        PlotScatterOptions{.label = "Petal Length", .size_in_screen_perc = 2.0F, .marker = PlotScatterMarker::CIRCLE});
+        PlotScatterOptions{.label = "Petal Length", .size_in_screen_perc = 1.0F, .marker = PlotScatterMarker::CIRCLE});
 
     plt.show();
 }

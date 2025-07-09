@@ -365,145 +365,87 @@ public:
             }
         }
 
-        // Fill C values if not all required values are provided
+        // Check validity of C values
         {
-            // (0, 0)
-            if (n_points > 0 && (c.rows() == 0 || c.cols() == 0))
-            {
-                MatX expanded_c(n_points, 3 * y.cols());
-
-                const RVec3 configured_color = opts.color.getRGB().transpose();
-                for (size_t set = 0; set < y.cols(); ++set)
-                {
-                    RVec3 set_color;
-                    if (configured_color.x() < 0 || configured_color.y() < 0 || configured_color.z() < 0)
-                    {
-                        // Fill from the color wheel
-                        set_color = color_cycle[color_index % color_cycle.size()].transpose();
-                        ++color_index;
-                    }
-                    else
-                    {
-                        // Use the configured color
-                        set_color = configured_color;
-                    }
-
-                    for (size_t i = 0; i < n_points; i++)
-                    {
-                        expanded_c.block<1, 3>(i, 3 * set) = set_color;
-                    }
-                }
-
-                scatter(x, y, expanded_c, s, opts);
-                return;
-            }
-
             if (c.cols() % 3 != 0)
             {
                 throw std::runtime_error("Invalid C specified in scatter.");
             }
-            const auto color_sets = static_cast<size_t>(c.cols() / 3);
-
-            // (1, 3)
-            if (n_points > 1 && c.rows() == 1 && c.cols() == 3)
-            {
-                MatX expanded_c(n_points, 3 * y.cols());
-                const RVec3 set_color = c.row(0);
-                for (size_t set = 0; set < y.cols(); ++set)
-                {
-                    for (size_t i = 0; i < n_points; i++)
-                    {
-                        expanded_c.block<1, 3>(i, 3 * set) = set_color;
-                    }
-                }
-                scatter(x, y, expanded_c, s, opts);
-                return;
-            }
-
-            // (1, 3 * M)
-            if (n_points > 1 && c.rows() == 1 && c.cols() == 3 * color_sets)
-            {
-                MatX expanded_c(n_points, 3 * y.cols());
-                for (size_t set = 0; set < y.cols(); ++set)
-                {
-                    const RVec3 set_color = c.block<1, 3>(0, 3 * set);
-                    for (size_t i = 0; i < n_points; i++)
-                    {
-                        expanded_c.block<1, 3>(i, 3 * set) = set_color;
-                    }
-                }
-                scatter(x, y, expanded_c, s, opts);
-                return;
-            }
-
-            // (N, 3)
-            if (y.cols() > 1 && c.rows() == n_points && c.cols() == 3)
-            {
-                MatX expanded_c(n_points, 3 * y.cols());
-                const MatX set_colors = c.leftCols(3);
-                for (size_t set = 0; set < y.cols(); ++set)
-                {
-                    expanded_c.middleCols<3>(3 * set) = set_colors;
-                }
-                scatter(x, y, expanded_c, s, opts);
-                return;
-            }
 
             // All fill-in possibilities exhausted
-            if (c.rows() != n_points || c.cols() != 3 * y.cols())
+            if (c.rows() > 0 && (c.rows() != n_points || c.cols() != 3 * y.cols()))
             {
                 throw std::runtime_error("Invalid C specified in scatter.");
             }
         }
 
-        // Fill S values if not all required values are provided
+        // Check validity of S values
         {
-            // (0, 0)
-            if (n_points > 0 && (s.rows() == 0 || s.cols() == 0))
-            {
-                const MatX expanded_s = MatX::Constant(n_points, y.cols(), opts.size_in_screen_perc * 0.01);
-                scatter(x, y, c, expanded_s, opts);
-                return;
-            }
-
-            // (1, 1)
-            if (n_points > 1 && s.rows() == 1 && s.cols() == 1)
-            {
-                const MatX expanded_s = MatX::Constant(n_points, y.cols(), y(0, 0));
-                scatter(x, y, c, expanded_s, opts);
-                return;
-            }
-
-            // (N, 1)
-            if (y.cols() > 1 && s.rows() == n_points && s.cols() == 1)
-            {
-                MatX expanded_s(n_points, y.cols());
-                for (size_t set = 0; set < y.cols(); ++set)
-                {
-                    expanded_s.col(set) = s;
-                }
-                scatter(x, y, c, expanded_s, opts);
-                return;
-            }
-
-            // All fill-in possibilities exhausted
-            if (s.rows() != n_points || s.cols() != y.cols())
+            if (s.rows() > 0 && (s.rows() != n_points || s.cols() != y.cols()))
             {
                 throw std::runtime_error("Invalid S specified in scatter.");
             }
         }
 
-        // At this point we have x ∈ R(N, 1), y ∈ R(N, M), c ∈ R(N, 3 * M), and s ∈ R(N, M)
+        // At this point we have x ∈ R(N, 1), y ∈ R(N, M), 
+        //  and
+        // c ∈ R(N, 3 * M) or c ∈ R(0, 3 * ?)
+        //  and
+        // s ∈ R(N, M) or s ∈ R(0, ?)
         MatX points = MatX::Zero(x.rows(), 3);
         points.col(0) = x;
         for (int set = 0; set < y.cols(); set++)
         {
             const VecX& set_y = y.col(set);
-            const MatX& set_colors = c.middleCols(3 * set, 3);
-            const VecX& set_sizes = s.col(set);
-
             points.col(1) = set_y;
-            auto particle = make_shared<Particle>(points, set_colors, set_sizes);
+
+            shared_ptr<Particle> particle;
+
+            Vec3 icon_color;
+
+            if (c.rows() > 0)
+            {
+                const MatX& set_colors = c.middleCols(3 * set, 3);
+                icon_color = set_colors.row(0).transpose();
+
+                if (s.rows() > 0)
+                {
+                    const VecX& set_sizes = s.col(set);
+                    particle = make_shared<Particle>(points, set_colors, set_sizes);
+                }
+                else
+                {
+                    particle = make_shared<Particle>(points, set_colors);
+                    particle->setSize(opts.size_in_screen_perc * 0.01);
+                }
+            }
+            else
+            {
+                Vec3 curr_color = opts.color.getRGB();
+                if (curr_color[0] < 0)
+                {
+                    curr_color = color_cycle[color_index % color_cycle.size()];
+                    color_index++;
+                }
+
+                icon_color = curr_color;
+
+                v4print "Color:", curr_color.transpose();
+
+                particle = make_shared<Particle>(points);
+                particle->setColor(curr_color);
+                if (s.rows() > 0)
+                {
+                    const VecX& set_sizes = s.col(set);
+                    particle->setSizes(set_sizes);
+                }
+                else
+                {
+                    particle->setSize(opts.size_in_screen_perc * 0.01);
+                }
+            }
+
+
             particle->setScreenSpaceMode(true);
 
             std::string marker_name{magic_enum::enum_name(opts.marker)};
@@ -514,7 +456,6 @@ public:
             if (!opts.label.empty())
             {
                 // TODO: Add the ability to specify a color gradient icon or a discrete color set icon.
-                const Vec3 icon_color = set_colors.row(0).transpose();
                 inner_window.getCameraControlInfo()["labels"].push_back(
                     {{"text", opts.label}, {"type", marker_name}, {"color", toJson(icon_color)}});
             }
