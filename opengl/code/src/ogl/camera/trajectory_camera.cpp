@@ -1,15 +1,12 @@
-//
-// Copyright 2024
-// Carnegie Robotics, LLC
-// 4501 Hatfield Street, Pittsburgh, PA 15201
-// https://www.carnegierobotics.com/
-//
-// This code is provided under the terms of the Master Services Agreement (the Agreement).
-// This code constitutes CRL Background Intellectual Property, as defined in the Agreement.
-//
-// Significant history (date, user, job code, action):
-//   2024-11-26, emusser@carnegierobotics.com, 2045.01, Created file.
-//
+/**
+ * Copyright 2025
+ * Carnegie Robotics, LLC
+ * 4501 Hatfield Street, Pittsburgh, PA 15201
+ * https://www.carnegierobotics.com
+ *
+ * This source code is licensed under the Apache License, Version 2.0
+ * found in the LICENSE file in the root directory of this source tree.
+**/
 
 #include "vephor/ogl/camera/trajectory_camera.h"
 
