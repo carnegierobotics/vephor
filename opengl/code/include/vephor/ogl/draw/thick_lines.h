@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class ThickLines
 {
@@ -59,4 +61,5 @@ private:
 	GLuint use_miter_id;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

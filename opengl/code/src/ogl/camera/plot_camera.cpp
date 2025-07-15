@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 void PlotCamera::calcEqualContentBounds(
 	Window& window, 
@@ -940,4 +942,5 @@ void PlotCamera::augmentInputEvent(Window& window, json& event_data)
 	event_data["plot_pos"] = toJson(pos);
 }
 
-}
+} // namespace ogl
+} // namespace vephor

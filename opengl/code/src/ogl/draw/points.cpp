@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 string pointsVertexShader = R"(
     #version 430
@@ -120,4 +122,5 @@ void Points::renderOGL(Window* window, const TransformSim3& world_from_body)
     glDisableVertexAttribArray(pos_attr_loc);
 }
 
-}
+} // namespace ogl
+} // namespace vephor

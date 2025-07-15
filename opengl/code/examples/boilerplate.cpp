@@ -8,17 +8,21 @@
  * found in the LICENSE file in the root directory of this source tree.
 **/
 
-#include "vephor/ogl/draw/light.h"
+#include "vephor.h"
+#include "vephor_ogl.h"
 
-namespace vephor
-{
-namespace ogl
-{
+using namespace vephor;
+using namespace vephor::ogl;
 
-PointLight::PointLight(float p_strength)
-: strength(p_strength)
-{    
+int main()
+{
+    Window window;
+
+    window.setFrameLock(60.0f);
+
+    while (window.render())
+    {
+    }
+
+    return 0;
 }
-
-} // namespace ogl
-} // namespace vephor

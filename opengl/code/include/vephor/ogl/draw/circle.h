@@ -15,6 +15,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Circle
 {
@@ -49,4 +51,5 @@ private:
 	shared_ptr<Mesh> mesh;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

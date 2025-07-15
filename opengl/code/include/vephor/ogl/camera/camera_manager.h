@@ -15,6 +15,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 struct ControlInfo
 {
@@ -288,4 +290,5 @@ inline shared_ptr<Image<uint8_t>> getCameraBackground(const json& data, bool& ne
 	return generateGradientImage(Vec2i(64,64), Vec3(0.3,0.3,0.6), Vec3(0.05,0.05,0.1));
 }
 
-}
+} // namespace ogl
+} // namespace vephor

@@ -16,6 +16,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Mesh
 {
@@ -94,4 +96,5 @@ private:
     Material material;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

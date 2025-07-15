@@ -16,6 +16,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class TrackballCamera : public CameraManager
 {
@@ -63,4 +65,5 @@ private:
 	bool widget_click = false;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

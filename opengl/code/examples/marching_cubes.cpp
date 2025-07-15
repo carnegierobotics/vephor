@@ -14,6 +14,7 @@
 #include <chrono>
 
 using namespace vephor;
+using namespace vephor::ogl;
 
 void addGridPlane(
 	const Vec2& sizes,

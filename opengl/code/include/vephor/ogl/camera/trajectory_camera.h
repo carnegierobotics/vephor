@@ -22,6 +22,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 ///
 /// Scalar polynomial.
@@ -433,4 +435,5 @@ private:
     [[nodiscard]] Transform3 computePose(float time) const;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

@@ -15,6 +15,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Skybox
 {
@@ -51,4 +53,5 @@ private:
 	shared_ptr<Mesh> mesh;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

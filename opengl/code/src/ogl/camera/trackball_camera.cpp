@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 const float TRACKBALL_BASE_NEAR_Z = 0.001f;
 const float TRACKBALL_BASE_FAR_Z = 100.0f;
@@ -395,4 +397,5 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 	}
 }
 
-}
+} // namespace ogl
+} // namespace vephor

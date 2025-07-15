@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 string particleVertexShader = R"(
     #version 430
@@ -198,4 +200,5 @@ void Particle::renderOGL(Window* window, const TransformSim3& world_from_body)
     glDisableVertexAttribArray(uv_attr_loc);
 }
 
-}
+} // namespace ogl
+} // namespace vephor

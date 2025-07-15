@@ -13,6 +13,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 void createOpenGLBufferForMatX(GLuint& buffer_id, const MatX& mat)
 {
@@ -571,8 +573,8 @@ void Window::renderDirLightShadowMap()
 	Vec3 cam_forward = -world_from_cam_matrix.block(0,2,3,1);
 
 	dir_light_proj_matrix = makeOrthoProj(
-		Vec3(-dir_light_shadow_opts.rad_m,-dir_light_shadow_opts.rad_m,1),
-		Vec3(dir_light_shadow_opts.rad_m,dir_light_shadow_opts.rad_m,1000));
+		Vec3(-dir_light_shadow_opts.rad_m,-dir_light_shadow_opts.rad_m,dir_light_shadow_opts.min_dist_m),
+		Vec3(dir_light_shadow_opts.rad_m,dir_light_shadow_opts.rad_m,dir_light_shadow_opts.max_dist_m));
 	dir_light_proj_matrix = dir_light_proj_matrix.transpose().eval();
 
 	
@@ -1261,4 +1263,5 @@ void Window::clear()
 	non_render_objects.clear();
 }
 
-}
+} // namespace ogl
+} // namespace vephor

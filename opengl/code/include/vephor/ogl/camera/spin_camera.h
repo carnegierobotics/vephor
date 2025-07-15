@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class SpinCamera : public CameraManager
 {
@@ -74,4 +76,5 @@ private:
 	float camera_spin_yaw_rad = 0;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

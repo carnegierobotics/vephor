@@ -16,6 +16,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Texture
 {
@@ -71,4 +73,5 @@ private:
     GLuint id;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

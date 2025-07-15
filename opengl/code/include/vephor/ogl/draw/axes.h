@@ -15,6 +15,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Axes
 {
@@ -71,4 +73,5 @@ private:
 	float size;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

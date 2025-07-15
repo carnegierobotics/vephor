@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 InstancedPoints::InstancedPoints(const MatXRef& p_pts,
                                  const MatXRef& p_colors,
@@ -232,4 +234,5 @@ void InstancedPoints::setScreenSpaceMode(bool p_ss_mode)
     generateMaterial();
 }
 
-}
+} // namespace ogl
+} // namespace vephor

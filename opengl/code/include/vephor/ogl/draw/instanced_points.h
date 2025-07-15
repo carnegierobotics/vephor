@@ -15,6 +15,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class InstancedPoints
 {
@@ -67,4 +69,5 @@ private:
     GLuint size_buffer_id = std::numeric_limits<GLuint>::max();
 };
 
-}
+} // namespace ogl
+} // namespace vephor

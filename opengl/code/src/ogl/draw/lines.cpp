@@ -12,7 +12,8 @@
 
 namespace vephor
 {
-
+namespace ogl
+{
 
 string linesVertexShader = R"(
     #version 430
@@ -173,4 +174,5 @@ void Lines::renderOGL(Window* window, const TransformSim3& world_from_body)
     glBindVertexArray(0);
 }
 
-}
+} // namespace ogl
+} // namespace vephor

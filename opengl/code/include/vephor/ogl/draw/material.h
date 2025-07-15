@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class MaterialBuilder;
 
@@ -153,4 +155,5 @@ public:
     MaterialProgramSet buildSet(bool simple_depth=true) const;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

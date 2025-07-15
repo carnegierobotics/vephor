@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 template <typename T>
 void removeDestroyedObjects(vector<T>& objects)
@@ -360,4 +362,5 @@ float Verlet::checkCollisionDist(const PhysicsObject& obj1, const PhysicsObject&
     return 0.0f;
 }
 
-}
+} // namespace ogl
+} // namespace vephor

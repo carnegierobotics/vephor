@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Text
 {
@@ -139,4 +141,5 @@ private:
     GLuint tex_sampler_id;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

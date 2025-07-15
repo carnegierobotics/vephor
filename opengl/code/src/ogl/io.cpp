@@ -12,4 +12,7 @@
 
 namespace vephor
 {
-}
+namespace ogl
+{
+} // namespace ogl
+} // namespace vephor

@@ -15,6 +15,7 @@
 namespace fs = std::filesystem;
 
 using namespace vephor;
+using namespace vephor::ogl;
 
 #include "show_record.h"
 
@@ -150,7 +151,7 @@ int main(int argc, char* argv[])
 	bool use_net = use_client || use_server || use_server_no_daemon;
 
 	if (debug)
-		vephor::Window::setDebug(true);
+		Window::setDebug(true);
 
 	ShowRecord show;
 	show.record_path = record_path;

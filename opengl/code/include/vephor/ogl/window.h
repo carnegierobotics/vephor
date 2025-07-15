@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Window;
 class Material;
@@ -182,12 +184,14 @@ struct ShadowOptions
     float rad_m = 600;
     float border_m = 10;
 	float light_height = 100;
+    float min_dist_m = 1;
+    float max_dist_m = 1000;
 };
 
 class Window
 {
 public:
-	//TODO: I hate this
+	//TODO: It's unfortunate we need to use global handlers for these
 	friend void global_mouse_handler(GLFWwindow* window, int button, int action, int mods);
     friend void global_key_handler(GLFWwindow* window, int key, int scancode, int action, int mods);
 	friend void global_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -891,4 +895,5 @@ private:
     inline static bool debug = false;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

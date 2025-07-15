@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Particle
 {
@@ -55,4 +57,5 @@ private:
 	GLuint tex_sampler_id;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

@@ -11,6 +11,7 @@
 #include "vephor_ogl.h"
 
 using namespace vephor;
+using namespace vephor::ogl;
 
 int main()
 {

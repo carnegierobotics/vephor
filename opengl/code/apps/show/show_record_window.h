@@ -17,6 +17,7 @@
 #include "vephor_ogl.h"
 
 using namespace vephor;
+using namespace vephor::ogl;
 
 using WindowID = int64_t;
 using ObjectID = int64_t;

@@ -15,6 +15,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Sphere
 {
@@ -50,4 +52,5 @@ private:
 	shared_ptr<Mesh> mesh;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

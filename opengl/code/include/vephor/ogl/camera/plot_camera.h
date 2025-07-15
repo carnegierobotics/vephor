@@ -21,6 +21,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class PlotCamera : public CameraManager
 {
@@ -102,4 +104,5 @@ private:
 	shared_ptr<Texture> circle_tex;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

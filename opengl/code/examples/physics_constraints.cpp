@@ -14,6 +14,7 @@
 #include <random>
 
 using namespace vephor;
+using namespace vephor::ogl;
 
 int main()
 {

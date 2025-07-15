@@ -10,6 +10,7 @@
 
 #include <vephor.h>
 #include <vephor_ext.h>
+#include <vephor_ogl.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/functional.h>
@@ -22,10 +23,28 @@
 namespace py = pybind11;
 using namespace vephor;
 
+void init_ogl(py::module_ &m)
+{
+	py::class_<ogl::Window, shared_ptr<ogl::Window>> window(m, "Window");
+    window
+        .def(py::init([](int width,int height,const std::string& name){
+				return make_shared<ogl::Window>(width, height, name);
+			}),
+			py::arg("width")=-1,
+			py::arg("height")=-1,
+			py::arg("name")="show")
+		.def("setFrameLock", &ogl::Window::setFrameLock)
+		.def("clear", &ogl::Window::clear)
+		.def("render", &ogl::Window::render);
+}
+
 PYBIND11_MODULE(_core, m) {
     m.doc() = R"pbdoc(
         Vephor Visualization Library for Python
     )pbdoc";
+
+	auto ogl = m.def_submodule("ogl", "Access OpenGL directly");
+	init_ogl(ogl);
 
 	py::class_<Vec3>(m, "Vec3")
 		.def(py::init<float,float,float>());

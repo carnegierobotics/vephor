@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Verlet
 {
@@ -259,4 +261,5 @@ private:
     vector<Constraint> constraints;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

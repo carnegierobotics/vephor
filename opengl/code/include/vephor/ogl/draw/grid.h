@@ -15,6 +15,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Grid
 {
@@ -74,4 +76,5 @@ private:
 	shared_ptr<Lines> lines;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

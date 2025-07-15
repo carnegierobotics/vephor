@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 void Plot3DCamera::resizeWindow(Window& window)
 {
@@ -553,4 +555,5 @@ void Plot3DCamera::update(Window& window, float dt, const ControlInfo& control_i
 	}
 }
 
-}
+} // namespace ogl
+} // namespace vephor

@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 void MaterialProgram::activate(Window* window, const TransformSim3& world_from_body, const MaterialState& state)
 {
@@ -639,16 +641,96 @@ float shadowPCF(sampler2D shadowMap, vec4 shadowCoord, float bias) {
     float shadow = 0.0;
     float texelSize = 1.0 / textureSize(shadowMap, 0).x; // assuming square shadow map
 
+    // Gaussian weights
+    float kernel[5][5] = float[5][5](
+        float[](0.003, 0.013, 0.022, 0.013, 0.003),
+        float[](0.013, 0.059, 0.097, 0.059, 0.013),
+        float[](0.022, 0.097, 0.159, 0.097, 0.022),
+        float[](0.013, 0.059, 0.097, 0.059, 0.013),
+        float[](0.003, 0.013, 0.022, 0.013, 0.003)
+    );
+
+    float weight_sum = 0.0;
+
     // 3x3 PCF kernel
     for (int x = -2; x <= 2; ++x) {
         for (int y = -2; y <= 2; ++y) {
             vec2 offset = vec2(x, y) * texelSize;
-            float depthSample = texture(shadowMap, projCoords.xy + offset).r;
-            shadow += projCoords.z - bias > depthSample ? 0.0 : 1.0;
+            float depth_sample = texture(shadowMap, projCoords.xy + offset).r;
+            float weight = kernel[y + 2][x + 2];
+            shadow += (projCoords.z - bias > depth_sample ? 0.0 : 1.0)*weight;
+            weight_sum += weight;
         }
     }
 
-    return shadow / 25.0;
+    return shadow / weight_sum;
+}
+
+vec2 poissonDisk[16] = vec2[](
+    vec2(-0.94201624, -0.39906216),
+    vec2( 0.94558609, -0.76890725),
+    vec2(-0.094184101, -0.92938870),
+    vec2( 0.34495938,  0.29387760),
+    vec2(-0.91588581,  0.45771432),
+    vec2(-0.81544232, -0.87912464),
+    vec2(-0.38277543,  0.27676845),
+    vec2( 0.97484398,  0.75648379),
+    vec2( 0.44323325, -0.97511554),
+    vec2( 0.53742981, -0.47373420),
+    vec2(-0.26496911, -0.41893023),
+    vec2( 0.79197514,  0.19090188),
+    vec2(-0.24188840,  0.99706507),
+    vec2(-0.81409955,  0.91437590),
+    vec2( 0.19984126,  0.78641367),
+    vec2( 0.14383161, -0.14100790)
+);
+
+float shadowPoisson(sampler2D shadowMap, vec4 shadowCoord, float bias) {
+    vec3 projCoords = shadowCoord.xyz / shadowCoord.w * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+
+    float texelSize = 1.0 / textureSize(shadowMap, 0).x;
+    float shadow = 0.0;
+
+    for (int i = 0; i < 16; ++i) {
+        vec2 offset = poissonDisk[i] * texelSize * 2.0; // radius scale
+        float depth_sample = texture(shadowMap, projCoords.xy + offset).r;
+        shadow += projCoords.z - bias > depth_sample ? 0.0 : 1.0;
+    }
+
+    return shadow / 16.0;
+}
+
+// Simple hash to get a pseudo-random angle from screen position
+float randAngle(vec2 co) {
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453) * 6.2831853;
+}
+
+// Rotate 2D vector
+vec2 rotate(vec2 v, float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return vec2(c * v.x - s * v.y, s * v.x + c * v.y);
+}
+
+// Main PCF function
+float shadowPoissonRotated(sampler2D shadowMap, vec4 shadowCoord, float penumbra_radius, float bias) {
+    vec3 proj_coords = shadowCoord.xyz / shadowCoord.w * 0.5 + 0.5;
+    if (proj_coords.z > 1.0) return 1.0;
+
+    float texel_size = 1.0 / textureSize(shadowMap, 0).x;
+    float shadow = 0.0;
+
+    float angle = randAngle(gl_FragCoord.xy); // Per-pixel random angle
+
+    for (int i = 0; i < 16; ++i) {
+        vec2 rotated_offset = rotate(poissonDisk[i], angle);
+        vec2 offset_uv = proj_coords.xy + rotated_offset * penumbra_radius * texel_size;
+        float depth_sample = texture(shadowMap, offset_uv).r;
+        shadow += proj_coords.z - bias > depth_sample ? 0.0 : 1.0;
+    }
+
+    return shadow / 16.0;
 }
 
 )";
@@ -734,34 +816,17 @@ string fragmentShaderDirLightMain = R"(
     specular_light_strength += dir_specular_light;
 )";
 
-/*string fragmentShaderDirLightShadowsMain = R"(
-    vec4 pos_in_dir_light = dir_light_proj_from_world * vec4(vo_pos_in_world, 1.0);
-    vec3 proj_pos_in_dir_light = pos_in_dir_light.xyz / pos_in_dir_light.w * 0.5 + 0.5;
-    float depth = texture(dir_light_shadow_map_sampler, proj_pos_in_dir_light.xy).r;
-
-    float bias = max(0.005 * (1.0 - dot(n, vo_dir_light_dir_in_camera)), 0.0005);
-    
-    if (clamp(proj_pos_in_dir_light.z, 0, 1) < depth + bias)
-    {
-        float dirLightCosTheta = clamp(dot(n,vo_dir_light_dir_in_camera), 0, 1);
-
-        vec3 dir_R = reflect(-vo_dir_light_dir_in_camera,n);
-        float dir_specular_cos = clamp(dot(E, dir_R), 0, 1);
-
-        vec3 dir_diffuse_light = dir_light_color * dir_light_strength * dirLightCosTheta;
-        vec3 dir_specular_light = dir_light_color * dir_light_strength * pow(dir_specular_cos, specular_power) * specular;
-
-        diffuse_light_strength += dir_diffuse_light;
-        specular_light_strength += dir_specular_light;
-    }
-)";*/
-
 string fragmentShaderDirLightShadowsMain = R"(
     vec4 pos_in_dir_light = dir_light_proj_from_world * vec4(vo_pos_in_world, 1.0);
 
-    float bias = max(0.005 * (1.0 - dot(n, vo_dir_light_dir_in_camera)), 0.0005);
+    float bias = max(0.01 * (1.0 - dot(n, vo_dir_light_dir_in_camera)), 0.002);
 
-    float light_amount = shadowPCF(dir_light_shadow_map_sampler, pos_in_dir_light, bias);
+    float penumbra_rad = 5.0;
+    float light_amount = shadowPoissonRotated(
+        dir_light_shadow_map_sampler, 
+        pos_in_dir_light, 
+        penumbra_rad,
+        bias);
     
     if (light_amount > 0.0)
     {
@@ -1290,4 +1355,5 @@ MaterialProgramSet MaterialBuilder::buildSet(bool simple_depth) const
     return set;
 }
 
-}
+} // namespace ogl
+} // namespace vephor

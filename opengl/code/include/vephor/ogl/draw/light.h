@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 	
 class AmbientLight
 {
@@ -99,4 +101,5 @@ private:
     ShadowOptions shadow_opts;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

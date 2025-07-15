@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 
 string textVertexShader = R"(
@@ -277,4 +279,5 @@ void Text::renderOGL(Window* window, const TransformSim3& world_from_body)
 	glBindVertexArray(0);
 }
 
-}
+} // namespace ogl
+} // namespace vephor

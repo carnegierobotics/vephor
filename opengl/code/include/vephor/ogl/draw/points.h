@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Points
 {
@@ -44,4 +46,5 @@ private:
     GLuint color_id;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

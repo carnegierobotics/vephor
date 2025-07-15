@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 Mesh::Mesh(
     const MeshData& p_data,
@@ -261,4 +263,5 @@ void WrappedMesh::onRemoveFromWindow(Window* window)
     mesh->onRemoveFromWindow(window);
 }
 
-}
+} // namespace ogl
+} // namespace vephor

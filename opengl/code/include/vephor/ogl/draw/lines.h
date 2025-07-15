@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Lines
 {
@@ -46,4 +48,5 @@ private:
     GLuint mvp_matrix_id;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

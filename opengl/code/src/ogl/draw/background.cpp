@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 string backgroundVertexShader = R"(
     #version 430
@@ -173,4 +175,5 @@ void Background::renderOGL(Window* window, const TransformSim3& world_from_body)
     glBindVertexArray(0);
 }
 
-}
+} // namespace ogl
+} // namespace vephor

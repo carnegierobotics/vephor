@@ -136,6 +136,7 @@ else (VEPHOR_BUILD_PYTHON_BINDINGS)
 	set(EXAMPLE_APPS
 		background_test
 		basic
+		boilerplate
 		camera_test
 		just_instanced_points
 		just_sphere

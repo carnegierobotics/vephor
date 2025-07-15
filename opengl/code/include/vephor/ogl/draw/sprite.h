@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Sprite
 {
@@ -76,4 +78,5 @@ private:
     GLuint normal_sampler_id;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

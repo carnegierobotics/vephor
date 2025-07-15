@@ -12,6 +12,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 
 string thickLinesVertexShader = R"(
@@ -291,4 +293,5 @@ void ThickLines::renderOGL(Window* window, const TransformSim3& world_from_body)
 	glDisableVertexAttribArray(dir_attr_loc);
 }
 
-}
+} // namespace ogl
+} // namespace vephor

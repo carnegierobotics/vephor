@@ -14,6 +14,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class StaticCamera : public CameraManager
 {
@@ -46,4 +48,5 @@ public:
 	Vec3 to, from, up;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

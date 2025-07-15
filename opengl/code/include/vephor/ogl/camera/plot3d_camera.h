@@ -20,6 +20,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Plot3DCamera : public CameraManager
 {
@@ -68,4 +70,5 @@ private:
 	Vec3 pan_world_point;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

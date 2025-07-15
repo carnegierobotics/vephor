@@ -15,6 +15,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 namespace fs = std::filesystem;
 
@@ -44,4 +46,5 @@ private:
 	vector<string> folders;
 };
 
-}
+} // namespace ogl
+} // namespace vephor

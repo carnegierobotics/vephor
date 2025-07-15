@@ -15,6 +15,8 @@
 
 namespace vephor
 {
+namespace ogl
+{
 
 class Arrow
 {
@@ -100,4 +102,5 @@ private:
 	shared_ptr<Mesh> body;
 };
 
-}
+} // namespace ogl
+} // namespace vephor
