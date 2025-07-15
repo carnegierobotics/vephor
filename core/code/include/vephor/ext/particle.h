@@ -155,7 +155,7 @@ private:
 	inline const static Vec4 default_color_rgba_default = Vec4(1,1,1,1);
 	Vec4 default_color_rgba = default_color_rgba_default;
 
-	inline const static float size_default = 1.0f;
+	inline const static float size_default = 0.03f;
 	float size = size_default;
 
 	inline const static bool ss_mode_default = false;

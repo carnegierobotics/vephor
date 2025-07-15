@@ -140,7 +140,7 @@ struct ShowRecord
 		{
 			if (!keep_windows_hidden)
 				windows[window_id]->window->show();
-			windows[window_id]->update(data, assets);
+			windows[window_id]->updateData(data, assets);
 			return;
 		}
 		
@@ -765,7 +765,7 @@ struct ShowRecord
 			saveImage(output_folder + "/screenshot.png", screenshot);
 		}
 	}
-	void spin(bool daemon)
+	void spin(bool daemon, bool debug=false)
 	{
 		v4print "Daemon:", daemon;
 		
@@ -785,14 +785,20 @@ struct ShowRecord
 			if (windows.empty())
 				std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			
+			if (debug)
+				v4print "ShowRecord::spin - clean objects";
 			cleanObjects();
 			
+			if (debug)
+				v4print "ShowRecord::spin - handle messages";
 			handleMessages();
 			
+			if (debug)
+				v4print "ShowRecord::spin - update windows";
 			bool save_flag = false;
 			for (auto& window : windows)
 			{
-				window.second->update();
+				window.second->update(debug);
 				save_flag |= window.second->save_flag;
 				window.second->save_flag = false;
 			}

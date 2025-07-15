@@ -29,6 +29,7 @@ struct MaterialState
     shared_ptr<Texture> tex;
 	shared_ptr<Texture> normal_map;
     shared_ptr<CubeTexture> cube_tex;
+    unordered_map<string, shared_ptr<Texture>> extra_textures;
 };
 
 class MaterialProgram
@@ -99,6 +100,8 @@ private:
     GLuint aspect_id = std::numeric_limits<GLuint>::max();
     GLuint screen_size_id = std::numeric_limits<GLuint>::max();
 
+    unordered_map<string, GLuint> extra_texture_ids;
+
     bool infinite_depth = false;
 };
 
@@ -137,8 +140,10 @@ public:
     bool dir_light_shadows = false;
     bool vert_world_from_model = false;
     bool frag_cam_from_world = false;
+    bool frag_proj_from_camera = false;
 
     unordered_map<string, vector<string>> extra_sections;
+    vector<string> extra_textures;
 
     std::string produceVertexShader() const;
     std::string produceFragmentShader() const;

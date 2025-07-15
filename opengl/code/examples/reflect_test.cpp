@@ -132,7 +132,8 @@ int main()
 
 
     {
-        auto mirror_tex = window.addReflectiveSurface(plane);
+        auto mirror_texs = window.addReflectiveSurface(plane);
+        auto mirror_tex = mirror_texs.tex;
 
         auto plane_data = formPlaneGrid(Vec2(100,100), Vec2i(100,100));
 
@@ -197,8 +198,8 @@ int main()
 
         Vec3 plane_pt = normal*-plane[3];
 
-
-        auto mirror_tex = window.addReflectiveSurface(plane);
+        auto mirror_texs = window.addReflectiveSurface(plane);
+        auto mirror_tex = mirror_texs.tex;
 
         auto plane_data = formPlaneGrid(Vec2(100,100), Vec2i(100,100));
 

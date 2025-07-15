@@ -28,7 +28,7 @@ void waitForMessages(NetworkManager* net_manager, std::deque<JSONBMessage>* mess
 	}
 }
 
-void ShowRecordWindow::update()
+void ShowRecordWindow::update(bool debug)
 {
 	if (shutdown)
 		return;
@@ -37,6 +37,8 @@ void ShowRecordWindow::update()
 
 	bool showing_before = window->isShow();
 
+	if (debug)
+		v4print "ShowRecordWindow::update - render";
 	shutdown = !window->render();
 
 	if (!video_path.empty())
@@ -81,6 +83,8 @@ void ShowRecordWindow::update()
 		return;
 	}
 
+	if (debug)
+		v4print "ShowRecordWindow::update - camera/controls";
 	camera->update(*window.get(), dt, control_info);
 	control_info.onUpdate();
 }
@@ -251,7 +255,7 @@ void ShowRecordWindow::setup(const json& data,
 	setupInputHandlers(net_manager);
 }
 
-void ShowRecordWindow::update(const json& data, AssetManager& assets)
+void ShowRecordWindow::updateData(const json& data, AssetManager& assets)
 {
 	if (data.contains("window"))
 	{
@@ -971,7 +975,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		serialization.valid = true;
 		
 		const Vec4 default_color = readDefault(obj, "default_color_rgba", Vec4(1,1,1,1));
-		const float default_size = readDefault(obj, "size", 1.0f);
+		const float default_size = readDefault(obj, "size", 0.03f);
 
         VertexDataRecord verts_record;
 		readVertexData(obj["verts"], base_buf_index, bufs, verts_record, &serialization.header["verts"], &serialization.payloads);

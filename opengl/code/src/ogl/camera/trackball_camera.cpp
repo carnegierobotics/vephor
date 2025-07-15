@@ -14,7 +14,7 @@ namespace vephor
 {
 
 const float TRACKBALL_BASE_NEAR_Z = 0.001f;
-const float TRACKBALL_BASE_FAR_Z = 10.0f;
+const float TRACKBALL_BASE_FAR_Z = 100.0f;
 
 void TrackballCamera::resizeWindow(Window& window)
 {
@@ -35,13 +35,9 @@ void TrackballCamera::setup(const json& data, Window& window, AssetManager& asse
 	orbit_point_render = window.add(orbit_point, Transform3());
 	orbit_point_render->setShow(false);
 
-	orbit_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
-
 	auto drag_point = make_shared<Mesh>(orbit_sphere, Vec3(1,1,0));
 	drag_point_render = window.add(drag_point, Transform3());
 	drag_point_render->setShow(false);
-
-	drag_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
 
 
 	auto selection_sphere = make_shared<Mesh>(orbit_sphere, Vec3(1,1,1));
@@ -89,6 +85,8 @@ void TrackballCamera::setup(const json& data, Window& window, AssetManager& asse
 		scene_scale = (trackball_from - trackball_to).norm();
 	orbit_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
 	orbit_point_render->setPos(trackball_to);
+
+	drag_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
 	
 	curr_near_z = TRACKBALL_BASE_NEAR_Z * scene_scale;
 	curr_far_z = TRACKBALL_BASE_FAR_Z * scene_scale;

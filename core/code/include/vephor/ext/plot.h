@@ -320,15 +320,15 @@ public:
     ///
     /// @todo Add opacity/alpha specification.
     /// @todo Smarter legend icons for cases where color is not uniform.
+    /// @todo Add back in c/s matrix support for sets if desired
     ///
     /// @param[in] x An (N, 1) vector of x-values.
     /// @param[in] y Either a (1, 1) singular y-value or an (N, M) matrix of y-values organized by set.
-    /// @param[in] c Either a (0, 0) matrix indicating that color should be assigned automatically, a (1, 3) RGB color
-    ///            to assign to all points, a (1, 3 * m) matrix specifying RGB colors for each point set, an (N, 3)
-    ///            matrix specifying RGB colors for each point index, or an (N, 3 * M) matrix specifying RGB colors for
-    ///            each individual point in each indivual set.
-    /// @param[in] s Either a (0, 0) matrix indicating that point size should be assigned based on @c opts, a (1, 1)
-    ///            singular size to assign to all points, an (N, 1) matrix of sizes for each individual point, or an
+    /// @param[in] c Either a (0, 0) matrix indicating that color should be assigned automatically or based on opts, 
+    //             an (N, 3) matrix specifying RGB colors for each point index, or an (N, 3 * M) matrix specifying RGB 
+    ///            colors for each individual point in each indivual set.
+    /// @param[in] s Either a (0, 0) matrix indicating that point size should be assigned based on @c opts, 
+    //             an (N, 1) matrix of sizes for each individual point, or an
     ///            (N, M) matrix specifying sizes for each individual point in each individual set.
     /// @param[in] opts Plot configuration options.
     ///

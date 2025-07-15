@@ -158,6 +158,23 @@ void MaterialProgram::activate(Window* window, const TransformSim3& world_from_b
         Vec2 size = window->getSize().cast<float>();
         glUniform2fv(screen_size_id, 1, size.data());
     }
+
+    int extra_tex_index = 2;
+    for (const auto& tex : extra_texture_ids)
+    {
+        if (tex.second == std::numeric_limits<GLuint>::max())
+            continue;
+
+        if (!find(state.extra_textures, tex.first))
+	    {
+            throw std::runtime_error("No extra texture "+tex.first+" found in material state.");
+        }
+
+        glActiveTexture(GL_TEXTURE0 + extra_tex_index);
+        glBindTexture(GL_TEXTURE_2D, state.extra_textures.at(tex.first)->getID());
+        glUniform1i(tex.second, extra_tex_index);
+        extra_tex_index++;
+    }
 }
 
 void MaterialProgram::deactivate()
@@ -611,6 +628,29 @@ uniform vec3 dir_light_color = vec3(1,1,1);
 string fragmentShaderDirLightShadowsUniforms = R"(
 uniform mat4 dir_light_proj_from_world;
 uniform sampler2D dir_light_shadow_map_sampler;
+
+float shadowPCF(sampler2D shadowMap, vec4 shadowCoord, float bias) {
+    // Perform perspective divide
+    vec3 projCoords = shadowCoord.xyz / shadowCoord.w * 0.5 + 0.5;
+
+    // Early out if outside light frustum
+    if (projCoords.z > 1.0) return 1.0;
+
+    float shadow = 0.0;
+    float texelSize = 1.0 / textureSize(shadowMap, 0).x; // assuming square shadow map
+
+    // 3x3 PCF kernel
+    for (int x = -2; x <= 2; ++x) {
+        for (int y = -2; y <= 2; ++y) {
+            vec2 offset = vec2(x, y) * texelSize;
+            float depthSample = texture(shadowMap, projCoords.xy + offset).r;
+            shadow += projCoords.z - bias > depthSample ? 0.0 : 1.0;
+        }
+    }
+
+    return shadow / 25.0;
+}
+
 )";
 
 string fragmentShaderPointLightUniforms = R"(
@@ -629,6 +669,10 @@ uniform float time;
 
 string fragmentShaderCamFromWorldUniforms = R"(
 uniform mat4 cam_from_world;
+)";
+
+string fragmentShaderProjFromCameraUniforms = R"(
+uniform mat4 proj_from_camera;
 )";
 
 string fragmentShaderMain = R"(
@@ -690,12 +734,14 @@ string fragmentShaderDirLightMain = R"(
     specular_light_strength += dir_specular_light;
 )";
 
-string fragmentShaderDirLightShadowsMain = R"(
+/*string fragmentShaderDirLightShadowsMain = R"(
     vec4 pos_in_dir_light = dir_light_proj_from_world * vec4(vo_pos_in_world, 1.0);
     vec3 proj_pos_in_dir_light = pos_in_dir_light.xyz / pos_in_dir_light.w * 0.5 + 0.5;
     float depth = texture(dir_light_shadow_map_sampler, proj_pos_in_dir_light.xy).r;
+
+    float bias = max(0.005 * (1.0 - dot(n, vo_dir_light_dir_in_camera)), 0.0005);
     
-    if (clamp(proj_pos_in_dir_light.z, 0, 1) < depth + 0.001)
+    if (clamp(proj_pos_in_dir_light.z, 0, 1) < depth + bias)
     {
         float dirLightCosTheta = clamp(dot(n,vo_dir_light_dir_in_camera), 0, 1);
 
@@ -707,6 +753,28 @@ string fragmentShaderDirLightShadowsMain = R"(
 
         diffuse_light_strength += dir_diffuse_light;
         specular_light_strength += dir_specular_light;
+    }
+)";*/
+
+string fragmentShaderDirLightShadowsMain = R"(
+    vec4 pos_in_dir_light = dir_light_proj_from_world * vec4(vo_pos_in_world, 1.0);
+
+    float bias = max(0.005 * (1.0 - dot(n, vo_dir_light_dir_in_camera)), 0.0005);
+
+    float light_amount = shadowPCF(dir_light_shadow_map_sampler, pos_in_dir_light, bias);
+    
+    if (light_amount > 0.0)
+    {
+        float dirLightCosTheta = clamp(dot(n,vo_dir_light_dir_in_camera), 0, 1);
+
+        vec3 dir_R = reflect(-vo_dir_light_dir_in_camera,n);
+        float dir_specular_cos = clamp(dot(E, dir_R), 0, 1);
+
+        vec3 dir_diffuse_light = dir_light_color * dir_light_strength * dirLightCosTheta;
+        vec3 dir_specular_light = dir_light_color * dir_light_strength * pow(dir_specular_cos, specular_power) * specular;
+
+        diffuse_light_strength += dir_diffuse_light * light_amount;
+        specular_light_strength += dir_specular_light * light_amount;
     }
 )";
 
@@ -847,6 +915,14 @@ std::string MaterialBuilder::produceFragmentShader() const
 
     if (frag_cam_from_world)
         shader += fragmentShaderCamFromWorldUniforms;
+
+    if (frag_proj_from_camera)
+        shader += fragmentShaderProjFromCameraUniforms;
+
+    for (const auto& tex : extra_textures)
+    {
+        shader += "uniform sampler2D "+tex+"_sampler;";
+    }
 
     if (find(extra_sections, string("frag_func")))
     {
@@ -994,12 +1070,18 @@ std::string MaterialBuilder::getTag() const
         tag += "_vwfm";
     if (frag_cam_from_world)
         tag += "_fcfw";
+    if (frag_proj_from_camera)
+        tag += "_fpfc";
     for (const auto& sections : extra_sections)
     {
         for (const auto& section : sections.second)
         {
             tag += "_" + short_hash(sections.first + section);
         }
+    }
+    for (const auto& tex : extra_textures)
+    {
+        tag += "_extex_" + tex;
     }
     return tag;
 }
@@ -1116,7 +1198,7 @@ std::shared_ptr<MaterialProgram> MaterialBuilder::build() const
         material->screen_size_id = glGetUniformLocation(material->program_id, "screen_size");
     }
 
-    if (billboard)
+    if (billboard || frag_proj_from_camera)
     {
         material->proj_from_camera_matrix_id = glGetUniformLocation(material->program_id, "proj_from_camera");
     }
@@ -1162,6 +1244,14 @@ std::shared_ptr<MaterialProgram> MaterialBuilder::build() const
 
     if (time)
         material->time_id = glGetUniformLocation(material->program_id, "time");
+
+    for (const auto& tex : extra_textures)
+    {
+        material->extra_texture_ids[tex] = glGetUniformLocation(material->program_id, (tex+"_sampler").c_str());
+        // Let this go so code changes don't cause crashes
+        //if (material->extra_texture_ids[tex] == std::numeric_limits<GLuint>::max())
+        //    throw std::runtime_error("Could not find sampler for extra texture: " + tex + ". Is the sampler in use?");
+    }
 
     material->infinite_depth = infinite_depth;
 

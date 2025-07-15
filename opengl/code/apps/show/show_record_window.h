@@ -49,7 +49,7 @@ struct ShowRecordWindow
 	string video_path;
 	int video_frame_count = 0;
 
-	void update();
+	void update(bool debug=false);
 	void close();
 	void setup(const json& data, 
 		WindowID p_window_id, 
@@ -57,7 +57,7 @@ struct ShowRecordWindow
 		NetworkManager* p_net_manager, 
 		AssetManager& assets, 
 		bool hide_windows);
-	void update(const json& data, AssetManager& assets);
+	void updateData(const json& data, AssetManager& assets);
 	void positionCameraFromObjectBounds();
 	void setupCamera(const json& data, AssetManager& assets);
 	void setupInputHandlers(NetworkManager* net_manager);

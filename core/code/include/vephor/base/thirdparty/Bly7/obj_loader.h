@@ -497,12 +497,18 @@ namespace objl
 
 			// If the file is not an .obj file return false
 			if (Path.substr(Path.size() - 4, 4) != ".obj")
+			{
+				std::cout << "Not an .obj file: " << Path << std::endl;
 				return false;
+			}
 
 			std::ifstream file(Path);
 
 			if (!file.is_open())
+			{
+				std::cout << "Could not open file: " << Path << std::endl;
 				return false;
+			}
 
 			LoadedMeshes.clear();
 			LoadedVertices.clear();

@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
 		show.setupFromPath(input_dir);
     }
     
-	show.spin(use_server || daemonize);
+	show.spin(use_server || daemonize, debug);
 
 	if (!screenshot_path.empty())
 	{

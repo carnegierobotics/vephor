@@ -175,6 +175,15 @@ struct MonitorInfo
     Vec2i pos;
 };
 
+struct ShadowOptions
+{
+    int map_size = 2048;
+    bool debug = false;
+    float rad_m = 600;
+    float border_m = 10;
+	float light_height = 100;
+};
+
 class Window
 {
 public:
@@ -356,7 +365,7 @@ public:
         point_lights.erase(light_id);
     }
 
-    void setDirLight(const Vec3& dir, float strength, bool shadows=false, int shadow_map_size=0)
+    void setDirLight(const Vec3& dir, float strength, bool shadows=false, const ShadowOptions& opts=ShadowOptions())
     {
 		if (window == NULL)
 			return;
@@ -364,11 +373,12 @@ public:
         dir_light.pos = -dir;
         dir_light.strength = strength;
         dir_light_shadows = shadows;
+        dir_light_shadow_opts = opts;
 
         if (!dir_light_shadows)
             return;
 
-        if (shadow_map_size == 0)
+        if (opts.map_size == 0)
         {
             throw std::runtime_error("Must have a shadow map size larger than 0.");
         }
@@ -377,7 +387,7 @@ public:
 
         GLuint dir_light_shadow_map_id;
         
-        if (shadow_map_size != dir_light_shadow_map_size)
+        if (opts.map_size != dir_light_shadow_map_size)
         {
             if (dir_light_shadow_map_size > 0)
                 glDeleteTextures(1, &dir_light_shadow_map_id);
@@ -385,10 +395,10 @@ public:
             glGenTextures(1, &dir_light_shadow_map_id);
             glBindTexture(GL_TEXTURE_2D, dir_light_shadow_map_id);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 
-                        shadow_map_size, shadow_map_size, 0, 
+                        opts.map_size, opts.map_size, 0, 
                         GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
-            dir_light_shadow_map_size = shadow_map_size;
+            dir_light_shadow_map_size = opts.map_size;
         }
 
         glBindTexture(GL_TEXTURE_2D, dir_light_shadow_map_id);
@@ -658,7 +668,14 @@ public:
     bool isReflectionPhase() const {return reflection_phase;}
     bool isShadowPhase() const {return shadow_phase;}
     bool areShadowsActive() const {return dir_light_shadows;}
-    shared_ptr<Texture> addReflectiveSurface(const Vec4& plane);
+
+    struct ReflectiveSurfaceTextures
+    {
+        shared_ptr<Texture> tex;
+        shared_ptr<Texture> depth;
+    };
+
+    ReflectiveSurfaceTextures addReflectiveSurface(const Vec4& plane, bool keep_depth=false);
 
     bool getDirLightShadowInfo(Mat4& out_dir_light_proj_from_world, shared_ptr<Texture>& out_dir_light_shadow_map)
     {
@@ -742,6 +759,7 @@ private:
     unordered_map<int, LightInfo> point_lights;
     LightInfo dir_light;
     bool dir_light_shadows = false;
+    ShadowOptions dir_light_shadow_opts;
     int dir_light_shadow_map_size = 0;
     shared_ptr<Texture> dir_light_shadow_map;
     GLuint dir_light_shadow_map_fbo = std::numeric_limits<GLuint>::max();

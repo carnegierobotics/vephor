@@ -18,7 +18,8 @@ InstancedPoints::InstancedPoints(const MatXRef& p_pts,
                                  const VecXRef& p_sizes,
                                  const Vec4& p_default_color,
                                  const float p_default_size) :
-    offsets(p_pts.transpose())
+    offsets(p_pts.transpose()),
+    size(p_default_size)
 {
     //
     // Colors
@@ -44,28 +45,10 @@ InstancedPoints::InstancedPoints(const MatXRef& p_pts,
     //
 
     {
-        sizes.resize(p_pts.rows());
-        sizes.fill(p_default_size);
+        if (p_sizes.rows() > 0 && p_sizes.rows() != p_pts.rows())
+            throw std::runtime_error("If sizes are present, must match number of verts.");
 
-        if (p_sizes.rows() == 0)
-        {
-        }
-        else if (p_sizes.rows() == 1)
-        {
-            sizes.fill(p_sizes[0]);
-        }
-        else if (p_sizes.rows() < p_pts.rows())
-        {
-            sizes.head(p_sizes.rows()) = p_sizes;
-        }
-        else if (p_sizes.rows() == p_pts.rows())
-        {
-            sizes = p_sizes.transpose();
-        }
-        else // p_sizes.rows() > p_pts.rows()
-        {
-            sizes = p_sizes.head(p_pts.rows()).transpose();
-        }
+        sizes = p_sizes.transpose();
     }
 
     //
@@ -101,23 +84,7 @@ InstancedPoints::InstancedPoints(const MatXRef& p_pts,
         uvs = uvs.transpose().eval();
     }
 
-    //
-    // Material
-    //
-
-    {
-        MaterialBuilder builder;
-        builder.tex = true;
-        builder.normal_map = false;
-        builder.dir_light = false;
-        builder.point_lights = false;
-        builder.vertex_color = true;
-        builder.materials = false;
-        builder.offset = true;
-        builder.uniform_size = true;
-        builder.billboard = true;
-        material = builder.build();
-    }
+    generateMaterial();
 }
 
 InstancedPoints::InstancedPoints(const MatXRef& p_pts, const MatXRef& p_colors, const Vec4& p_default_color) :
@@ -136,7 +103,7 @@ void InstancedPoints::onAddToWindow(Window* window, const shared_ptr<TransformNo
     createOpenGLBufferForMatX(offset_buffer_id, offsets);
     createOpenGLBufferForMatX(color_buffer_id, colors);
 
-	if (sizes.rows() > 0)
+	if (sizes.cols() > 0)
 	{
 		createOpenGLBufferForMatX(size_buffer_id, sizes);
 	}
@@ -165,7 +132,7 @@ void InstancedPoints::generateMaterial()
 	builder.vertex_color = true;
 	builder.materials = false;
 	builder.offset = true;
-	if (sizes.rows() > 0)
+	if (sizes.cols() > 0)
 		builder.instanced_size = true;
 	else
 		builder.uniform_size = true;
@@ -189,12 +156,21 @@ void InstancedPoints::setupVAO()
 
     addOpenGLBufferToActiveVAO(pos_buffer_id, material->getPosAttrLoc(), 3);
     addOpenGLBufferToActiveVAO(uv_buffer_id, material->getUVAttrLoc(), 2);
+
+    if (material->getOffsetAttrLoc() == std::numeric_limits<GLuint>::max())
+        throw std::runtime_error("Instanced points must have an offset attribute available in the shader.");
+
     addOpenGLBufferToActiveVAO(offset_buffer_id, material->getOffsetAttrLoc(), 3);
 	glVertexAttribDivisor(material->getOffsetAttrLoc(), 1);
+
     addOpenGLBufferToActiveVAO(color_buffer_id, material->getColorAttrLoc(), 4);
-	glVertexAttribDivisor(material->getColorAttrLoc(), 1);
-	if (sizes.rows() > 0)
+    glVertexAttribDivisor(material->getColorAttrLoc(), 1);
+
+	if (sizes.cols() > 0)
 	{
+        if (material->getSizeAttrLoc() != std::numeric_limits<GLuint>::max())
+            throw std::runtime_error("Instanced points must have a size attribute available in the shader if individual sizes are present.");
+
 		addOpenGLBufferToActiveVAO(size_buffer_id, material->getSizeAttrLoc(), 1);
 		glVertexAttribDivisor(material->getSizeAttrLoc(), 1);
 	}

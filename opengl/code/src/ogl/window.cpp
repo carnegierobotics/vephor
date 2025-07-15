@@ -570,19 +570,19 @@ void Window::renderDirLightShadowMap()
 	Vec3 world_t_cam = world_from_cam_matrix.block(0,3,3,1);
 	Vec3 cam_forward = -world_from_cam_matrix.block(0,2,3,1);
 
-	float shadow_rad_m = 600;
-	float light_height = 100;
-	dir_light_proj_matrix = makeOrthoProj(Vec3(-shadow_rad_m,-shadow_rad_m,1),Vec3(shadow_rad_m,shadow_rad_m,1000));
+	dir_light_proj_matrix = makeOrthoProj(
+		Vec3(-dir_light_shadow_opts.rad_m,-dir_light_shadow_opts.rad_m,1),
+		Vec3(dir_light_shadow_opts.rad_m,dir_light_shadow_opts.rad_m,1000));
 	dir_light_proj_matrix = dir_light_proj_matrix.transpose().eval();
 
 	
 	
-	Vec3 light_offset = cam_forward * (shadow_rad_m - 10.0f);
+	Vec3 light_offset = cam_forward * (dir_light_shadow_opts.rad_m - dir_light_shadow_opts.border_m);
 	light_offset = light_offset - light_offset.dot(dir_light.pos)*dir_light.pos;
 
 	dir_light_cam_from_world_matrix = makeLookAtTransform(
 		world_t_cam + light_offset, 
-		world_t_cam + dir_light.pos * light_height + light_offset, 
+		world_t_cam + dir_light.pos * dir_light_shadow_opts.light_height + light_offset, 
 		findCrossVec(dir_light.pos)).matrix();
 
 	shadow_phase = true;
@@ -605,6 +605,12 @@ void Window::renderDirLightShadowMap()
 	glViewport(0, 0, width, height);
 
 	shadow_phase = false;
+
+	if (dir_light_shadow_opts.debug)
+	{
+		auto depth_image = getFBODepthImage(dir_light_shadow_map_fbo, dir_light_shadow_map_size, dir_light_shadow_map_size);
+		saveImage("/tmp/shadow_depth.png", depth_image);
+	}
 }
 
 void Window::renderReflectiveSurface(ReflectiveSurface& surface)
@@ -617,7 +623,11 @@ void Window::renderReflectiveSurface(ReflectiveSurface& surface)
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	glCullFace(GL_FRONT);
+
 	renderScene();
+
+	glCullFace(GL_BACK);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -625,7 +635,7 @@ void Window::renderReflectiveSurface(ReflectiveSurface& surface)
 	reflect_texture = std::numeric_limits<GLuint>::max();
 }
 
-shared_ptr<Texture> Window::addReflectiveSurface(const Vec4& plane)
+Window::ReflectiveSurfaceTextures Window::addReflectiveSurface(const Vec4& plane, bool keep_depth)
 {
 	ReflectiveSurface surface;
 	surface.plane = plane;
@@ -636,6 +646,8 @@ shared_ptr<Texture> Window::addReflectiveSurface(const Vec4& plane)
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
 
+	//TODO: delete these textures when a reflective surface is removed
+
 	// Color texture
 	glGenTextures(1, &surface.texture);
 	glBindTexture(GL_TEXTURE_2D, surface.texture);
@@ -644,14 +656,34 @@ shared_ptr<Texture> Window::addReflectiveSurface(const Vec4& plane)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	// Depth renderbuffer
-	glGenRenderbuffers(1, &surface.depth_buffer);
-	glBindRenderbuffer(GL_RENDERBUFFER, surface.depth_buffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+	if (keep_depth)
+	{
+		glGenTextures(1, &surface.depth_buffer);
+		glBindTexture(GL_TEXTURE_2D, surface.depth_buffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 
+                        width, height, 0, 
+                        GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        float border_color[] = {1.0, 1.0, 1.0, 1.0};
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
+	}
+	else
+	{
+		glGenRenderbuffers(1, &surface.depth_buffer);
+		glBindRenderbuffer(GL_RENDERBUFFER, surface.depth_buffer);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+	}
 
 	// Attach
 	glBindFramebuffer(GL_FRAMEBUFFER, surface.fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, surface.texture, 0);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, surface.depth_buffer);
+	if (keep_depth)
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, surface.depth_buffer, 0);
+	else
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, surface.depth_buffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	surface.width = width;
@@ -659,7 +691,12 @@ shared_ptr<Texture> Window::addReflectiveSurface(const Vec4& plane)
 
 	reflective_surfaces.push_back(surface);
 
-	return make_shared<Texture>(surface.texture, Vec2i(width, height));
+	ReflectiveSurfaceTextures texs;
+	texs.tex = make_shared<Texture>(surface.texture, Vec2i(width, height));
+	if (keep_depth)
+		texs.depth = make_shared<Texture>(surface.depth_buffer, Vec2i(width, height));
+
+	return texs;
 }
 
 void Window::renderScene()
@@ -1170,7 +1207,6 @@ Image<uint8_t> Window::getDepthImage()
 	glReadPixels(0, 0, window_size[0], window_size[1], GL_DEPTH_COMPONENT, GL_FLOAT, (float*)image.getData().data());
 
 	float mult = 255.0 / (image.max() - image.min());
-
 	auto final_image = image.cast<uint8_t>(mult, -mult * image.min());
 
 	final_image.flipYInPlace();
@@ -1205,7 +1241,6 @@ Image<uint8_t> Window::getFBODepthImage(GLuint fbo, int width, int height)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	float mult = 255.0 / (image.max() - image.min());
-
 	auto final_image = image.cast<uint8_t>(mult, -mult * image.min());
 
 	final_image.flipYInPlace();

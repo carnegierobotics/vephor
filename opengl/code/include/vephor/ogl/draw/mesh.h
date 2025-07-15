@@ -26,7 +26,7 @@ public:
     );
     Mesh(
         const MeshData& data, 
-        const Color& color = Color(1,1,1),
+        const Color& color = Color(1.0,1.0,1.0),
         float diffuse_strength = 1.0,
         float ambient_strength = 1.0,
         float emissive_strength = 0.0
