@@ -101,6 +101,8 @@ private:
     GLuint size_id = std::numeric_limits<GLuint>::max();
     GLuint aspect_id = std::numeric_limits<GLuint>::max();
     GLuint screen_size_id = std::numeric_limits<GLuint>::max();
+    GLuint near_z_id = std::numeric_limits<GLuint>::max();
+    GLuint far_z_id = std::numeric_limits<GLuint>::max();
 
     unordered_map<string, GLuint> extra_texture_ids;
 
@@ -143,6 +145,7 @@ public:
     bool vert_world_from_model = false;
     bool frag_cam_from_world = false;
     bool frag_proj_from_camera = false;
+    bool z_limits = false;
 
     unordered_map<string, vector<string>> extra_sections;
     vector<string> extra_textures;

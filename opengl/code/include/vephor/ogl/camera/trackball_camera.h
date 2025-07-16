@@ -57,6 +57,8 @@ private:
 	float fov = 45.0f;
 	float curr_near_z = 0.1f;
 	float curr_far_z = 100.0f;
+	float base_near_z;
+	float base_far_z;
 	bool auto_fit = true;
 
 	bool pan_drag_off = true;

@@ -161,6 +161,16 @@ void MaterialProgram::activate(Window* window, const TransformSim3& world_from_b
         glUniform2fv(screen_size_id, 1, size.data());
     }
 
+    if (near_z_id != std::numeric_limits<GLuint>::max())
+    {
+        glUniform1f(near_z_id, window->getNearZ());
+    }
+
+    if (far_z_id != std::numeric_limits<GLuint>::max())
+    {
+        glUniform1f(far_z_id, window->getFarZ());
+    }
+
     int extra_tex_index = 2;
     for (const auto& tex : extra_texture_ids)
     {
@@ -757,6 +767,11 @@ string fragmentShaderProjFromCameraUniforms = R"(
 uniform mat4 proj_from_camera;
 )";
 
+string fragmentShaderZLimitsUniforms = R"(
+uniform float near_z = 0.1;
+uniform float far_z = 1000.0;
+)";
+
 string fragmentShaderMain = R"(
 
 void main()
@@ -984,6 +999,9 @@ std::string MaterialBuilder::produceFragmentShader() const
     if (frag_proj_from_camera)
         shader += fragmentShaderProjFromCameraUniforms;
 
+    if (z_limits)
+        shader += fragmentShaderZLimitsUniforms;
+
     for (const auto& tex : extra_textures)
     {
         shader += "uniform sampler2D "+tex+"_sampler;";
@@ -1137,6 +1155,8 @@ std::string MaterialBuilder::getTag() const
         tag += "_fcfw";
     if (frag_proj_from_camera)
         tag += "_fpfc";
+    if (z_limits)
+        tag += "_z";
     for (const auto& sections : extra_sections)
     {
         for (const auto& section : sections.second)
@@ -1309,6 +1329,12 @@ std::shared_ptr<MaterialProgram> MaterialBuilder::build() const
 
     if (time)
         material->time_id = glGetUniformLocation(material->program_id, "time");
+
+    if (z_limits)
+    {
+        material->near_z_id = glGetUniformLocation(material->program_id, "near_z");
+        material->far_z_id = glGetUniformLocation(material->program_id, "far_z");
+    }
 
     for (const auto& tex : extra_textures)
     {

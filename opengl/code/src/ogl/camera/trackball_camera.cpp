@@ -20,6 +20,8 @@ const float TRACKBALL_BASE_FAR_Z = 100.0f;
 
 void TrackballCamera::resizeWindow(Window& window)
 {
+	window.setNearZ(curr_near_z);
+	window.setFarZ(curr_far_z);
 	Mat4 proj = makePerspectiveProj(fov, window.getSize(), curr_near_z, curr_far_z);
 	window.setProjectionMatrix(proj);
 }
@@ -89,9 +91,12 @@ void TrackballCamera::setup(const json& data, Window& window, AssetManager& asse
 	orbit_point_render->setPos(trackball_to);
 
 	drag_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
+
+	base_near_z = readDefault(data, "base_near_z", TRACKBALL_BASE_NEAR_Z);
+	base_far_z = readDefault(data, "base_far_z", TRACKBALL_BASE_FAR_Z);
 	
-	curr_near_z = TRACKBALL_BASE_NEAR_Z * scene_scale;
-	curr_far_z = TRACKBALL_BASE_FAR_Z * scene_scale;
+	curr_near_z = base_near_z * scene_scale;
+	curr_far_z = base_far_z * scene_scale;
 	resizeWindow(window);
 
 	if (data.contains("3d"))
@@ -152,8 +157,8 @@ void TrackballCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 
 	offset *= scene_scale;
 	
-	curr_near_z = TRACKBALL_BASE_NEAR_Z * scene_scale;
-	curr_far_z = TRACKBALL_BASE_FAR_Z * scene_scale;
+	curr_near_z = base_near_z * scene_scale;
+	curr_far_z = base_far_z * scene_scale;
 	resizeWindow(window);
 	
 	v4print "position camera:";
@@ -371,8 +376,8 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 			scene_scale = offset.norm();
 			orbit_point_render->setScale(scene_scale * orbit_point_scene_scale_mult);
 
-			curr_near_z = TRACKBALL_BASE_NEAR_Z * scene_scale;
-			curr_far_z = TRACKBALL_BASE_FAR_Z * scene_scale;
+			curr_near_z = base_near_z * scene_scale;
+			curr_far_z = base_far_z * scene_scale;
 			resizeWindow(window);
 
 			trackball_from = offset + trackball_to;
