@@ -67,10 +67,10 @@ private:
 	bool cursor_callout = true;
 	bool legend_right = true;
 	bool legend_top = true;
-	Vec3 content_min;
-	Vec3 content_max;
-	Vec3 orig_content_min;
-	Vec3 orig_content_max;
+	Vec3 content_min = Vec3(-0.5,-0.5,-1);
+	Vec3 content_max = Vec3(0.5,0.5,1e6);
+	Vec3 orig_content_min = Vec3(-0.5,-0.5,-1);
+	Vec3 orig_content_max = Vec3(0.5,0.5,1e6);
 	Vec3 pre_drag_content_min;
 	Vec3 pre_drag_content_max;
 	bool last_left_drag_on = false;

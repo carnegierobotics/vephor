@@ -1202,16 +1202,23 @@ Image<uint8_t> Window::getScreenImage()
 	return image;
 }
 
-Image<uint8_t> Window::getDepthImage()
+Image<float> Window::getDepthImageFloat()
 {
 	glfwMakeContextCurrent(window);
 	Image<float> image(window_size[0], window_size[1], 1);
 	glReadPixels(0, 0, window_size[0], window_size[1], GL_DEPTH_COMPONENT, GL_FLOAT, (float*)image.getData().data());
 
+	image.flipYInPlace();
+	
+	return image;
+}
+
+Image<uint8_t> Window::getDepthImage()
+{
+	auto image = getDepthImageFloat();
+
 	float mult = 255.0 / (image.max() - image.min());
 	auto final_image = image.cast<uint8_t>(mult, -mult * image.min());
-
-	final_image.flipYInPlace();
 	
 	return final_image;
 }
@@ -1232,7 +1239,7 @@ Image<uint8_t> Window::getFBOImage(GLuint fbo, int width, int height)
 	return image;
 }
 
-Image<uint8_t> Window::getFBODepthImage(GLuint fbo, int width, int height)
+Image<float> Window::getFBODepthImageFloat(GLuint fbo, int width, int height)
 {
 	glfwMakeContextCurrent(window);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -1242,10 +1249,17 @@ Image<uint8_t> Window::getFBODepthImage(GLuint fbo, int width, int height)
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	image.flipYInPlace();
+
+	return image;
+}
+
+Image<uint8_t> Window::getFBODepthImage(GLuint fbo, int width, int height)
+{
+	auto image = getFBODepthImageFloat(fbo, width, height);
+
 	float mult = 255.0 / (image.max() - image.min());
 	auto final_image = image.cast<uint8_t>(mult, -mult * image.min());
-
-	final_image.flipYInPlace();
 
 	return final_image;
 }

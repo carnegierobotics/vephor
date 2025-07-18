@@ -154,9 +154,9 @@ public:
 		T* test_row_start = &data({0,0,0});
 		T* test_row_end = &data({1,0,0});
 
-		int row_size = test_row_end - test_row_start;
-		int row_elements = row_size / sizeof(T);
-		vector<T> row_holder(row_size);
+		int row_elements = test_row_end - test_row_start;
+		int row_size = row_elements * sizeof(T);
+		vector<T> row_holder(row_elements);
 
 		for (int row = 0; row < data.size()[0] / 2; row++)
 		{
@@ -169,6 +169,10 @@ public:
 			memcpy(first_row_start, last_row_start, row_size);
 			memcpy(last_row_start, row_holder.data(), row_size);
 		}
+	}
+	void saveRaw(const string& path)
+	{
+		data.saveRaw(path);
 	}
 private:
 	int channels;

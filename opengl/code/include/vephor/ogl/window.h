@@ -633,6 +633,7 @@ public:
     shared_ptr<Texture> getTextureFromJSON(const json& data, int base_buf_index, const vector<vector<char>>& bufs, TexturePathResolveCallback path_callback = NULL, json* serial_header = NULL, vector<vector<char>>* serial_bufs = NULL);
 
     Image<uint8_t> getScreenImage();
+    Image<float> getDepthImageFloat();
     Image<uint8_t> getDepthImage();
     
     void clear();
@@ -705,6 +706,7 @@ private:
     void renderScene();
 
     Image<uint8_t> getFBOImage(GLuint fbo, int width, int height);
+    Image<float> getFBODepthImageFloat(GLuint fbo, int width, int height);
     Image<uint8_t> getFBODepthImage(GLuint fbo, int width, int height);
 
     struct ReflectiveSurface

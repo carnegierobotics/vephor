@@ -565,6 +565,7 @@ void PlotCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 	
 	content_min[2] = -1;
 	content_max[2] = 1e6;
+
 	resizeWindow(window);
 	
 	orig_content_min = content_min;

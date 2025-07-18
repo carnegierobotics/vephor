@@ -26,8 +26,9 @@ inline Mat4 makePerspectiveProj(float fov_deg, const Vec2i& window_size, float n
 
     proj(0,0) = 1 / (aspect * tan_half_angle);
     proj(1,1) = 1 / tan_half_angle;
-    proj(2,2) = -far_z / (far_z - near_z);
-    proj(3,2) = -far_z * near_z / (far_z - near_z);
+
+    proj(2,2) = -(far_z + near_z) / (far_z - near_z);
+    proj(3,2) = -2 * far_z * near_z / (far_z - near_z);
 
     proj(2,3) = -1;
 

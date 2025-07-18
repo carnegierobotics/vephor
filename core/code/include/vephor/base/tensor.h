@@ -11,6 +11,8 @@
 #pragma once
 
 #include "common.h"
+#include "json.h"
+#include <typeinfo>
 
 namespace vephor
 {
@@ -96,6 +98,23 @@ public:
 	{
 		for (size_t i = 0; i < data.size(); i++)
 			data[i] *= m;
+	}
+	void saveRaw(const string& path)
+	{
+		std::ofstream out(path+".bin", std::ios::binary);
+    	out.write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(T));
+
+		json size_info;
+		for (int i = 0; i < D; i++)
+			size_info.push_back(sizes[i]);
+
+		json info;
+		info["size"] = size_info;
+		info["type_size"] = sizeof(T);
+		info["type"] = typeid(T).name();
+
+		std::ofstream size_out(path+".json");
+		size_out << info;
 	}
 private:
 	TensorIndex<D> sizes;

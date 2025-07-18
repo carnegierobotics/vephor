@@ -113,6 +113,8 @@ void Text::setupText()
 		glDeleteBuffers(1, &uv_buffer_id);
 	}
 
+	setAnchorOffset(anchor_perc);
+
 	float size = 1.0f;
 
 	verts.resize(3, text.size()*6);
@@ -204,8 +206,6 @@ void Text::setupText()
 	glBindVertexArray(0);
 
 	buffers_set = true;
-	
-	setAnchorOffset(anchor_perc);
 
 	text_needs_setup = false;
 }
