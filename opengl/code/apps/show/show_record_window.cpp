@@ -992,6 +992,11 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 				throw std::runtime_error("Verts and colors must have same size.");
 			}
 		}
+		else
+		{
+			colors_record.verts = MatX(3,0);
+			new (&colors_record.map) MatXMap(colors_record.verts.data(), colors_record.verts.rows(), colors_record.verts.cols());
+		}
 
         VertexDataRecord sizes_record;
         if (obj.contains("sizes"))
@@ -1011,6 +1016,11 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
                 throw std::runtime_error("Verts, colors, and sizes must have same size.");
             }
         }
+		else
+		{
+			sizes_record.verts = MatX(1,0);
+			new (&sizes_record.map) MatXMap(sizes_record.verts.data(), sizes_record.verts.rows(), sizes_record.verts.cols());
+		}
 
         auto draw_obj = make_shared<InstancedPoints>(
             /* pts */ verts_record.map.transpose(),

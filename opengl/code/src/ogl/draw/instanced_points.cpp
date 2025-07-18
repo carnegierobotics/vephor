@@ -170,7 +170,7 @@ void InstancedPoints::setupVAO()
 
 	if (sizes.cols() > 0)
 	{
-        if (material->getSizeAttrLoc() != std::numeric_limits<GLuint>::max())
+        if (material->getSizeAttrLoc() == std::numeric_limits<GLuint>::max())
             throw std::runtime_error("Instanced points must have a size attribute available in the shader if individual sizes are present.");
 
 		addOpenGLBufferToActiveVAO(size_buffer_id, material->getSizeAttrLoc(), 1);

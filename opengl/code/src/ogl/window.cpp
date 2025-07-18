@@ -325,10 +325,36 @@ Window::Window(int p_width,
 		glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
 
 		window = glfwCreateWindow(p_width, p_height, title.c_str(), monitor, first_window);
+
+		if (window == nullptr)
+		{
+			const char* description = NULL;
+    		int code = glfwGetError(&description);
+			
+			fprintf(stderr, "Failed to open GLFW window.\n");
+			fprintf(stderr, "GLFW error %d: %s\n", code, description ? description : "No description");
+			fprintf(stderr, "Window creation parameters: width %d, height %d, title %s\n", p_width, p_height, title.c_str());
+			getchar();
+			glfwTerminate();
+			throw std::runtime_error("Failed to open GLFW window.");
+		}
 	}
 	else
 	{
 		window = glfwCreateWindow(p_width, p_height, title.c_str(), nullptr, first_window);
+
+		if (window == nullptr)
+		{
+			const char* description = NULL;
+    		int code = glfwGetError(&description);
+			
+			fprintf(stderr, "Failed to open GLFW window.\n");
+			fprintf(stderr, "GLFW error %d: %s\n", code, description ? description : "No description");
+			fprintf(stderr, "Window creation parameters: width %d, height %d, title %s\n", p_width, p_height, title.c_str());
+			getchar();
+			glfwTerminate();
+			throw std::runtime_error("Failed to open GLFW window.");
+		}
 
 		if (!use_monitor_size)
 		{
@@ -354,13 +380,6 @@ Window::Window(int p_width,
 
 			glfwSetWindowPos(window, monitor_xpos + p_x_position, monitor_ypos + p_y_position);
 		}
-	}
-
-	if( window == nullptr ){
-		fprintf( stderr, "Failed to open GLFW window.\n" );
-		getchar();
-		glfwTerminate();
-		throw std::runtime_error("Failed to open GLFW window.");
 	}
 
 	if (opts.always_on_top)
