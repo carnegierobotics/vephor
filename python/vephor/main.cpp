@@ -1032,7 +1032,22 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color"),
 			py::arg("radius")=1.0
 		)
-		.def("rect", &Plot::rect)
+		.def("rect", [](Plot& p, const Vec2& center, const Vec2& size, const Vec3& color, float thickness){
+				p.rect(center, size[0], size[1], color, thickness);
+			},
+			py::arg("center"),
+			py::arg("size"),
+			py::arg("color"),
+			py::arg("thickness")=0
+		)
+		.def("rect_min_max", [](Plot& p, const Vec2& min, const Vec2& max, const Vec3& color, float thickness){
+				p.rectMinMax(min, max, color, thickness);
+			},
+			py::arg("min"),
+			py::arg("max"),
+			py::arg("color"),
+			py::arg("thickness")=0
+		)
 		.def("line", [](Plot& p, const Vec2& start, const Vec2& end, const Vec3& color, float thickness){
 				p.line(start, end, color, thickness);
 			},

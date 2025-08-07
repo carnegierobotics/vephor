@@ -1071,6 +1071,10 @@ public:
 		// This is the absolute version, this has caused problems with angle wrap
 		//return Transform3((transform.log() * (1 - perc) + other.transform.log() * perc).exp());
 	}
+    friend std::ostream& operator<<(std::ostream& os, const Transform3& obj) {
+        os << "(t: " << obj.translation().transpose() << ", r: " << obj.rvec().transpose() << ")";
+        return os;
+    }
 private:
 	manif::SE3f transform;
 };

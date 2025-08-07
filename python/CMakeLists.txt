@@ -35,6 +35,11 @@ target_link_libraries(${MODULE_NAME}
 		vephor
 		vephor_opengl
 )
+
+set_target_properties(${MODULE_NAME} PROPERTIES
+    INSTALL_RPATH "$ORIGIN/lib"
+)
+
 if (WIN32)
 	target_link_libraries(${MODULE_NAME}
 		PRIVATE

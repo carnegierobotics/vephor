@@ -105,22 +105,7 @@ public:
 	Image<S> cast(T mult = 1.0f, T bias = 1.0f)
 	{
 		Image<S> img(getSize()[0], getSize()[1], channels);
-
-		auto iter = img.getIter();
-
-		Vec bias_v(channels);
-		for (int c = 0; c < channels; c++)
-		{
-			bias_v[c] = bias;
-		}
-		
-		while(!iter.atEnd())
-		{
-			const auto ind = iter.getIndex();
-			img(ind) = ((*this)(ind) * mult + bias_v).template cast<S>();
-			iter++;
-		}
-
+		img.setData(data.template cast<S>(mult, bias));
 		return img;
 	}
 	T min() const
@@ -131,7 +116,7 @@ public:
 	{
 		return data.max();
 	}
-	const vector<T>& getData() const {return data.getData();}
+	const Eigen::Matrix<T, Eigen::Dynamic, 1>& getData() const {return data.getData();}
 	int getTypeSize() const {return sizeof(T);}
 	void getBuffer(const char*& buf_data, int& buf_size) const
 	{
@@ -140,7 +125,12 @@ public:
 	}
 	void copyFromBuffer(const char* buf_data, int buf_size)
 	{
-		data.getData().assign(reinterpret_cast<const T*>(buf_data), reinterpret_cast<const T*>(buf_data+buf_size));
+		data.getData() = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>>(
+			reinterpret_cast<const T*>(buf_data),
+			buf_size / sizeof(T)
+		);
+		
+		//.assign(reinterpret_cast<const T*>(buf_data), reinterpret_cast<const T*>(buf_data+buf_size));
 	}
 	TensorIter<2> getIter() const
 	{
@@ -173,6 +163,10 @@ public:
 	void saveRaw(const string& path)
 	{
 		data.saveRaw(path);
+	}
+	void setData(const Tensor<3, T>& p_data)
+	{
+		data = p_data;
 	}
 private:
 	int channels;

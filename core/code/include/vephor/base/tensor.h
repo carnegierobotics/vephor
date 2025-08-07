@@ -82,22 +82,27 @@ public:
 	{
 		return TensorIter<D>(sizes);
 	}
-	const vector<T>& getData() const {return data;}
-	vector<T>& getData() {return data;}
+	const Eigen::Matrix<T, Eigen::Dynamic, 1>& getData() const {return data;}
+	Eigen::Matrix<T, Eigen::Dynamic, 1>& getData() {return data;}
 	int getTypeSize() const {return sizeof(D);}
-	T min() const {return *std::min_element(data.begin(), data.end());}
-	T max() const {return *std::max_element(data.begin(), data.end());}
+	T min() const {return data.minCoeff();}
+	T max() const {return data.maxCoeff();}
 	void operator +=(const Tensor<D,T>& t)
 	{
 		if (t.data.size() != data.size())
 			std::runtime_error("Can't add unequal tensor sizes.");
-		for (size_t i = 0; i < data.size(); i++)
-			data[i] += t.data[i];
+		data += t.data;
 	}
 	void operator *=(const T& m)
 	{
-		for (size_t i = 0; i < data.size(); i++)
-			data[i] *= m;
+		data *= m;
+	}
+	template <typename S>
+	Tensor<D,S> cast(T mult = 1.0f, T bias = 1.0f)
+	{
+		Tensor<D,S> cast_t(sizes);
+		cast_t.setData(((data * mult).array() + bias).template cast<S>());
+		return cast_t;
 	}
 	void saveRaw(const string& path)
 	{
@@ -116,9 +121,13 @@ public:
 		std::ofstream size_out(path+".json");
 		size_out << info;
 	}
+	void setData(const Eigen::Matrix<T, Eigen::Dynamic, 1>& p_data)
+	{
+		data = p_data;
+	}
 private:
 	TensorIndex<D> sizes;
-	vector<T> data;
+	Eigen::Matrix<T, Eigen::Dynamic, 1> data;
 };
 
 template <int D, typename T>

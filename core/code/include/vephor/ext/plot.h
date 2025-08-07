@@ -1010,6 +1010,16 @@ public:
 
 		polygon(verts, color, thickness);
 	}
+    void rectMinMax(const Vec2& min, const Vec2& max, const Color& color, float thickness = 0)
+	{
+		vector<Vec2> verts;
+		verts.push_back(Vec2(min[0],min[1]));
+		verts.push_back(Vec2(max[0],min[1]));
+		verts.push_back(Vec2(max[0],max[1]));
+		verts.push_back(Vec2(min[0],max[1]));
+
+		polygon(verts, color, thickness);
+	}
 	void line(const vector<Vec2>& verts, const Color& color, float thickness = 0)
 	{
 		if (verts.empty())
