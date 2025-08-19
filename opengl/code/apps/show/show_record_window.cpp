@@ -421,7 +421,7 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 		else if (key == GLFW_KEY_T)
 		{
 			window->toggleAlwaysOnTop();
-			on_top_indicator_node->setShow(!on_top_indicator_node->isShow());
+			on_top_indicator_node->setShow(!on_top_indicator_node->getShow());
 		}
 		else if (key == GLFW_KEY_O)
 		{

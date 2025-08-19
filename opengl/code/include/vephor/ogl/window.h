@@ -86,19 +86,19 @@ public:
 	{
 		return node->getPos();
 	}
-	RenderNode& setPos(const Vec3& pos)
+	RenderNode* setPos(const Vec3& pos)
 	{
 		node->setPos(pos);
-		return *this;
+		return this;
 	}
 	Orient3 getOrient() const
 	{
 		return node->getOrient();
 	}
-	RenderNode& setOrient(const Orient3& orient)
+	RenderNode* setOrient(const Orient3& orient)
 	{
 		node->setOrient(orient);
-		return *this;
+		return this;
 	}
 	TransformSim3 getTransform() const
 	{
@@ -108,47 +108,47 @@ public:
 	{
 		return node->getWorldTransform();
 	}
-	RenderNode& setTransform(const TransformSim3& t)
+	RenderNode* setTransform(const TransformSim3& t)
 	{
 		node->setTransform(t);
-		return *this;
+		return this;
 	}
 	float getScale() const
 	{
 		return node->getScale();
 	}
-	RenderNode& setScale(float scale)
+	RenderNode* setScale(float scale)
 	{
 		node->setScale(scale);
-		return *this;
+		return this;
 	}
-	RenderNode& setParent(TransformNode& parent)
+	RenderNode* setParent(TransformNode& parent)
 	{
 		if (node->getParent() != NULL)
             throw std::runtime_error("RenderNode already has a parent.");
 		parent.addChild(node);
-		return *this;
+		return this;
 	}
-	RenderNode& setParent(RenderNode& parent)
+	RenderNode* setParent(RenderNode& parent)
 	{
 		if (node->getParent() != NULL)
             throw std::runtime_error("RenderNode already has a parent.");
 		parent.node->addChild(node);
         parent.props->children.push_back(props);
-		return *this;
+		return this;
 	}
-	RenderNode& setParent(const shared_ptr<TransformNode>& parent)
+	RenderNode* setParent(const shared_ptr<TransformNode>& parent)
 	{
 		return setParent(*parent.get());
 	}
-	RenderNode& setParent(const shared_ptr<RenderNode>& parent)
+	RenderNode* setParent(const shared_ptr<RenderNode>& parent)
 	{
 		return setParent(*parent.get());
 	}
 	void setShow(bool p_show){props->setShow(p_show);}
-	bool isShow() const {return props->show;}
+	bool getShow() const {return props->show;}
 	void setDestroy() {props->setDestroy();}
-	bool checkDestroy() const {return props->destroy;}
+	bool getDestroy() const {return props->destroy;}
     virtual json serialize(vector<vector<char>>* bufs) = 0;
     virtual void saveArtifacts(const string& stub) = 0;
     void setName(const string& name){node->setName(name);}
@@ -345,6 +345,19 @@ public:
 		else
 			object_layers[layer].push_back(inner_obj);
 		return inner_obj;
+    }
+
+    template <class T>
+    shared_ptr<RenderNode> add(
+		const shared_ptr<T>& obj, 
+		const Vec3& parent_from_node_t,
+		const Vec3& parent_from_node_r = Vec3::Zero(),
+		float parent_from_node_scale = 1.0f,
+		bool on_overlay = false, 
+		int layer = 0
+	)
+    {
+		return add(obj, TransformSim3(parent_from_node_t,parent_from_node_r,parent_from_node_scale), on_overlay, layer);
     }
 	
     int addPointLight(const Vec3& pos, float strength)

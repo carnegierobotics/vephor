@@ -200,7 +200,7 @@ void TrackballCamera::update(Window& window, float dt, const ControlInfo& contro
 	std::vector<SelectionWidget> remaining_widgets;
 	for (const auto& widget : selection_widgets)
 	{
-		if (widget.node->checkDestroy())
+		if (widget.node->getDestroy())
 			continue;
 
 		remaining_widgets.push_back(widget);

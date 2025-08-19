@@ -683,7 +683,7 @@ struct ShowRecord
 		bool destroy_found = false;
 		for (const auto& obj : objects_by_id)
 		{
-			if (obj.second->checkDestroy())
+			if (obj.second->getDestroy())
 			{
 				destroy_found = true;
 				break;
@@ -696,7 +696,7 @@ struct ShowRecord
 			
 			for (const auto& obj : objects_by_id)
 			{
-				if (!obj.second->checkDestroy())
+				if (!obj.second->getDestroy())
 				{
 					new_objects_by_id[obj.first] = obj.second;
 				}

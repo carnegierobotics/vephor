@@ -25,6 +25,61 @@ using namespace vephor;
 
 void init_ogl(py::module_ &m)
 {
+	py::class_<ogl::Texture, shared_ptr<ogl::Texture>>(m, "Texture");
+	py::class_<ogl::CubeTexture, shared_ptr<ogl::CubeTexture>>(m, "CubeTexture");
+
+	py::class_<ogl::RenderNode, shared_ptr<ogl::RenderNode>>(m, "RenderNode")
+		.def("setPos", &ogl::RenderNode::setPos)
+		.def("getPos", &ogl::RenderNode::getPos)
+		.def("setOrient", &ogl::RenderNode::setOrient)
+		.def("setOrient", [](const shared_ptr<ogl::RenderNode>& node, const Vec3& r){node->setOrient(Orient3(r));})
+		.def("getOrient", &ogl::RenderNode::getOrient)
+		.def("setScale", &ogl::RenderNode::setScale)
+		.def("getScale", &ogl::RenderNode::getScale)
+		.def("setParent", static_cast<ogl::RenderNode* (ogl::RenderNode::*)(const shared_ptr<ogl::RenderNode>&)>(&ogl::RenderNode::setParent))
+		.def("setParent", static_cast<ogl::RenderNode* (ogl::RenderNode::*)(const shared_ptr<TransformNode>&)>(&ogl::RenderNode::setParent))
+		.def("setShow", &ogl::RenderNode::setShow)
+		.def("getShow", &ogl::RenderNode::getShow)
+		.def("setDestroy", &ogl::RenderNode::setDestroy)
+		.def("getDestroy", &ogl::RenderNode::getDestroy);
+
+	py::class_<ogl::Mesh, shared_ptr<ogl::Mesh>>(m, "Mesh")
+        .def(py::init([](
+				const MeshData& data, 
+				const Vec3& color, 
+				float diffuse,
+				float ambient,
+				float emissive){
+				return make_shared<ogl::Mesh>(
+					data, color, diffuse, ambient, emissive
+				);
+			}),
+			py::arg("data"),
+			py::arg("color")=Vec3(1,1,1),
+			py::arg("diffuse")=1.0,
+			py::arg("ambient")=1.0,
+			py::arg("emissive")=0.0)
+		.def("setTexture", &ogl::Mesh::setTexture)
+		.def("setSpecular", &ogl::Mesh::setSpecular)
+		.def("setCull", &ogl::Mesh::setCull);
+
+	py::class_<ogl::Sphere, shared_ptr<ogl::Sphere>>(m, "Sphere")
+        .def(py::init<float,int,int>(),py::arg("rad")=1.0f,py::arg("slices")=12,py::arg("stacks")=12)
+		.def("setColor",[](ogl::Sphere& s, 
+			const Vec3& rgb){
+				s.setColor(rgb);
+			}, 
+			py::arg("rgb"));
+
+	py::class_<ogl::AmbientLight, shared_ptr<ogl::AmbientLight>>(m, "AmbientLight")
+        .def(py::init<Vec3>(),py::arg("strength"));
+
+	py::class_<ogl::DirLight, shared_ptr<ogl::DirLight>>(m, "DirLight")
+        .def(py::init<Vec3,float>(),py::arg("dir"),py::arg("strength"));
+
+	py::class_<ogl::Skybox, shared_ptr<ogl::Skybox>>(m, "Skybox")
+        .def(py::init<const shared_ptr<ogl::CubeTexture>&>());
+
 	py::class_<ogl::Window, shared_ptr<ogl::Window>> window(m, "Window");
     window
         .def(py::init([](int width,int height,const std::string& name){
@@ -35,7 +90,84 @@ void init_ogl(py::module_ &m)
 			py::arg("name")="show")
 		.def("setFrameLock", &ogl::Window::setFrameLock)
 		.def("clear", &ogl::Window::clear)
-		.def("render", &ogl::Window::render);
+		.def("render", &ogl::Window::render)
+		.def("setCamFromWorld", &ogl::Window::setCamFromWorld)
+		.def("setProjectionMatrix", &ogl::Window::setProjectionMatrix)
+		.def("getMousePos", &ogl::Window::getMousePos)
+		.def("getWorldRayForMousePos", [](ogl::Window& w, 
+			const Vec2& mouse_pos){
+				Vec3 origin, ray;
+				w.getWorldRayForMousePos(mouse_pos, origin, ray);
+				return py::make_tuple(origin, ray);
+			})
+		.def("setLeftMouseButtonPressCallback", &ogl::Window::setLeftMouseButtonPressCallback)
+		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
+            const shared_ptr<ogl::Mesh>&,
+            const Vec3&,
+			const Vec3&,
+			float,
+            bool, 
+            int)>(&ogl::Window::add<ogl::Mesh>),
+			py::arg("object"),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0)
+		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
+            const shared_ptr<ogl::Sphere>&,
+            const Vec3&,
+			const Vec3&,
+			float,
+            bool, 
+            int)>(&ogl::Window::add<ogl::Sphere>),
+			py::arg("object"),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0)
+		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
+            const shared_ptr<ogl::AmbientLight>&,
+            const Vec3&,
+			const Vec3&,
+			float,
+            bool, 
+            int)>(&ogl::Window::add<ogl::AmbientLight>),
+			py::arg("object"),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0)
+		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
+            const shared_ptr<ogl::DirLight>&,
+            const Vec3&,
+			const Vec3&,
+			float,
+            bool, 
+            int)>(&ogl::Window::add<ogl::DirLight>),
+			py::arg("object"),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0)
+		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
+            const shared_ptr<ogl::Skybox>&,
+            const Vec3&,
+			const Vec3&,
+			float,
+            bool, 
+            int)>(&ogl::Window::add<ogl::Skybox>),
+			py::arg("object"),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0)
+		.def("loadTexture", &ogl::Window::loadTexture)
+		.def("getCubeTextureFromDir", &ogl::Window::getCubeTextureFromDir);
 }
 
 PYBIND11_MODULE(_core, m) {
@@ -54,6 +186,7 @@ PYBIND11_MODULE(_core, m) {
 		.def("inverse", &Orient3::inverse)
 		.def("normalize", &Orient3::normalize)
 		.def("rvec", &Orient3::rvec)
+		.def("matrix", &Orient3::matrix)
 		.def(py::self * py::self)
 		.def(py::self * Vec3())
 		.def_static("fromMatrix", &Orient3::fromMatrix);
@@ -115,7 +248,6 @@ PYBIND11_MODULE(_core, m) {
 		
 	
 	m.def("setTextureCompression", &setTextureCompression, py::arg("compress"), py::arg("quality") = DEFAULT_COMPRESSION_QUALITY);
-
 	m.def("formLine", &formLine, py::arg("vert_list"), py::arg("rad"));
 	m.def("formLineLoop", &formLineLoop, py::arg("vert_list"), py::arg("rad"));
 	m.def("formPolygon", &formPolygon, py::arg("vert_list"));
@@ -127,8 +259,12 @@ PYBIND11_MODULE(_core, m) {
 	m.def("formCircle", &formCircle, py::arg("rad"), py::arg("thickness"), py::arg("slices"));
 	m.def("formHeightMap", &formHeightMap, py::arg("heights"), py::arg("res"), py::arg("uv_callback")=NULL);
 	m.def("formWireframeBox", &formWireframeBox);
-
 	m.def("convertStringToColor", &convertStringToColor);
+	m.def("clamp", &clamp);
+	m.def("getBaseAssetDir", &getBaseAssetDir);
+	m.def("makePerspectiveProj", &makePerspectiveProj);
+	m.def("makeOrthoProj", &makeOrthoProj);
+	m.def("makeLookAtTransform", &makeLookAtTransform);
 
 	m.def("calcSurfaces", [](
 			py::buffer occupancy,
@@ -169,8 +305,6 @@ PYBIND11_MODULE(_core, m) {
 		py::arg("occupancy"), 
 		py::arg("thresh"),
 		py::arg("cell_size"));
-
-	m.def("clamp", &clamp);
 	
 	py::class_<Image<uint8_t>, shared_ptr<Image<uint8_t>>>(m, "Image", pybind11::buffer_protocol())
 		.def_buffer([](Image<uint8_t>& img) -> pybind11::buffer_info {

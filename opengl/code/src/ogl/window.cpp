@@ -544,7 +544,7 @@ void Window::removeDestroyedObjects(vector<shared_ptr<RenderNode>>& objects)
 	{
 		const auto& obj = objects[i];
 		
-		if (obj->checkDestroy())
+		if (obj->getDestroy())
 			obj->onRemoveFromWindow(this);
 		else
 			alive_obj_inds.push_back(i);
@@ -612,7 +612,7 @@ void Window::renderDirLightShadowMap()
 	{
 		for (const auto& obj : objects)
 		{
-			if (obj->isShow())
+			if (obj->getShow())
 			{
 				obj->render(this);
 			}
@@ -743,7 +743,7 @@ void Window::renderScene()
 
 		for (auto ind : obj_inds)
 		{
-			if (objects[ind]->isShow())
+			if (objects[ind]->getShow())
 			{
 				objects[ind]->render(this);
 			}
@@ -789,7 +789,7 @@ bool Window::render()
 
 		for (const auto& obj : objects)
 		{
-			if (obj->isShow())
+			if (obj->getShow())
 			{
 				obj->render(this);
 			}
@@ -919,8 +919,8 @@ json Window::produceSceneJSON(vector<vector<char>>* bufs)
 		json datum = obj->serialize(bufs);
 		if (!datum.contains("id"))
 			continue;
-		datum["show"] = obj->isShow();
-		if (obj->checkDestroy())
+		datum["show"] = obj->getShow();
+		if (obj->getDestroy())
 		{
 			datum["destroy"] = true;
 		}
@@ -935,8 +935,8 @@ json Window::produceSceneJSON(vector<vector<char>>* bufs)
 			json datum = obj->serialize(bufs);
 			if (!datum.contains("id"))
 				continue;
-			datum["show"] = obj->isShow();
-			if (obj->checkDestroy())
+			datum["show"] = obj->getShow();
+			if (obj->getDestroy())
 			{
 				datum["destroy"] = true;
 			}
@@ -954,8 +954,8 @@ json Window::produceSceneJSON(vector<vector<char>>* bufs)
 			json datum = obj->serialize(bufs);
 			if (!datum.contains("id"))
 				continue;
-			datum["show"] = obj->isShow();
-			if (obj->checkDestroy())
+			datum["show"] = obj->getShow();
+			if (obj->getDestroy())
 			{
 				datum["destroy"] = true;
 			}

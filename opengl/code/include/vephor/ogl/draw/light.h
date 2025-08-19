@@ -71,7 +71,10 @@ private:
 class DirLight
 {
 public:
-    DirLight(const Vec3& p_dir, float p_strength=0.5f):dir(p_dir), strength(p_strength){}
+    DirLight(const Vec3& p_dir, float p_strength=0.5f):dir(p_dir), strength(p_strength)
+    {
+        dir = dir / dir.norm();
+    }
     bool onOverlay() const {return false;}
     void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node)
     {

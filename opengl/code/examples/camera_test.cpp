@@ -24,9 +24,9 @@ int main()
 	Mat4 proj_1 = makePerspectiveProj(45, window_1.getSize(), 0.1f, 100.0f);
 	window_1.setProjectionMatrix(proj_1);
 	window_1.add(make_shared<Axes>(), Vec3(0,0,-20))->setScale(1.0f);
-	window_1.add(make_shared<Cone>(), Vec3(0,0,-25))->setScale(2.0f).setOrient(Vec3(M_PI/2.0f,0,0));	
+	window_1.add(make_shared<Cone>(), Vec3(0,0,-25))->setScale(2.0f)->setOrient(Vec3(M_PI/2.0f,0,0));	
 	window_1.add(make_shared<Sphere>(), Vec3(0,0,-30))->setScale(3.0f);	
-	window_1.add(make_shared<Cylinder>(), Vec3(0,0,-35))->setScale(4.0f).setOrient(Vec3(M_PI/2.0f,0,0));
+	window_1.add(make_shared<Cylinder>(), Vec3(0,0,-35))->setScale(4.0f)->setOrient(Vec3(M_PI/2.0f,0,0));
 	{
 		Vec3 light_dir(1,0.9,0.8);
 		light_dir /= light_dir.norm();
@@ -43,9 +43,9 @@ int main()
 	Mat4 proj_2 = makeOrthoProj(Vec3(-10,-10,0), Vec3(10,10,100));
     window_2.setProjectionMatrix(proj_2);
 	window_2.add(make_shared<Axes>(), Vec3(0,0,-20))->setScale(1.0f);
-	window_2.add(make_shared<Cone>(), Vec3(0,0,-25))->setScale(2.0f).setOrient(Vec3(M_PI/2.0f,0,0));
+	window_2.add(make_shared<Cone>(), Vec3(0,0,-25))->setScale(2.0f)->setOrient(Vec3(M_PI/2.0f,0,0));
 	window_2.add(make_shared<Sphere>(), Vec3(0,0,-30))->setScale(3.0f);
-	window_2.add(make_shared<Cylinder>(), Vec3(0,0,-35))->setScale(4.0f).setOrient(Vec3(M_PI/2.0f,0,0));
+	window_2.add(make_shared<Cylinder>(), Vec3(0,0,-35))->setScale(4.0f)->setOrient(Vec3(M_PI/2.0f,0,0));
 	{
 		Vec3 light_dir(1,0.9,0.8);
 		light_dir /= light_dir.norm();
