@@ -25,7 +25,7 @@ void removeDestroyedObjects(vector<T>& objects)
 	{
 		const auto& obj = objects[i];
 		
-		if (!obj->checkDestroy())
+		if (!obj->getDestroy())
 			alive_obj_inds.push_back(i);
 	}
 	
@@ -98,10 +98,8 @@ void Verlet::update(float dt)
         }
     }
 
-    // TODO: different sized hashes for different sized objects
-    SpatialHash<size_t, 3> obj_hash(30.0);
+    
 
-    // Collision update
     for (const auto& obj1 : infinite_objs)
     {
         for (const auto& obj2 : finite_objs)
@@ -109,15 +107,19 @@ void Verlet::update(float dt)
             compareObjects(obj2, obj1, dt);
         }
     }
+
+
+    // TODO: different sized hashes for different sized objects
+    SpatialHash<size_t, 3> finite_obj_hash(hash_dist);
 	
     for (size_t i = 0; i < finite_objs.size(); i++)
     {
-        obj_hash.addAndFanOut(finite_objs[i]->getPos(), i);
+        finite_obj_hash.addAndFanOut(finite_objs[i]->getPos(), i);
     }
 
     for (size_t i = 0; i < finite_objs.size(); i++)
     {
-        auto nearby_objs = obj_hash.lookup(finite_objs[i]->getPos());
+        auto nearby_objs = finite_obj_hash.lookup(finite_objs[i]->getPos());
 
         for (const auto& j : nearby_objs)
         {

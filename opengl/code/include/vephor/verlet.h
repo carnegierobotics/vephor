@@ -76,7 +76,7 @@ public:
 		CollisionCallback collision_callback = NULL;
 		
 		void setDestroy() {destroy = true;}
-		bool checkDestroy() const {return destroy;}
+		bool getDestroy() const {return destroy;}
 	private:
 		bool destroy = false;
     };
@@ -220,8 +220,8 @@ public:
         float dist;
     };
 
-    Verlet(float p_grav_acc=9.8)
-    : grav_acc(p_grav_acc)
+    Verlet(float p_grav_acc=9.8, float p_hash_dist=30.0)
+    : grav_acc(p_grav_acc), hash_dist(p_hash_dist)
     {}
     template <class T>
     PhysicsObject* add(const shared_ptr<T>& obj, const shared_ptr<Shape>& shape, float mass = 0.0f, bool water = false)
@@ -248,6 +248,7 @@ public:
     void update(float dt);
 private:
     float grav_acc;
+	float hash_dist;
 
     void compareObjects(PhysicsObject* obj1, PhysicsObject* obj2, float dt);
     float checkSpherePlaneCollisionDist(const PhysicsObject& sphere, const PhysicsObject& plane, Vec3& push_dir);

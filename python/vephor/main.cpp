@@ -11,6 +11,7 @@
 #include <vephor.h>
 #include <vephor_ext.h>
 #include <vephor_ogl.h>
+#include <vephor/verlet.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/functional.h>
@@ -101,6 +102,12 @@ void init_ogl(py::module_ &m)
 				return py::make_tuple(origin, ray);
 			})
 		.def("setLeftMouseButtonPressCallback", &ogl::Window::setLeftMouseButtonPressCallback)
+		.def("setLeftMouseButtonReleaseCallback", &ogl::Window::setLeftMouseButtonReleaseCallback)
+		.def("setRightMouseButtonPressCallback", &ogl::Window::setRightMouseButtonPressCallback)
+		.def("setRightMouseButtonReleaseCallback", &ogl::Window::setRightMouseButtonReleaseCallback)
+		.def("setKeyPressCallback", &ogl::Window::setKeyPressCallback)
+		.def("setKeyReleaseCallback", &ogl::Window::setKeyReleaseCallback)
+		.def("setScrollCallback", &ogl::Window::setScrollCallback)
 		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
             const shared_ptr<ogl::Mesh>&,
             const Vec3&,
@@ -168,6 +175,29 @@ void init_ogl(py::module_ &m)
 			py::arg("layer")=0)
 		.def("loadTexture", &ogl::Window::loadTexture)
 		.def("getCubeTextureFromDir", &ogl::Window::getCubeTextureFromDir);
+
+	py::class_<ogl::Verlet::Shape, shared_ptr<ogl::Verlet::Shape>>(m, "Shape");
+	py::class_<ogl::Verlet::PhysicsObject>(m, "PhysicsObject")
+		.def("setDestroy", &ogl::Verlet::PhysicsObject::setDestroy);
+
+	py::class_<ogl::Verlet, shared_ptr<ogl::Verlet>> verlet(m, "Verlet");
+	verlet
+		.def(py::init<float,float>())
+		.def("update",&ogl::Verlet::update)
+		.def_static("makeSphere", &ogl::Verlet::makeSphere)
+		.def_static("makePlane", &ogl::Verlet::makePlane)
+		.def_static("makeSolid", &ogl::Verlet::makeSolid)
+		.def("add", static_cast<ogl::Verlet::PhysicsObject* (ogl::Verlet::*)(
+			const shared_ptr<ogl::RenderNode>&,
+			const shared_ptr<ogl::Verlet::Shape>&,
+			float,
+			bool)>(&ogl::Verlet::add<ogl::RenderNode>),
+			py::arg("obj"),
+			py::arg("shape"),
+			py::arg("mass")=0.0f,
+			py::arg("water")=false,
+			py::return_value_policy::reference);
+
 }
 
 PYBIND11_MODULE(_core, m) {
@@ -245,6 +275,7 @@ PYBIND11_MODULE(_core, m) {
 		.def("getRGB", &Color::getRGB)
 		.def("getRGBA", &Color::getRGBA)
 		.def("getAlpha", &Color::getAlpha);
+	py::class_<Solid>(m, "Solid");
 		
 	
 	m.def("setTextureCompression", &setTextureCompression, py::arg("compress"), py::arg("quality") = DEFAULT_COMPRESSION_QUALITY);
@@ -265,6 +296,7 @@ PYBIND11_MODULE(_core, m) {
 	m.def("makePerspectiveProj", &makePerspectiveProj);
 	m.def("makeOrthoProj", &makeOrthoProj);
 	m.def("makeLookAtTransform", &makeLookAtTransform);
+	m.def("createSolidFromTris", &createSolidFromTris);
 
 	m.def("calcSurfaces", [](
 			py::buffer occupancy,
