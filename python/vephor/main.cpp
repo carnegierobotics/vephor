@@ -24,6 +24,45 @@
 namespace py = pybind11;
 using namespace vephor;
 
+template <typename S, typename W, typename R, typename T>
+void defWindowAdd(T& window)
+{
+	window.def("add", static_cast<shared_ptr<R> (W::*)(
+            const shared_ptr<S>&,
+            const Vec3&,
+			const Vec3&,
+			float,
+            bool, 
+            int)>(&W::template add<S>),
+			py::arg("object"),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f,
+			py::arg("overlay")=false,
+			py::arg("layer")=0);
+
+	window.def("add", [](
+			W& w,
+            const shared_ptr<S>& object,
+            const Transform3& t,
+            bool overlay, 
+            int layer){return w.add(object, t, overlay, layer);},
+			py::arg("object"),
+			py::arg("T"),
+			py::arg("overlay")=false,
+			py::arg("layer")=0);
+
+	window.def("add", static_cast<shared_ptr<R> (W::*)(
+            const shared_ptr<S>&,
+            const TransformSim3&,
+            bool, 
+            int)>(&W::template add<S>),
+			py::arg("object"),
+			py::arg("T"),
+			py::arg("overlay")=false,
+			py::arg("layer")=0);
+}
+
 void init_ogl(py::module_ &m)
 {
 	py::class_<ogl::Texture, shared_ptr<ogl::Texture>>(m, "Texture");
@@ -43,6 +82,28 @@ void init_ogl(py::module_ &m)
 		.def("getShow", &ogl::RenderNode::getShow)
 		.def("setDestroy", &ogl::RenderNode::setDestroy)
 		.def("getDestroy", &ogl::RenderNode::getDestroy);
+
+	py::class_<ogl::Axes, shared_ptr<ogl::Axes>>(m, "Axes")
+        .def(py::init<float>(),py::arg("size"))
+		.def("setColors",&ogl::Axes::setColors);
+
+	py::class_<ogl::Cone, shared_ptr<ogl::Cone>>(m, "Cone")
+        .def(py::init<float,float,int>(),
+			py::arg("rad")=1.0f,
+			py::arg("height")=1.0f,
+			py::arg("slices")=16)
+		.def("setColor",&ogl::Cone::setColor);
+
+	py::class_<ogl::Cube, shared_ptr<ogl::Cube>>(m, "Cube")
+        .def(py::init<float>(),py::arg("rad"))
+		.def("setColor",&ogl::Cube::setColor);
+
+	py::class_<ogl::Cylinder, shared_ptr<ogl::Cylinder>>(m, "Cylinder")
+        .def(py::init<float,float,int>(),
+			py::arg("rad")=1.0f,
+			py::arg("height")=1.0f,
+			py::arg("slices")=16)
+		.def("setColor",&ogl::Cylinder::setColor);
 
 	py::class_<ogl::Mesh, shared_ptr<ogl::Mesh>>(m, "Mesh")
         .def(py::init([](
@@ -78,8 +139,52 @@ void init_ogl(py::module_ &m)
 	py::class_<ogl::DirLight, shared_ptr<ogl::DirLight>>(m, "DirLight")
         .def(py::init<Vec3,float>(),py::arg("dir"),py::arg("strength"));
 
+	py::class_<ogl::Grid, shared_ptr<ogl::Grid>>(m, "Grid")
+		.def(py::init<float, const Vec3&, const Vec3&, float, const Vec3&>(),
+			py::arg("rad"),
+			py::arg("normal")=Vec3(0,0,1),
+			py::arg("right")=Vec3(0,0,1),
+			py::arg("cell_size")=1.0f,
+			py::arg("color")=Vec3(1,1,1));
+
+	py::class_<ogl::Plane, shared_ptr<ogl::Plane>>(m, "Plane")
+		.def(py::init<const Vec2&>(),
+			py::arg("size"))
+		.def("setColor", &ogl::Plane::setColor)
+		.def("setTexture", &ogl::Plane::setTexture);
+
+	py::class_<ogl::Text, shared_ptr<ogl::Text>>(m, "Text")
+        .def(py::init<std::string, const shared_ptr<ogl::Texture>&, const Vec3&, float>(),
+			py::arg("text"),
+			py::arg("tex"),
+			py::arg("color")=Vec3(1,1,1),
+			py::arg("x_border")=0.5f)
+		.def("setColor", &ogl::Text::setColor)
+		.def("setAnchorBottomLeft", &ogl::Text::setAnchorBottomLeft)
+		.def("setAnchorLeft", &ogl::Text::setAnchorLeft)
+		.def("setAnchorTopLeft", &ogl::Text::setAnchorTopLeft)
+		.def("setAnchorBottom", &ogl::Text::setAnchorBottom)
+		.def("setAnchorCentered", &ogl::Text::setAnchorCentered)
+		.def("setAnchorTop", &ogl::Text::setAnchorTop)
+		.def("setAnchorBottomRight", &ogl::Text::setAnchorBottomRight)
+		.def("setAnchorRight", &ogl::Text::setAnchorRight)
+		.def("setAnchorTopRight", &ogl::Text::setAnchorTopRight)
+		.def("setTexture", &ogl::Text::setTexture);
+
+	py::class_<ogl::Sprite, shared_ptr<ogl::Sprite>>(m, "Sprite")
+		.def(py::init<const shared_ptr<ogl::Texture>&, const Vec2i&, bool, bool>(),
+			py::arg("sprite_sheet"),
+			py::arg("px_per_cell")=Vec2i(0,0),
+			py::arg("x_flip")=false,
+			py::arg("y_flip")=false)
+		.def("setDiffuse", &ogl::Sprite::setDiffuse)
+		.def("setAmbient", &ogl::Sprite::setAmbient)
+		.def("setEmissive", &ogl::Sprite::setEmissive)
+		.def("setOpacity", &ogl::Sprite::setOpacity);
+
 	py::class_<ogl::Skybox, shared_ptr<ogl::Skybox>>(m, "Skybox")
-        .def(py::init<const shared_ptr<ogl::CubeTexture>&>());
+        .def(py::init<const shared_ptr<ogl::CubeTexture>&>(),
+			py::arg("tex"));
 
 	py::class_<ogl::Window, shared_ptr<ogl::Window>> window(m, "Window");
     window
@@ -108,73 +213,37 @@ void init_ogl(py::module_ &m)
 		.def("setKeyPressCallback", &ogl::Window::setKeyPressCallback)
 		.def("setKeyReleaseCallback", &ogl::Window::setKeyReleaseCallback)
 		.def("setScrollCallback", &ogl::Window::setScrollCallback)
-		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
-            const shared_ptr<ogl::Mesh>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&ogl::Window::add<ogl::Mesh>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
-            const shared_ptr<ogl::Sphere>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&ogl::Window::add<ogl::Sphere>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
-            const shared_ptr<ogl::AmbientLight>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&ogl::Window::add<ogl::AmbientLight>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
-            const shared_ptr<ogl::DirLight>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&ogl::Window::add<ogl::DirLight>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
-            const shared_ptr<ogl::Skybox>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&ogl::Window::add<ogl::Skybox>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
 		.def("loadTexture", &ogl::Window::loadTexture)
-		.def("getCubeTextureFromDir", &ogl::Window::getCubeTextureFromDir);
+		.def("getCubeTextureFromDir", &ogl::Window::getCubeTextureFromDir)
+		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
+            const Vec3&,
+			const Vec3&,
+			float)>(&ogl::Window::add),
+			py::arg("t")=Vec3(0,0,0),
+			py::arg("r")=Vec3(0,0,0),
+			py::arg("scale")=1.0f)
+		.def("add", [](
+			ogl::Window& w,
+            const Transform3& t)
+			{return w.add(t);},
+			py::arg("T"))
+		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
+            const TransformSim3&)>(&ogl::Window::add),
+			py::arg("T"));
+
+	defWindowAdd<ogl::Axes, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::Cone, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::Cube, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::Cylinder, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::Mesh, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::Sphere, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::AmbientLight, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::DirLight, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::Grid, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::Plane, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::Text, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::Skybox, ogl::Window, ogl::RenderNode>(window);
+	defWindowAdd<ogl::Sprite, ogl::Window, ogl::RenderNode>(window);
 
 	py::class_<ogl::Verlet::Shape, shared_ptr<ogl::Verlet::Shape>>(m, "Shape");
 	py::class_<ogl::Verlet::PhysicsObject>(m, "PhysicsObject")
@@ -213,6 +282,10 @@ PYBIND11_MODULE(_core, m) {
 	py::class_<Orient3>(m, "Orient3")
 		.def(py::init<>())
 		.def(py::init<const Vec3&>())
+		.def(py::init([](const Vec4& q){
+			// w comes first
+			return Orient3(Eigen::Quaternionf(q[0],q[1],q[2],q[3]));
+		}), py::arg("q"))
 		.def("inverse", &Orient3::inverse)
 		.def("normalize", &Orient3::normalize)
 		.def("rvec", &Orient3::rvec)
@@ -679,6 +752,9 @@ PYBIND11_MODULE(_core, m) {
         .def(py::init<Vec3,float>(),py::arg("dir"),py::arg("strength"));
 	
     py::class_<Window> window(m, "Window");
+
+	
+
     window
         .def(py::init<int,int,std::string>(),
 			py::arg("width")=-1,
@@ -782,210 +858,30 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("t")=Vec3(0,0,0),
 			py::arg("r")=Vec3(0,0,0),
 			py::arg("scale")=1.0f)
+		.def("add", [](
+			Window& w,
+            const Transform3& t)
+			{return w.add(t);},
+			py::arg("T"))
 		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Axes>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Axes>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Axes>&,
-            const TransformSim3&,
-            bool, 
-            int)>(&Window::add<Axes>),
-			py::arg("object"),
-			py::arg("T"),
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Sphere>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Sphere>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Cylinder>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Cylinder>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Cube>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Cube>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Cone>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Cone>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Grid>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Grid>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Text>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Text>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Lines>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Lines>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Particle>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Particle>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Sprite>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Sprite>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Mesh>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Mesh>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<ObjMesh>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<ObjMesh>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<Plane>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<Plane>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<AmbientLight>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<AmbientLight>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0)
-		.def("add", static_cast<shared_ptr<RenderNode> (Window::*)(
-            const shared_ptr<DirLight>&,
-            const Vec3&,
-			const Vec3&,
-			float,
-            bool, 
-            int)>(&Window::add<DirLight>),
-			py::arg("object"),
-			py::arg("t")=Vec3(0,0,0),
-			py::arg("r")=Vec3(0,0,0),
-			py::arg("scale")=1.0f,
-			py::arg("overlay")=false,
-			py::arg("layer")=0);
+            const TransformSim3&)>(&Window::add),
+			py::arg("T"));
+
+	defWindowAdd<Axes, Window, RenderNode>(window);
+	defWindowAdd<Sphere, Window, RenderNode>(window);
+	defWindowAdd<Cylinder, Window, RenderNode>(window);
+	defWindowAdd<Cube, Window, RenderNode>(window);
+	defWindowAdd<Cone, Window, RenderNode>(window);
+	defWindowAdd<Grid, Window, RenderNode>(window);
+	defWindowAdd<Text, Window, RenderNode>(window);
+	defWindowAdd<Lines, Window, RenderNode>(window);
+	defWindowAdd<Particle, Window, RenderNode>(window);
+	defWindowAdd<Sprite, Window, RenderNode>(window);
+	defWindowAdd<Mesh, Window, RenderNode>(window);
+	defWindowAdd<ObjMesh, Window, RenderNode>(window);
+	defWindowAdd<Plane, Window, RenderNode>(window);
+	defWindowAdd<AmbientLight, Window, RenderNode>(window);
+	defWindowAdd<DirLight, Window, RenderNode>(window);
 
     py::enum_<Window::TrajectoryCameraMotionMode>(window, "TrajectoryCameraMotionMode")
         .value("SINGLE", Window::TrajectoryCameraMotionMode::SINGLE)

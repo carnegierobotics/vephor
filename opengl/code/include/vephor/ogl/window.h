@@ -301,6 +301,15 @@ public:
 		non_render_objects.push_back(inner_obj);
 		return inner_obj;
     }
+
+    shared_ptr<RenderNode> add(
+		const Vec3& parent_from_node_t,
+		const Vec3& parent_from_node_r = Vec3::Zero(),
+		float parent_from_node_scale = 1.0f
+	)
+	{
+		return add(TransformSim3(parent_from_node_t,parent_from_node_r,parent_from_node_scale));
+	}
 	
     // The object T is a "drawing object", and must:
     //  Implement onAddToWindow, a method which is expected to allocate memory/structures specific to drawing on that window

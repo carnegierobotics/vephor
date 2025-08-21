@@ -124,21 +124,21 @@ private:
 	bool y_flip = false;
 
     bool buffers_set = false;
-    GLuint vao_id;
-    GLuint pos_buffer_id;
-    GLuint uv_buffer_id;
-    GLuint program_id;
+    GLuint vao_id = std::numeric_limits<GLuint>::max();
+    GLuint pos_buffer_id = std::numeric_limits<GLuint>::max();
+    GLuint uv_buffer_id = std::numeric_limits<GLuint>::max();
+    GLuint program_id = std::numeric_limits<GLuint>::max();
 
-    GLuint pos_attr_loc;
-    GLuint uv_attr_loc;
+    GLuint pos_attr_loc = std::numeric_limits<GLuint>::max();
+    GLuint uv_attr_loc = std::numeric_limits<GLuint>::max();
 
-    GLuint mvp_matrix_id;
-    GLuint view_matrix_id;
-    GLuint model_matrix_id;
-    GLuint scale_id;
-	GLuint billboard_id;
-    GLuint color_id;
-    GLuint tex_sampler_id;
+    GLuint proj_matrix_id = std::numeric_limits<GLuint>::max();
+    GLuint view_matrix_id = std::numeric_limits<GLuint>::max();
+    GLuint model_matrix_id = std::numeric_limits<GLuint>::max();
+    GLuint scale_id = std::numeric_limits<GLuint>::max();
+	GLuint billboard_id = std::numeric_limits<GLuint>::max();
+    GLuint color_id = std::numeric_limits<GLuint>::max();
+    GLuint tex_sampler_id = std::numeric_limits<GLuint>::max();
 };
 
 } // namespace ogl

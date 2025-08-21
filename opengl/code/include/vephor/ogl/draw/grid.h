@@ -21,7 +21,11 @@ namespace ogl
 class Grid
 {
 public:
-    Grid(float rad, const Vec3& normal = Vec3(0,0,1), const Vec3& right = Vec3(1,0,0), float cell_size = 1.0f, const Vec3& color = Vec3(1,1,1))
+    Grid(float rad, 
+		const Vec3& normal = Vec3(0,0,1), 
+		const Vec3& right = Vec3(1,0,0), 
+		float cell_size = 1.0f, 
+		const Vec3& color = Vec3(1,1,1))
 	{
 		vector<Vec3> line_verts;
 		

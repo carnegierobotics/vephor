@@ -130,6 +130,7 @@ Install the Vephor library Python bindings in the active Python environment as f
 ### Linux
 
 ```bash
+pip install --upgrade pip
 pip install .
 ```
 
