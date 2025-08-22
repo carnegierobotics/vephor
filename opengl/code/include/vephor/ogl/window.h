@@ -537,6 +537,12 @@ public:
     [[nodiscard]] const int getXPosition() const { return window_position[0]; }
     [[nodiscard]] const int getYPosition() const { return window_position[1]; }
 
+    void setPosition(const Vec2i& pos)
+    {
+        glfwSetWindowPos(window, pos[0], pos[1]);
+        glfwGetWindowPos(window, &window_position[0], &window_position[1]);
+    }
+
     const shared_ptr<Texture> getDefaultTex() const {return default_tex;}
 	const shared_ptr<Texture> getDefaultNormalMap() const {return default_normal_map;}
 

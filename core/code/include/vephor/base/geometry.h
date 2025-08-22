@@ -672,6 +672,8 @@ inline MeshData formRectPrism(const Vec3& rads, float uv_scale=1.0f)
 		0.f,u1,
 		u0, 0.f;
 
+	// -X, -Y, -Z, X, Y, Z
+
     data.norms.resize(12*3,3);
     data.norms << 
         -1.0f,-0.0f,-0.0f,

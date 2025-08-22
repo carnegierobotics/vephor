@@ -143,7 +143,7 @@ void init_ogl(py::module_ &m)
 		.def(py::init<float, const Vec3&, const Vec3&, float, const Vec3&>(),
 			py::arg("rad"),
 			py::arg("normal")=Vec3(0,0,1),
-			py::arg("right")=Vec3(0,0,1),
+			py::arg("right")=Vec3(1,0,0),
 			py::arg("cell_size")=1.0f,
 			py::arg("color")=Vec3(1,1,1));
 
