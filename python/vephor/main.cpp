@@ -199,6 +199,7 @@ void init_ogl(py::module_ &m)
 		.def("render", &ogl::Window::render)
 		.def("setCamFromWorld", &ogl::Window::setCamFromWorld)
 		.def("setProjectionMatrix", &ogl::Window::setProjectionMatrix)
+		.def("getSize", &ogl::Window::getSize)
 		.def("getMousePos", &ogl::Window::getMousePos)
 		.def("getWorldRayForMousePos", [](ogl::Window& w, 
 			const Vec2& mouse_pos){
@@ -303,6 +304,7 @@ PYBIND11_MODULE(_core, m) {
 		.def("translation", &Transform3::translation)
 		.def("rvec", &Transform3::rvec)
 		.def("rotation", &Transform3::rotation)
+		.def("orient", &Transform3::orient)
 		.def("matrix", &Transform3::matrix)
 		.def("interp", &Transform3::interp);
     py::class_<TransformSim3>(m, "TransformSim3")

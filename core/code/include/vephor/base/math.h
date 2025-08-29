@@ -1033,6 +1033,10 @@ public:
 	{
 		return Orient3(transform.quat());
 	}
+    Orient3 orient() const
+	{
+		return Orient3(transform.quat());
+	}
 	Vec3 rvec() const
 	{
 		Eigen::AngleAxisf aa(transform.quat());
