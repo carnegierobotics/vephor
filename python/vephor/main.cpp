@@ -248,6 +248,11 @@ void init_ogl(py::module_ &m)
 
 	py::class_<ogl::Verlet::Shape, shared_ptr<ogl::Verlet::Shape>>(m, "Shape");
 	py::class_<ogl::Verlet::PhysicsObject>(m, "PhysicsObject")
+		.def("setPos", &ogl::Verlet::PhysicsObject::setPos)
+		.def("getPos", &ogl::Verlet::PhysicsObject::getPos)
+		.def("applyOffset", &ogl::Verlet::PhysicsObject::applyOffset)
+		.def("getOffset", &ogl::Verlet::PhysicsObject::getOffset)
+		.def("setCollisionCallback", &ogl::Verlet::PhysicsObject::setCollisionCallback)
 		.def("setDestroy", &ogl::Verlet::PhysicsObject::setDestroy);
 
 	py::class_<ogl::Verlet, shared_ptr<ogl::Verlet>> verlet(m, "Verlet");

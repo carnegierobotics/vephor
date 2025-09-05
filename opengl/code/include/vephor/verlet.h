@@ -66,6 +66,10 @@ public:
 		{
 			reset_velocity = true;
 		}
+		Vec3 getOffset()
+		{
+			return getPos() - last_pos;
+		}
 
 		bool reset_velocity = false;
 		Vec3 offset = Vec3::Zero();
