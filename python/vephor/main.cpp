@@ -65,7 +65,8 @@ void defWindowAdd(T& window)
 
 void init_ogl(py::module_ &m)
 {
-	py::class_<ogl::Texture, shared_ptr<ogl::Texture>>(m, "Texture");
+	py::class_<ogl::Texture, shared_ptr<ogl::Texture>>(m, "Texture")
+		.def("size", &ogl::Texture::size);
 	py::class_<ogl::CubeTexture, shared_ptr<ogl::CubeTexture>>(m, "CubeTexture");
 
 	py::class_<ogl::RenderNode, shared_ptr<ogl::RenderNode>>(m, "RenderNode")
@@ -216,6 +217,8 @@ void init_ogl(py::module_ &m)
 		.def("setScrollCallback", &ogl::Window::setScrollCallback)
 		.def("loadTexture", &ogl::Window::loadTexture)
 		.def("getCubeTextureFromDir", &ogl::Window::getCubeTextureFromDir)
+		.def("getScreenImage", &ogl::Window::getScreenImage)
+		.def("getDepthImage", &ogl::Window::getDepthImage)
 		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
             const Vec3&,
 			const Vec3&,
@@ -247,7 +250,7 @@ void init_ogl(py::module_ &m)
 	defWindowAdd<ogl::Sprite, ogl::Window, ogl::RenderNode>(window);
 
 	py::class_<ogl::Verlet::Shape, shared_ptr<ogl::Verlet::Shape>>(m, "Shape");
-	py::class_<ogl::Verlet::PhysicsObject>(m, "PhysicsObject")
+	py::class_<ogl::Verlet::PhysicsObject, shared_ptr<ogl::Verlet::PhysicsObject>>(m, "PhysicsObject")
 		.def("setPos", &ogl::Verlet::PhysicsObject::setPos)
 		.def("getPos", &ogl::Verlet::PhysicsObject::getPos)
 		.def("applyOffset", &ogl::Verlet::PhysicsObject::applyOffset)
@@ -262,7 +265,7 @@ void init_ogl(py::module_ &m)
 		.def_static("makeSphere", &ogl::Verlet::makeSphere)
 		.def_static("makePlane", &ogl::Verlet::makePlane)
 		.def_static("makeSolid", &ogl::Verlet::makeSolid)
-		.def("add", static_cast<ogl::Verlet::PhysicsObject* (ogl::Verlet::*)(
+		.def("add", static_cast<shared_ptr<ogl::Verlet::PhysicsObject> (ogl::Verlet::*)(
 			const shared_ptr<ogl::RenderNode>&,
 			const shared_ptr<ogl::Verlet::Shape>&,
 			float,
@@ -270,8 +273,7 @@ void init_ogl(py::module_ &m)
 			py::arg("obj"),
 			py::arg("shape"),
 			py::arg("mass")=0.0f,
-			py::arg("water")=false,
-			py::return_value_policy::reference);
+			py::arg("water")=false);
 
 }
 
@@ -362,6 +364,8 @@ PYBIND11_MODULE(_core, m) {
 	m.def("formLine", &formLine, py::arg("vert_list"), py::arg("rad"));
 	m.def("formLineLoop", &formLineLoop, py::arg("vert_list"), py::arg("rad"));
 	m.def("formPolygon", &formPolygon, py::arg("vert_list"));
+	m.def("formPolygonPrism", &formPolygonPrism, py::arg("vert_list"), py::arg("height"), py::arg("invert")=false, py::arg("cap")=false);
+	m.def("formRectange", &formRectange, py::arg("size"));
 	m.def("formCube", &formCube);
 	m.def("formSphere", &formSphere, py::arg("slices"), py::arg("stacks"));
 	m.def("formCone", &formCone, py::arg("rad"), py::arg("height"), py::arg("slices"), py::arg("smooth")=true);
@@ -425,9 +429,9 @@ PYBIND11_MODULE(_core, m) {
 				sizeof(uint8_t),                         /* Size of one scalar */
 				py::format_descriptor<uint8_t>::format(), /* Python struct-style format descriptor */
 				3,                                       /* Number of dimensions */
-				{ img.getSize()[0], img.getSize()[1], img.getChannels() },                  /* Buffer dimensions */
+				{ img.getSize()[1], img.getSize()[0], img.getChannels() },                  /* Buffer dimensions */
 				{ 
-					sizeof(uint8_t) * img.getSize()[1] * img.getChannels(),
+					sizeof(uint8_t) * img.getSize()[0] * img.getChannels(),
 					sizeof(uint8_t) * img.getChannels(),
 					sizeof(uint8_t)
 				}

@@ -143,7 +143,10 @@ void Verlet::update(float dt)
 	removeDestroyedObjects(objects);
 }
 
-void Verlet::compareObjects(PhysicsObject* obj1, PhysicsObject* obj2, float dt)
+void Verlet::compareObjects(
+    const shared_ptr<PhysicsObject>& obj1, 
+    const shared_ptr<PhysicsObject>& obj2, 
+    float dt)
 {
     if (obj1->mass == 0.0f && obj2->mass == 0.0f)
         return;
@@ -177,8 +180,8 @@ void Verlet::compareObjects(PhysicsObject* obj1, PhysicsObject* obj2, float dt)
             obj2->setPos(obj2->getPos() - mass_weight*total_push);
         }
 		
-		obj1->onCollision(*obj2);
-		obj2->onCollision(*obj1);
+		obj1->onCollision(obj2.get());
+		obj2->onCollision(obj1.get());
     }
 }
 

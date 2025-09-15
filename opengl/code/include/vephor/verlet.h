@@ -22,7 +22,7 @@ class Verlet
 public:
 	struct PhysicsObject;
 
-	using CollisionCallback = std::function<void(const PhysicsObject&)>;
+	using CollisionCallback = std::function<void(const PhysicsObject*, const PhysicsObject*)>;
 
 	enum class ShapeType
     {
@@ -47,11 +47,11 @@ public:
         virtual Vec3 getPos() const = 0;
 		virtual float getScale() const = 0;
 		virtual Orient3 getOrient() const = 0;
-		void onCollision(const PhysicsObject& other)
+		void onCollision(const PhysicsObject* other)
 		{
 			if (collision_callback)
 			{
-				collision_callback(other);
+				collision_callback(this, other);
 			}
 		}
 		void setCollisionCallback(CollisionCallback callback)
@@ -228,23 +228,23 @@ public:
     : grav_acc(p_grav_acc), hash_dist(p_hash_dist)
     {}
     template <class T>
-    PhysicsObject* add(const shared_ptr<T>& obj, const shared_ptr<Shape>& shape, float mass = 0.0f, bool water = false)
+    shared_ptr<PhysicsObject> add(const shared_ptr<T>& obj, const shared_ptr<Shape>& shape, float mass = 0.0f, bool water = false)
     {
-        unique_ptr<PhysicsObject> inner_obj = make_unique<TPhysicsObject<T>>(obj);
-        objects.push_back(move(inner_obj));
-        (*objects.rbegin())->last_pos = obj->getPos();
-        (*objects.rbegin())->shape = shape;
-        (*objects.rbegin())->mass = mass;
-        (*objects.rbegin())->water = water;
+        shared_ptr<PhysicsObject> inner_obj = make_shared<TPhysicsObject<T>>(obj);
+        objects.push_back(inner_obj);
+        inner_obj->last_pos = obj->getPos();
+        inner_obj->shape = shape;
+        inner_obj->mass = mass;
+        inner_obj->water = water;
 		
-		auto obj_ptr = objects.rbegin()->get();
-		if (obj_ptr->shape->radius == 0.0f)
-			infinite_objs.push_back(obj_ptr);
+		if (inner_obj->shape->radius == 0.0f)
+			infinite_objs.push_back(inner_obj);
 		else
-			finite_objs.push_back(obj_ptr);
+			finite_objs.push_back(inner_obj);
 		
-        return obj_ptr;
+        return inner_obj;
     }
+	//TODO: remove constraints between dead objects
     void addConstraint(PhysicsObject* obj1, PhysicsObject* obj2, float dist)
     {
         constraints.push_back(Constraint{obj1, obj2, dist});
@@ -254,15 +254,18 @@ private:
     float grav_acc;
 	float hash_dist;
 
-    void compareObjects(PhysicsObject* obj1, PhysicsObject* obj2, float dt);
+    void compareObjects(
+		const shared_ptr<PhysicsObject>& obj1, 
+		const shared_ptr<PhysicsObject>& obj2, 
+		float dt);
     float checkSpherePlaneCollisionDist(const PhysicsObject& sphere, const PhysicsObject& plane, Vec3& push_dir);
     float checkSphereSolidCollisionDist(const PhysicsObject& sphere, const PhysicsObject& solid, Vec3& push_dir);
 	float checkSphereHeightMapCollisionDist(const PhysicsObject& sphere, const PhysicsObject& hm, Vec3& push_dir);
 	float checkCollisionDist(const PhysicsObject& obj1, const PhysicsObject& obj2, Vec3& push_dir);
 
-    vector<unique_ptr<PhysicsObject>> objects;
-	vector<PhysicsObject*> infinite_objs;
-	vector<PhysicsObject*> finite_objs;
+    vector<shared_ptr<PhysicsObject>> objects;
+	vector<shared_ptr<PhysicsObject>> infinite_objs;
+	vector<shared_ptr<PhysicsObject>> finite_objs;
     vector<Constraint> constraints;
 };
 

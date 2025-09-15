@@ -487,6 +487,13 @@ inline MeshData formPolygon(vector<Vec2> verts)
 	return data;
 }
 
+inline MeshData formRectange(const Vec2& size)
+{
+	MeshData data(6);
+	data.addQuad2D(-size/2, size/2, Vec2(0,0), Vec2(1,1));
+	return data;
+}
+
 inline MeshData formPolygonPrism(vector<Vec2> verts, float height, bool invert=false, bool cap=false)
 {
 	MeshData data;
@@ -505,14 +512,42 @@ inline MeshData formPolygonPrism(vector<Vec2> verts, float height, bool invert=f
 		verts = new_verts;
 	}
 
+
+
+	vector<Triangle2> cap_tris;
+
 	if (cap)
 	{
-		throw std::runtime_error("Polygon prism caps not implemented yet.");
+		vector<Vec2> cap_verts = verts;
+		while (cap_verts.size() > 3)
+		{
+			bool ear_found = false;
+			for (size_t i = 0; i < cap_verts.size(); i++)
+			{
+				if (isEar(i, cap_verts))
+				{
+					cap_tris.push_back({
+						cap_verts[(i+cap_verts.size()-1)%cap_verts.size()], 
+						cap_verts[i], 
+						cap_verts[(i+1)%cap_verts.size()]});
+					cap_verts.erase(cap_verts.begin() + i);
+					ear_found = true;
+					break;
+				}
+			}
+			if (!ear_found)
+			{
+				throw std::runtime_error("Could not triangulate polygon.");
+				return data;
+			}
+		}
+		
+		cap_tris.push_back({cap_verts[0], cap_verts[1], cap_verts[2]});
 	}
 
-	data.verts.resize(verts.size()*3*2,3);
-	data.norms.resize(verts.size()*3*2,3);
-	data.uvs.resize(verts.size()*3*2,2);
+	data.verts.resize(verts.size()*3*2+cap_tris.size()*3*2,3);
+	data.norms.resize(verts.size()*3*2+cap_tris.size()*3*2,3);
+	data.uvs.resize(verts.size()*3*2+cap_tris.size()*3*2,2);
 	
 	int index = 0;
 	for (int v = 0; v < verts.size(); v++)
@@ -532,12 +567,12 @@ inline MeshData formPolygonPrism(vector<Vec2> verts, float height, bool invert=f
 		data.uvs.row(index) = Vec2(0,0);
 		index++;
 		
-		data.verts.row(index) = Vec3(v1[0], v1[1], height / 2);
+		data.verts.row(index) = Vec3(v2[0], v2[1], height / 2);
 		data.norms.row(index) = norm;
 		data.uvs.row(index) = Vec2(0,height);
 		index++;
 		
-		data.verts.row(index) = Vec3(v2[0], v2[1], height / 2);
+		data.verts.row(index) = Vec3(v1[0], v1[1], height / 2);
 		data.norms.row(index) = norm;
 		data.uvs.row(index) = Vec2(vec_length,height);
 		index++;
@@ -547,15 +582,58 @@ inline MeshData formPolygonPrism(vector<Vec2> verts, float height, bool invert=f
 		data.uvs.row(index) = Vec2(0,0);
 		index++;
 		
-		data.verts.row(index) = Vec3(v2[0], v2[1], height / 2);
+		data.verts.row(index) = Vec3(v2[0], v2[1], -height / 2);
 		data.norms.row(index) = norm;
 		data.uvs.row(index) = Vec2(vec_length,height);
 		index++;
 		
-		data.verts.row(index) = Vec3(v2[0], v2[1], -height / 2);
+		data.verts.row(index) = Vec3(v2[0], v2[1], height / 2);
 		data.norms.row(index) = norm;
 		data.uvs.row(index) = Vec2(vec_length,0);
 		index++;
+	}
+
+	if (cap)
+	{
+		int index = verts.size()*3*2;
+
+		// Top
+		for (const auto& tri : cap_tris)
+		{
+			data.verts.row(index) = Vec3(tri.a[0], tri.a[1], -height / 2);
+			data.uvs.row(index) = Vec2(tri.a[0], tri.a[1]);
+			data.norms.row(index) = Vec3(0,0,-1);
+			index++;
+			
+			data.verts.row(index) = Vec3(tri.c[0], tri.c[1], -height / 2);
+			data.uvs.row(index) = Vec2(tri.c[0], tri.c[1]);
+			data.norms.row(index) = Vec3(0,0,-1);
+			index++;
+			
+			data.verts.row(index) = Vec3(tri.b[0], tri.b[1], -height / 2);
+			data.uvs.row(index) = Vec2(tri.b[0], tri.b[1]);
+			data.norms.row(index) = Vec3(0,0,-1);
+			index++;
+		}
+
+		// Bottom
+		for (const auto& tri : cap_tris)
+		{
+			data.verts.row(index) = Vec3(tri.a[0], tri.a[1], height / 2);
+			data.uvs.row(index) = Vec2(tri.a[0], tri.a[1]);
+			data.norms.row(index) = Vec3(0,0,1);
+			index++;
+			
+			data.verts.row(index) = Vec3(tri.b[0], tri.b[1], height / 2);
+			data.uvs.row(index) = Vec2(tri.b[0], tri.b[1]);
+			data.norms.row(index) = Vec3(0,0,1);
+			index++;
+			
+			data.verts.row(index) = Vec3(tri.c[0], tri.c[1], height / 2);
+			data.uvs.row(index) = Vec2(tri.c[0], tri.c[1]);
+			data.norms.row(index) = Vec3(0,0,1);
+			index++;
+		}
 	}
 	
 	return data;
