@@ -64,6 +64,7 @@ private:
 	bool equal = false;
 	bool xflip = false;
 	bool yflip = false;
+	bool xyswap = false;
 	bool cursor_callout = true;
 	bool legend_right = true;
 	bool legend_top = true;

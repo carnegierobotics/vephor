@@ -89,6 +89,16 @@ void PlotCamera::resizeWindow(Window& window)
 	curr_content_max[2] = near_z;
 		
 	Mat4 proj = makeOrthoProj(curr_content_min, curr_content_max);
+
+	if (xyswap)
+	{
+		MatX x_row = proj.row(0);
+		MatX y_row = proj.row(1);
+
+		proj.row(0) = y_row;
+		proj.row(1) = x_row;
+	}
+
 	window.setProjectionMatrix(proj);
 	
 	Vec4 proj_min_pt = proj.transpose() * Vec4(0,0,curr_content_min[2],1);
@@ -367,6 +377,9 @@ void PlotCamera::setup(const json& data, Window& window, AssetManager& assets)
 	if (data.contains("y_flip"))
 		yflip = data["y_flip"];
 
+	if (data.contains("xy_swap"))
+		xyswap = data["xy_swap"];
+
 	if (data.contains("cursor_callout"))
 		cursor_callout = data["cursor_callout"];
 
@@ -566,6 +579,12 @@ void PlotCamera::autoFitPoints(Window& window, const vector<Vec3>& pts)
 	content_min[2] = -1;
 	content_max[2] = 1e6;
 
+	if (xyswap)
+	{
+		content_min.head<2>() = Vec2(content_min[1], content_min[0]);
+		content_max.head<2>() = Vec2(content_max[1], content_max[0]);
+	}
+
 	resizeWindow(window);
 	
 	orig_content_min = content_min;
@@ -697,7 +716,7 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 			content_min.head<2>() = pre_drag_content_min.head<2>() - content_delta;
 			content_max.head<2>() = pre_drag_content_max.head<2>() - content_delta;
 		}
-		else
+		else // Left click drag
 		{
 			Vec2 world_per_px(
 				(curr_content_max[0] - curr_content_min[0])/(float)window.getSize()[0], 
@@ -737,11 +756,8 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 		window.getSize()[0] - (box_left_border + inner_border) - (box_border + inner_border),
 		window.getSize()[1] - (box_bottom_border + inner_border) - (box_border + inner_border)
 	);
-		
-	Vec2 tick_res(
-		findBestTickRes(curr_content_inner_max[0] - curr_content_inner_min[0], inner_window_span[0]),
-		findBestTickRes(curr_content_inner_max[1] - curr_content_inner_min[1], inner_window_span[1])
-	);
+
+	
 	
 	Vec2 pos(
 		mouse_pos[0] / (float)window_size[0] * (curr_content_max[0] - curr_content_min[0]) + curr_content_min[0],
@@ -767,7 +783,11 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 			marked_pos->setTexture(circle_tex);
 			marked_pos->setScreenSpaceMode(true);
 			marked_pos->setSize(0.01);
-			marked_position_nodes.push_back(window.add(marked_pos, Vec3(pos[0], pos[1], 999.99)));
+
+			if (xyswap)
+				marked_position_nodes.push_back(window.add(marked_pos, Vec3(pos[1], pos[0], 999.99)));
+			else
+				marked_position_nodes.push_back(window.add(marked_pos, Vec3(pos[0], pos[1], 999.99)));
 
 			key_m_down = false;
 		}
@@ -804,16 +824,27 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 		}
 	}
 
+
+
+		
+	Vec2 tick_res(
+		findBestTickRes(curr_content_inner_max[0] - curr_content_inner_min[0], inner_window_span[0]),
+		findBestTickRes(curr_content_inner_max[1] - curr_content_inner_min[1], inner_window_span[1])
+	);
+
 	const float grid_line_min_offset = 0.1;
+
+	for (auto& tick_node : vert_grid_lines)
+		tick_node->setShow(false);
+
+	for (auto& tick_node : horiz_grid_lines)
+		tick_node->setShow(false);
 
 	{
 		int tick_index = curr_content_inner_min[0] / tick_res[0];
 		int tick_line_index = 0;
 		
 		for (auto& tick_node : vert_lines)
-			tick_node->setShow(false);
-
-		for (auto& tick_node : vert_grid_lines)
 			tick_node->setShow(false);
 		
 		for (auto& text_node : vert_text_node)
@@ -838,12 +869,25 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 			vert_lines[tick_line_index]->setPos(pos);
 			vert_lines[tick_line_index]->setShow(true);
 
-			vert_grid_lines[tick_line_index]->setPos(Vec3(
-				value,
-				(curr_content_min[1] + curr_content_max[1])/2.0f,
-				curr_content_min[2] + grid_line_min_offset));
-			vert_grid_lines[tick_line_index]->setScale(curr_content_max[1] - curr_content_min[1]);
-			vert_grid_lines[tick_line_index]->setShow(true);
+			if (xyswap)
+			{
+				horiz_grid_lines[tick_line_index]->setPos(Vec3(
+					(curr_content_min[1] + curr_content_max[1])/2.0f,
+					value,
+					curr_content_min[2] + grid_line_min_offset));
+				horiz_grid_lines[tick_line_index]->setScale(curr_content_max[1] - curr_content_min[1]);
+				horiz_grid_lines[tick_line_index]->setShow(true);
+			}
+			else
+			{
+				vert_grid_lines[tick_line_index]->setPos(Vec3(
+					value,
+					(curr_content_min[1] + curr_content_max[1])/2.0f,
+					curr_content_min[2] + grid_line_min_offset));
+				vert_grid_lines[tick_line_index]->setScale(curr_content_max[1] - curr_content_min[1]);
+				vert_grid_lines[tick_line_index]->setShow(true);
+			}
+			
 			
 			char tick_text[128];
 			sprintf(tick_text, "%.7g", value);
@@ -862,9 +906,6 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 		int tick_line_index = 0;
 		
 		for (auto& tick_node : horiz_lines)
-			tick_node->setShow(false);
-
-		for (auto& tick_node : horiz_grid_lines)
 			tick_node->setShow(false);
 		
 		for (auto& text_node : horiz_text_node)
@@ -889,12 +930,24 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 			horiz_lines[tick_line_index]->setPos(pos);
 			horiz_lines[tick_line_index]->setShow(true);
 
-			horiz_grid_lines[tick_line_index]->setPos(Vec3(
-				(curr_content_min[0] + curr_content_max[0])/2.0f,
-				value,
-				curr_content_min[2] + grid_line_min_offset));
-			horiz_grid_lines[tick_line_index]->setScale(curr_content_max[0] - curr_content_min[0]);
-			horiz_grid_lines[tick_line_index]->setShow(true);
+			if (xyswap)
+			{
+				vert_grid_lines[tick_line_index]->setPos(Vec3(
+					value,
+					(curr_content_min[0] + curr_content_max[0])/2.0f,
+					curr_content_min[2] + grid_line_min_offset));
+				vert_grid_lines[tick_line_index]->setScale(curr_content_max[0] - curr_content_min[0]);
+				vert_grid_lines[tick_line_index]->setShow(true);
+			}
+			else
+			{
+				horiz_grid_lines[tick_line_index]->setPos(Vec3(
+					(curr_content_min[0] + curr_content_max[0])/2.0f,
+					value,
+					curr_content_min[2] + grid_line_min_offset));
+				horiz_grid_lines[tick_line_index]->setScale(curr_content_max[0] - curr_content_min[0]);
+				horiz_grid_lines[tick_line_index]->setShow(true);
+			}
 			
 			char tick_text[128];
 			sprintf(tick_text, "%.7g", value);

@@ -154,6 +154,10 @@ public:
 	{
 		inner_window.getCameraControlInfo()["y_flip"] = flip;
 	}
+    void xyswap(bool swap = true)
+	{
+		inner_window.getCameraControlInfo()["xy_swap"] = swap;
+	}
 	void equal(bool is_equal = true)
 	{
 		inner_window.getCameraControlInfo()["equal"] = is_equal;

@@ -219,8 +219,8 @@ public:
 
     struct Constraint
     {
-        PhysicsObject* obj1;
-        PhysicsObject* obj2;
+        shared_ptr<PhysicsObject> obj1;
+        shared_ptr<PhysicsObject> obj2;
         float dist;
     };
 
@@ -245,7 +245,10 @@ public:
         return inner_obj;
     }
 	//TODO: remove constraints between dead objects
-    void addConstraint(PhysicsObject* obj1, PhysicsObject* obj2, float dist)
+    void addConstraint(
+		const shared_ptr<PhysicsObject>& obj1, 
+		const shared_ptr<PhysicsObject>& obj2, 
+		float dist)
     {
         constraints.push_back(Constraint{obj1, obj2, dist});
     }
