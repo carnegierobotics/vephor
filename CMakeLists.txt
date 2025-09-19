@@ -48,7 +48,10 @@ add_subdirectory(core)
 #
 
 if (VEPHOR_BUILD_OPENGL)
+    message("Building OpenGL.")
     add_subdirectory(opengl)
+else()
+    message("Not building OpenGL.")
 endif()
 
 #

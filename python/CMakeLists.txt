@@ -33,8 +33,18 @@ target_compile_definitions(${MODULE_NAME}
 target_link_libraries(${MODULE_NAME}
 	PRIVATE
 		vephor
-		vephor_opengl
 )
+
+if(VEPHOR_BUILD_OPENGL)
+	target_link_libraries(${MODULE_NAME}
+		PRIVATE
+			vephor_opengl
+	)
+	target_compile_definitions(${MODULE_NAME}
+		PRIVATE
+		INCLUDE_OPENGL_BINDINGS
+	)
+endif()
 
 set_target_properties(${MODULE_NAME} PROPERTIES
     INSTALL_RPATH "$ORIGIN/lib"

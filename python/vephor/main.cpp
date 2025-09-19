@@ -63,6 +63,8 @@ void defWindowAdd(T& window)
 			py::arg("layer")=0);
 }
 
+#ifdef INCLUDE_OPENGL_BINDINGS
+
 void init_ogl(py::module_ &m)
 {
 	py::class_<ogl::Texture, shared_ptr<ogl::Texture>>(m, "Texture")
@@ -274,16 +276,18 @@ void init_ogl(py::module_ &m)
 			py::arg("shape"),
 			py::arg("mass")=0.0f,
 			py::arg("water")=false);
-
 }
+#endif
 
 PYBIND11_MODULE(_core, m) {
     m.doc() = R"pbdoc(
         Vephor Visualization Library for Python
     )pbdoc";
 
+#ifdef INCLUDE_OPENGL_BINDINGS
 	auto ogl = m.def_submodule("ogl", "Access OpenGL directly");
 	init_ogl(ogl);
+#endif
 
 	py::class_<Vec3>(m, "Vec3")
 		.def(py::init<float,float,float>());
