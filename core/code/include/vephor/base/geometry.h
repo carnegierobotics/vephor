@@ -847,6 +847,44 @@ inline MatX formCubeWireframe()
 	return verts;
 }
 
+inline MatX formFrustumWireframe(const Mat3& K, Vec2 image_size = Vec2(0,0))
+{
+	MatX verts;
+
+	verts.resize(8*2,3);
+	
+	if (image_size == Vec2(0,0))
+		image_size = Vec2(K(0,2)*2,K(1,2)*2);
+
+	Mat3 K_inv = K.inverse();
+
+	Vec3 c00 = K_inv * Vec3(0,0,1);
+	Vec3 c01 = K_inv * Vec3(0,image_size[1],1);
+	Vec3 c11 = K_inv * Vec3(image_size[0],image_size[1],1);
+	Vec3 c10 = K_inv * Vec3(image_size[0],0,1);
+
+	verts.setZero();
+
+	verts.row(1) = c00;
+	verts.row(3) = c01;
+	verts.row(5) = c11;
+	verts.row(7) = c10;
+
+	verts.row(8) = c00;
+	verts.row(9) = c01;
+
+	verts.row(10) = c01;
+	verts.row(11) = c11;
+
+	verts.row(12) = c11;
+	verts.row(13) = c10;
+
+	verts.row(14) = c10;
+	verts.row(15) = c00;
+
+	return verts;
+}
+
 inline MeshData formSphere(int slices, int stacks)
 {
 	MeshData data;

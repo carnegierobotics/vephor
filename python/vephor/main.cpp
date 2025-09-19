@@ -1180,7 +1180,8 @@ PYBIND11_MODULE(_core, m) {
 						for (int j = 0; j < info.shape[1]; j++)
 						{
 							const double* vec_ptr = ptr + i * info.shape[1] * n_channels + j * n_channels;
-							image(j,i) = Vec3u(vec_ptr[0]*255, vec_ptr[1]*255, vec_ptr[2]*255);
+							for (int c = 0; c < n_channels; c++)
+								image(j,i)[c] = vec_ptr[c]*255;
 						}
 					}
 				}
