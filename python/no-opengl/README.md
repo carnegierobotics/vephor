@@ -1,0 +1,1 @@
+This is the "no opengl" variant of the Vephor python project.  See the main repo for details.

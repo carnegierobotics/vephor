@@ -146,6 +146,13 @@ pip install . --config-settings=cmake.generator="MinGW Makefiles"
 pip install . --config-settings=cmake.define.VEPHOR_BUILD_OPENGL=OFF
 ```
 
+or
+
+```bash
+pip install python/no-opengl
+```
+
+
 ### Troubleshooting
 
 Refer to the contained sections for common Python installation issues.
