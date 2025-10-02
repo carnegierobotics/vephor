@@ -476,7 +476,7 @@ public:
 
             std::string marker_name{magic_enum::enum_name(opts.marker)};
             marker_name = to_lower(marker_name);
-            particle->setTexture(base_asset_dir + "/assets/" + marker_name + ".png", false);
+            particle->setTexture("/assets/" + marker_name + ".png", false);
             inner_window.add(particle, Vec3(0, 0, plot_index + 1));
 
             if (!opts.label.empty())

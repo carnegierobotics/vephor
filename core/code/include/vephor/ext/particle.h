@@ -71,7 +71,9 @@ public:
 
 		if (!fs::exists(p_tex))
 		{
-			v4print "Error: Can't find particle texture", p_tex, "- skipping";
+            // Hoping the show side knows about this texture
+            tex = p_tex;
+            nearest = p_filter_nearest;
 			return;
 		}
 		

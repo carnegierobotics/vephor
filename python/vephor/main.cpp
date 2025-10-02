@@ -68,7 +68,11 @@ void defWindowAdd(T& window)
 void init_ogl(py::module_ &m)
 {
 	py::class_<ogl::Texture, shared_ptr<ogl::Texture>>(m, "Texture")
+		.def("setRepeatX", &ogl::Texture::setRepeatX)
+		.def("setRepeatY", &ogl::Texture::setRepeatY)
+		.def("setRepeat", &ogl::Texture::setRepeat)
 		.def("size", &ogl::Texture::size);
+		
 	py::class_<ogl::CubeTexture, shared_ptr<ogl::CubeTexture>>(m, "CubeTexture");
 
 	py::class_<ogl::RenderNode, shared_ptr<ogl::RenderNode>>(m, "RenderNode")
@@ -201,6 +205,7 @@ void init_ogl(py::module_ &m)
 		.def("clear", &ogl::Window::clear)
 		.def("render", &ogl::Window::render)
 		.def("setCamFromWorld", &ogl::Window::setCamFromWorld)
+		.def("getCamFromWorld", &ogl::Window::getCamFromWorld)
 		.def("setProjectionMatrix", &ogl::Window::setProjectionMatrix)
 		.def("getSize", &ogl::Window::getSize)
 		.def("getMousePos", &ogl::Window::getMousePos)
@@ -313,8 +318,10 @@ PYBIND11_MODULE(_core, m) {
 		.def(py::self * Vec3())
 		.def("inverse", &Transform3::inverse)
 		.def("translation", &Transform3::translation)
+		.def("setTranslation", &Transform3::setTranslation)
 		.def("rvec", &Transform3::rvec)
 		.def("rotation", &Transform3::rotation)
+		.def("setRotation", &Transform3::setRotation)
 		.def("orient", &Transform3::orient)
 		.def("matrix", &Transform3::matrix)
 		.def("interp", &Transform3::interp);
