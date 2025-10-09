@@ -77,6 +77,7 @@ public:
         shared_ptr<Shape> shape;
         float mass = 0.0f;
         bool water = false;
+		bool gravity = true;
 		CollisionCallback collision_callback = NULL;
 		
 		void setDestroy() {destroy = true;}
@@ -228,7 +229,7 @@ public:
     : grav_acc(p_grav_acc), hash_dist(p_hash_dist)
     {}
     template <class T>
-    shared_ptr<PhysicsObject> add(const shared_ptr<T>& obj, const shared_ptr<Shape>& shape, float mass = 0.0f, bool water = false)
+    shared_ptr<PhysicsObject> add(const shared_ptr<T>& obj, const shared_ptr<Shape>& shape, float mass = 0.0f, bool water = false, bool gravity = true)
     {
         shared_ptr<PhysicsObject> inner_obj = make_shared<TPhysicsObject<T>>(obj);
         objects.push_back(inner_obj);
@@ -236,6 +237,7 @@ public:
         inner_obj->shape = shape;
         inner_obj->mass = mass;
         inner_obj->water = water;
+		inner_obj->gravity = gravity;
 		
 		if (inner_obj->shape->radius == 0.0f)
 			infinite_objs.push_back(inner_obj);

@@ -59,7 +59,10 @@ void Verlet::update(float dt)
 		
 		obj->reset_velocity = false;
         obj->last_pos = obj->getPos();
-        obj->setPos(obj->getPos() + vel + obj->offset + Vec3(0,0,grav_acc) * dt * dt / 2.0);
+        Vec3 acc(0,0,0);
+        if (obj->gravity)
+            acc = Vec3(0,0,grav_acc);
+        obj->setPos(obj->getPos() + vel + obj->offset + acc * dt * dt / 2.0);
 		obj->offset = Vec3::Zero();
     }
 

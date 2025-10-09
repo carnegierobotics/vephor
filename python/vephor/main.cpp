@@ -130,7 +130,22 @@ void init_ogl(py::module_ &m)
 			py::arg("emissive")=0.0)
 		.def("setTexture", &ogl::Mesh::setTexture)
 		.def("setSpecular", &ogl::Mesh::setSpecular)
-		.def("setCull", &ogl::Mesh::setCull);
+		.def("setCull", &ogl::Mesh::setCull)
+		.def("setDiffuse",[](ogl::Mesh& m, 
+			const Vec3& rgb){
+				m.setDiffuse(Color(rgb));
+			}, 
+			py::arg("rgb"))
+		.def("setAmbient",[](ogl::Mesh& m, 
+			const Vec3& rgb){
+				m.setAmbient(Color(rgb));
+			}, 
+			py::arg("rgb"))
+		.def("setEmissive",[](ogl::Mesh& m, 
+			const Vec3& rgb){
+				m.setEmissive(Color(rgb));
+			}, 
+			py::arg("rgb"));
 
 	py::class_<ogl::Sphere, shared_ptr<ogl::Sphere>>(m, "Sphere")
         .def(py::init<float,int,int>(),py::arg("rad")=1.0f,py::arg("slices")=12,py::arg("stacks")=12)
@@ -202,6 +217,7 @@ void init_ogl(py::module_ &m)
 			py::arg("height")=-1,
 			py::arg("name")="show")
 		.def("setFrameLock", &ogl::Window::setFrameLock)
+		.def("captureCursor", &ogl::Window::captureCursor)
 		.def("clear", &ogl::Window::clear)
 		.def("render", &ogl::Window::render)
 		.def("setCamFromWorld", &ogl::Window::setCamFromWorld)
@@ -276,11 +292,13 @@ void init_ogl(py::module_ &m)
 			const shared_ptr<ogl::RenderNode>&,
 			const shared_ptr<ogl::Verlet::Shape>&,
 			float,
+			bool,
 			bool)>(&ogl::Verlet::add<ogl::RenderNode>),
 			py::arg("obj"),
 			py::arg("shape"),
 			py::arg("mass")=0.0f,
-			py::arg("water")=false);
+			py::arg("water")=false,
+			py::arg("gravity")=true);
 }
 #endif
 

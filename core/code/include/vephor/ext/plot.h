@@ -922,7 +922,16 @@ public:
 		text->setAnchorCentered();
 		text->setColor(color);
 		text->setYFlip(inner_window.getCameraControlInfo()["y_flip"]);
+
 		auto node = inner_window.add(text, Vec3(offset[0],offset[1],plot_index + 1));
+
+        if (inner_window.getCameraControlInfo()["xy_swap"])
+        {
+            Mat3 R;
+            R << 0,1,0,1,0,0,0,0,-1;
+            node->setOrient(Orient3::fromMatrix(R));
+        }
+
 		node->setScale(size);
 		plot_index++;
 	}

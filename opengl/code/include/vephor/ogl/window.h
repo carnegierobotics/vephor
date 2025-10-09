@@ -287,6 +287,11 @@ public:
     {
         return curr_opacity;
     }
+
+    void captureCursor()
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
 	
     shared_ptr<RenderNode> add(
 		const TransformSim3& parent_from_node = TransformSim3()
