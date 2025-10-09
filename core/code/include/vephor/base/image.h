@@ -140,7 +140,7 @@ public:
 	{
 		if (data.size()[0] < 2)
 			return;
-
+		
 		T* test_row_start = &data({0,0,0});
 		T* test_row_end = &data({1,0,0});
 
@@ -151,9 +151,11 @@ public:
 		for (int row = 0; row < data.size()[0] / 2; row++)
 		{
 			T* first_row_start = &data({row,0,0});
-			T* first_row_end = &data({row+1,0,0});
+			T* first_row_end = &data({row,data.size()[1]-1,data.size()[2]-1});
+			first_row_end++;
 			T* last_row_start = &data({data.size()[0]-1-row,0,0});
-			T* last_row_end = &data({data.size()[0]-row,0,0});
+			T* last_row_end = &data({data.size()[0]-1-row,data.size()[1]-1,data.size()[2]-1});
+			last_row_end++;
 
 			memcpy(row_holder.data(), first_row_start, row_size);
 			memcpy(first_row_start, last_row_start, row_size);
