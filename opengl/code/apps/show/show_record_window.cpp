@@ -964,6 +964,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 
 		draw_obj->setBillboard(readDefault(obj, "billboard", true));
 		draw_obj->setYFlip(readDefault(obj, "y_flip", false));
+		draw_obj->setXYSwap(readDefault(obj, "xy_swap", false));
 		
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		auto node = window->add(draw_obj, world_from_body, readDefault(obj, "overlay", false), readDefault(obj, "layer", 0));
@@ -1076,15 +1077,11 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 			throw std::runtime_error("No texture for sprite.");
 		}
 		
-		bool x_flip = false;
-		if (obj.contains("x_flip"))
-			x_flip = obj["x_flip"];
-		
-		bool y_flip = false;
-		if (obj.contains("y_flip"))
-			y_flip = obj["y_flip"];
+		bool x_flip = readDefault(obj, "x_flip", false);
+		bool y_flip = readDefault(obj, "y_flip", false);
+		bool xy_swap = readDefault(obj, "xy_swap", false);
 
-		auto draw_obj = make_shared<Sprite>(tex, Vec2i::Zero(), x_flip, y_flip);
+		auto draw_obj = make_shared<Sprite>(tex, Vec2i::Zero(), x_flip, y_flip, xy_swap);
 		draw_obj->setDiffuse(color * diffuse);
 		draw_obj->setAmbient(color * ambient);
 

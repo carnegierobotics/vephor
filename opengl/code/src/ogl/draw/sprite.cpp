@@ -152,7 +152,9 @@ Sprite::Sprite(
     const shared_ptr<Texture>& p_sprite_sheet,
 	Vec2i p_px_per_cell,
 	bool x_flip,
-	bool y_flip)
+	bool y_flip,
+	bool xy_swap
+)
 : sprite_sheet(p_sprite_sheet), 
 diffuse(Vec3(1,1,1)),
 ambient(Vec3(0.1,0.1,0.1))
@@ -251,6 +253,13 @@ ambient(Vec3(0.1,0.1,0.1))
 	
 	float aspect = (float)p_px_per_cell[0] / (float)p_px_per_cell[1];
 	verts.row(0) *= aspect;
+
+	if (xy_swap)
+	{
+		MatX x = verts.row(0);
+		verts.row(0) = verts.row(1);
+		verts.row(1) = x;
+	}
 	
 	// Form uvs for each cell in the sheet
 	uv_scale = Vec2(p_px_per_cell[0] / (float)p_sprite_sheet->size()[0], p_px_per_cell[1] / (float)p_sprite_sheet->size()[1]);

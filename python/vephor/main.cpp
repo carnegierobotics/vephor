@@ -1183,7 +1183,8 @@ PYBIND11_MODULE(_core, m) {
 			py::buffer buf,
 			bool nearest,
 			const Vec2& offset,
-			float scale){
+			float scale,
+			bool no_flip){
 				py::buffer_info info = buf.request();
 				
 				// Image debug info
@@ -1220,9 +1221,10 @@ PYBIND11_MODULE(_core, m) {
 					throw std::runtime_error("imshow only supports uint8 or double typed arrays.");
 				}
 				
-				p.imshow(image, nearest, offset, scale);
+				p.imshow(image, nearest, offset, scale, no_flip);
 			},
-			py::arg("image"), py::arg("nearest")=false, py::arg("offset")=Vec2::Zero(), py::arg("scale")=1.0)
+			py::arg("image"), py::arg("nearest")=false, py::arg("offset")=Vec2::Zero(), 
+			py::arg("scale")=1.0, py::arg("no_flip")=false)
 		.def("show", [](Plot& p, bool wait_close, bool wait_key){
 			return p.show(wait_close, wait_key, [](){
 				if (PyErr_CheckSignals() != 0)

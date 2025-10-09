@@ -173,6 +173,13 @@ void Text::setupText()
 		verts.col(c) += body_from_anchor.translation();
 	}
 
+	if (xy_swap)
+	{
+		MatX x = verts.row(0);
+		verts.row(0) = verts.row(1);
+		verts.row(1) = x;
+	}
+
 	glBindVertexArray(vao_id);
 
 	glGenBuffers(1, &pos_buffer_id);

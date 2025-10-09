@@ -105,6 +105,10 @@ public:
 	{
 		y_flip = p_y_flip;
 	}
+	void setXYSwap(bool p_xy_swap)
+	{
+		xy_swap = p_xy_swap;
+	}
 	void onAddToWindow(Window* window, const shared_ptr<TransformNode>& node);
 	void onRemoveFromWindow(Window* window);
 private:
@@ -122,6 +126,7 @@ private:
 	TransformSim3 body_from_anchor;
 	bool billboard = true;
 	bool y_flip = false;
+	bool xy_swap = false;
 
     bool buffers_set = false;
     GLuint vao_id = std::numeric_limits<GLuint>::max();

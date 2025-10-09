@@ -921,17 +921,12 @@ public:
 		auto text = make_shared<Text>(raw_text);
 		text->setAnchorCentered();
 		text->setColor(color);
-		text->setYFlip(inner_window.getCameraControlInfo()["y_flip"]);
+        if (inner_window.getCameraControlInfo().contains("y_flip"))
+		    text->setYFlip(inner_window.getCameraControlInfo()["y_flip"]);
+        if (inner_window.getCameraControlInfo().contains("xy_swap"))
+            text->setXYSwap(inner_window.getCameraControlInfo()["xy_swap"]);
 
 		auto node = inner_window.add(text, Vec3(offset[0],offset[1],plot_index + 1));
-
-        if (inner_window.getCameraControlInfo()["xy_swap"])
-        {
-            Mat3 R;
-            R << 0,1,0,1,0,0,0,0,-1;
-            node->setOrient(Orient3::fromMatrix(R));
-        }
-
 		node->setScale(size);
 		plot_index++;
 	}
@@ -1113,11 +1108,18 @@ public:
               /* color */ color,
               /* radius */ radius);
     }
-	void imshow(const Image<uint8_t>& p_image, bool p_filter_nearest = false, const Vec2& offset = Vec2(0,0), float scale=1.0)
+	void imshow(
+        const Image<uint8_t>& p_image, 
+        bool p_filter_nearest = false, 
+        const Vec2& offset = Vec2(0,0), 
+        float scale=1.0,
+        bool no_flip=false)
 	{
 		shared_ptr<Sprite> sprite;
 		sprite = make_shared<Sprite>(p_image, p_filter_nearest);
 		sprite->setFlip(false, true);
+        if (inner_window.getCameraControlInfo().contains("xy_swap"))
+            sprite->setXYSwap(inner_window.getCameraControlInfo()["xy_swap"]);
 		auto node = inner_window.add(sprite, Vec3(
 			p_image.getSize()[0]/2.0f*scale+offset[0],
 			p_image.getSize()[1]/2.0f*scale+offset[1],
@@ -1125,7 +1127,8 @@ public:
 		node->setScale(p_image.getSize()[1]*scale);
 		
 		inner_window.getCameraControlInfo()["equal"] = true;
-		inner_window.getCameraControlInfo()["y_flip"] = true;
+        if (!no_flip)
+		    inner_window.getCameraControlInfo()["y_flip"] = true;
 	}
 	Window& window()
 	{

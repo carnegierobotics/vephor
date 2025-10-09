@@ -42,6 +42,10 @@ public:
 		x_flip = p_x_flip;
 		y_flip = p_y_flip;
 	}
+	void setXYSwap(bool p_xy_swap)
+	{
+		xy_swap = p_xy_swap;
+	}
 	void setNormalSpriteSheet(const string& p_tex, bool p_filter_nearest = false)
 	{
 		normal_tex_data.path = p_tex;
@@ -68,6 +72,7 @@ public:
 
 		VEPHOR_SERIALIZE_IF_STANDARD(x_flip);
 		VEPHOR_SERIALIZE_IF_STANDARD(y_flip);
+		VEPHOR_SERIALIZE_IF_STANDARD(xy_swap);
 		VEPHOR_SERIALIZE_IF_STANDARD(color_rgb);
 		VEPHOR_SERIALIZE_IF_STANDARD(diffuse);
 		VEPHOR_SERIALIZE_IF_STANDARD(ambient);
@@ -83,6 +88,9 @@ private:
 
 	inline const static bool y_flip_default = false;
 	bool y_flip = y_flip_default;
+
+	inline const static bool xy_swap_default = false;
+	bool xy_swap = xy_swap_default;
 
 	inline const static Vec3 color_rgb_default = Vec3(1,1,1);
 	Vec3 color_rgb = color_rgb_default;

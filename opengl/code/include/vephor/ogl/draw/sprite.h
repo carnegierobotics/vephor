@@ -24,7 +24,8 @@ public:
 		const shared_ptr<Texture>& sprite_sheet,
         Vec2i px_per_cell = Vec2i::Zero(),
 		bool x_flip = false,
-		bool y_flip = false
+		bool y_flip = false,
+		bool xy_swap = false
     );
     ~Sprite();
 	void setCell(int cell){curr_cell = cell;}

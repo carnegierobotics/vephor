@@ -42,6 +42,9 @@ public:
 		if (y_flip != false)
 			ser["y_flip"] = y_flip;
 
+		if (xy_swap != false)
+			ser["xy_swap"] = xy_swap;
+
 		return ser;
 	}
 	
@@ -89,6 +92,10 @@ public:
 	{
 		y_flip = p_y_flip;
 	}
+	void setXYSwap(bool p_xy_swap)
+	{
+		xy_swap = p_xy_swap;
+	}
 private:
 	string text;
 	
@@ -96,6 +103,7 @@ private:
 	Vec3 color = Vec3(1,1,1);
 	bool billboard = true;
 	bool y_flip = false;
+	bool xy_swap = false;
 };
 
 }
