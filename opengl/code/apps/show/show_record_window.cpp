@@ -963,6 +963,7 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		draw_obj->setAnchorOffset(anchor);
 
 		draw_obj->setBillboard(readDefault(obj, "billboard", true));
+		draw_obj->setXFlip(readDefault(obj, "x_flip", false));
 		draw_obj->setYFlip(readDefault(obj, "y_flip", false));
 		draw_obj->setXYSwap(readDefault(obj, "xy_swap", false));
 		

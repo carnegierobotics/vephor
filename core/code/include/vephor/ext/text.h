@@ -39,6 +39,9 @@ public:
 		if (billboard != true)
 			ser["billboard"] = billboard;
 
+		if (x_flip != false)
+			ser["x_flip"] = x_flip;
+
 		if (y_flip != false)
 			ser["y_flip"] = y_flip;
 
@@ -88,6 +91,10 @@ public:
 	{
 		billboard = p_billboard;
 	}
+	void setXFlip(bool p_x_flip)
+	{
+		x_flip = p_x_flip;
+	}
 	void setYFlip(bool p_y_flip)
 	{
 		y_flip = p_y_flip;
@@ -102,6 +109,7 @@ private:
 	Vec2 anchor = Vec2::Zero();
 	Vec3 color = Vec3(1,1,1);
 	bool billboard = true;
+	bool x_flip = false;
 	bool y_flip = false;
 	bool xy_swap = false;
 };

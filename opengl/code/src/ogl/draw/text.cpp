@@ -131,10 +131,17 @@ void Text::setupText()
 
 	for (unsigned int i = 0; i < text.size(); i++)
 	{	
-		Vec2 vertex_up_left( x+i*size*aspect, y+size );
-		Vec2 vertex_up_right( x+i*size*aspect+size*aspect, y+size );
-		Vec2 vertex_down_right( x+i*size*aspect+size*aspect, y );
-		Vec2 vertex_down_left( x+i*size*aspect, y );
+		float base = x+i*size*aspect;
+
+		if (x_flip)
+		{
+			base = x+(text.size()-i-1)*size*aspect;
+		}
+
+		Vec2 vertex_up_left( base, y+size );
+		Vec2 vertex_up_right( base+size*aspect, y+size );
+		Vec2 vertex_down_right( base+size*aspect, y );
+		Vec2 vertex_down_left( base, y );
 		
 		verts.col(i*6+0).head<2>() = vertex_up_left;
 		verts.col(i*6+1).head<2>() = vertex_down_left;
@@ -152,6 +159,12 @@ void Text::setupText()
 		Vec2 uv_up_right( uv_x+cell_size_uv-border, 1.0-uv_y );
 		Vec2 uv_down_right( uv_x+cell_size_uv-border, 1.0-(uv_y+cell_size_uv) );
 		Vec2 uv_down_left( uv_x+border, 1.0-(uv_y+cell_size_uv) );
+
+		if (x_flip)
+		{
+			std::swap(uv_up_left[0], uv_up_right[0]);
+			std::swap(uv_down_left[0], uv_down_right[0]);
+		}
 
 		if (y_flip)
 		{

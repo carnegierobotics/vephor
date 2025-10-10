@@ -976,6 +976,7 @@ PYBIND11_MODULE(_core, m) {
 		.def("colorCycle", &Plot::colorCycle)
 		.def("xlabel", &Plot::xlabel)
 		.def("ylabel", &Plot::ylabel)
+		.def("xflip", &Plot::xflip, py::arg("flip")=true)
 		.def("yflip", &Plot::yflip, py::arg("flip")=true)
 		.def("xyswap", &Plot::xyswap, py::arg("swap")=true)
 		.def("equal", &Plot::equal, py::arg("equal")=true)
@@ -1186,14 +1187,6 @@ PYBIND11_MODULE(_core, m) {
 			float scale,
 			bool no_flip){
 				py::buffer_info info = buf.request();
-				
-				// Image debug info
-				/*v4print info.ndim;
-				for (int i = 0; i < info.ndim; i++)
-				{
-					v4print "\t", info.shape[i], info.strides[i];
-				}
-				v4print info.itemsize, info.size, info.format;*/
 				
 				int n_channels = 1;
 				if (info.shape.size() > 2)

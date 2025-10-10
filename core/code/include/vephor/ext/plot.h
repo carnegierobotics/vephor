@@ -150,6 +150,10 @@ public:
 	{
 		inner_window.getCameraControlInfo()["y_axis"] = text;
 	}
+    void xflip(bool flip = true)
+	{
+		inner_window.getCameraControlInfo()["x_flip"] = flip;
+	}
 	void yflip(bool flip = true)
 	{
 		inner_window.getCameraControlInfo()["y_flip"] = flip;
@@ -921,6 +925,8 @@ public:
 		auto text = make_shared<Text>(raw_text);
 		text->setAnchorCentered();
 		text->setColor(color);
+        if (inner_window.getCameraControlInfo().contains("x_flip"))
+		    text->setXFlip(inner_window.getCameraControlInfo()["x_flip"]);
         if (inner_window.getCameraControlInfo().contains("y_flip"))
 		    text->setYFlip(inner_window.getCameraControlInfo()["y_flip"]);
         if (inner_window.getCameraControlInfo().contains("xy_swap"))
@@ -1117,7 +1123,10 @@ public:
 	{
 		shared_ptr<Sprite> sprite;
 		sprite = make_shared<Sprite>(p_image, p_filter_nearest);
-		sprite->setFlip(false, true);
+        bool x_flip = false;
+        if (inner_window.getCameraControlInfo().contains("x_flip"))
+            x_flip = inner_window.getCameraControlInfo()["x_flip"];
+		sprite->setFlip(x_flip, true);
         if (inner_window.getCameraControlInfo().contains("xy_swap"))
             sprite->setXYSwap(inner_window.getCameraControlInfo()["xy_swap"]);
 		auto node = inner_window.add(sprite, Vec3(
