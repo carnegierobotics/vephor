@@ -518,6 +518,12 @@ public:
     ///
     void scatter(const MatXRef& y, const PlotScatterOptions& opts = PlotScatterOptions())
     {
+        if (y.cols() == 2)
+        {
+            scatter(y.col(0), y.col(1), MatX{}, MatX{}, opts);
+            return;
+        }
+
         VecX x(y.size());
         for (size_t i = 0; i < y.size(); i++)
         {
