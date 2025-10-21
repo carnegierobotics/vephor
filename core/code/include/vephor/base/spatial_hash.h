@@ -56,12 +56,13 @@ class SpatialHash
 {
 public:
     SpatialHash(float p_res):res(p_res){}
-    void add(const VecD<D>& pos, const T& data)
+    VecDi<D> add(const VecD<D>& pos, const T& data)
     {
         VecDi<D> index = (pos/res).template cast<int>();
         hash[index].push_back(data);
+        return index;
     }
-    void addAndFanOut(const VecD<D>& pos, const T& data)
+    VecDi<D> addAndFanOut(const VecD<D>& pos, const T& data)
     {
         VecDi<D> index = (pos/res).template cast<int>();
 
@@ -72,6 +73,32 @@ public:
         {
             VecDi<D> curr_index = index + offset;
             hash[curr_index].push_back(data);
+
+            int curr_d = 0;
+            while (curr_d < D)
+            {
+                offset[curr_d]++;
+                if (offset[curr_d] <= 1)
+                    break;
+                offset[curr_d] = -1;
+                curr_d++;
+            }
+            if (curr_d == D)
+                break;
+        }
+
+        return index;
+    }
+    void removeFanOut(const VecDi<D>& index, const T& data)
+    {
+        VecDi<D> offset;
+        offset.fill(-1);
+
+        while (true)
+        {
+            VecDi<D> curr_index = index + offset;
+            auto& cell = hash[curr_index];
+            cell.erase(std::find(cell.begin(), cell.end(), data));
 
             int curr_d = 0;
             while (curr_d < D)
@@ -129,7 +156,12 @@ public:
 		
 		return lists;
 	}
+    VecDi<D> getCell(const VecD<D>& pos)
+    {
+        return (pos/res).template cast<int>();
+    }
     const std::unordered_map<VecDi<D>, vector<T>>& getHash() const{return hash;}
+    void clear() {hash.clear();}
 private:
     float res;
     std::unordered_map<VecDi<D>, vector<T>> hash;

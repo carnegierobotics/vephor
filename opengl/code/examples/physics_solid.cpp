@@ -21,6 +21,7 @@ int main()
 {
     Window window(-1, -1, "physics solids");
     Verlet phys(30.0);
+    phys.setForceAllowed(Vec3(0,1,1));
 
     window.setFrameLock(60.0f);
 

@@ -43,14 +43,13 @@ void removeDestroyedObjects(vector<T>& objects)
 	}
 }
 
-void Verlet::update(float dt)
+void Verlet::updateObjectPositions(float dt)
 {
-    // Verlet update
-    for (auto& obj : objects)
-    {
-        if (obj->mass == 0.0f)
-            continue;
+    auto start_time = std::chrono::high_resolution_clock::now();
 
+    // Verlet update
+    for (auto& obj : dynamic_objs)
+    {
         Vec3 vel = obj->getPos() - obj->last_pos;
         if (obj->reset_velocity)
 		{
@@ -64,7 +63,30 @@ void Verlet::update(float dt)
             acc = Vec3(0,0,grav_acc);
         obj->setPos(obj->getPos() + vel + obj->offset + acc * dt * dt / 2.0);
 		obj->offset = Vec3::Zero();
+
+        auto new_cell = dynamic_obj_hash.getCell(obj->getPos());
+        if (new_cell != obj->hash_cell)
+        {
+            dynamic_obj_hash.removeFanOut(obj->hash_cell, obj);
+            obj->hash_cell = dynamic_obj_hash.addAndFanOut(obj->getPos(), obj);
+        }
     }
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    float elapsed_time_ms = std::chrono::duration<float, std::milli>(end_time-start_time).count();
+
+    if (profile_update_object_positions_ms == 0)
+        profile_update_object_positions_ms = elapsed_time_ms;
+    else
+    {
+        profile_update_object_positions_ms *= (1.0f-profile_alpha);
+        profile_update_object_positions_ms += elapsed_time_ms;
+    }
+}
+
+void Verlet::satisfyConstraints()
+{
+    auto start_time = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < 2; i++)
     {
@@ -101,35 +123,55 @@ void Verlet::update(float dt)
         }
     }
 
-    
+    auto end_time = std::chrono::high_resolution_clock::now();
+    float elapsed_time_ms = std::chrono::duration<float, std::milli>(end_time-start_time).count();
 
-    for (const auto& obj1 : infinite_objs)
+    if (profile_satisfy_constraints_ms == 0)
+        profile_satisfy_constraints_ms = elapsed_time_ms;
+    else
     {
-        for (const auto& obj2 : finite_objs)
+        profile_satisfy_constraints_ms *= (1.0f-profile_alpha);
+        profile_satisfy_constraints_ms += elapsed_time_ms;
+    }
+}
+
+void Verlet::compareAllObjects(float dt)
+{
+    profile_last_num_comparisons = 0;
+    profile_last_num_comparisons_dist = 0;
+
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    for (const auto& obj1 : dynamic_objs)
+    {
+        // This assumes that no infinite object will need to collide with a static object
+        for (const auto& obj2 : infinite_objs)
         {
-            compareObjects(obj2, obj1, dt);
+            compareObjects(obj1, obj2, dt);
         }
     }
 
-
-    // TODO: different sized hashes for different sized objects
-    SpatialHash<size_t, 3> finite_obj_hash(hash_dist);
-	
-    for (size_t i = 0; i < finite_objs.size(); i++)
+    for (auto& obj : dynamic_objs)
     {
-        finite_obj_hash.addAndFanOut(finite_objs[i]->getPos(), i);
-    }
-
-    for (size_t i = 0; i < finite_objs.size(); i++)
-    {
-        auto nearby_objs = finite_obj_hash.lookup(finite_objs[i]->getPos());
-
-        for (const auto& j : nearby_objs)
         {
-            if (i >= j)
-                continue;
+            auto nearby_objs = dynamic_obj_hash.lookup(obj->getPos());
 
-            compareObjects(finite_objs[i], finite_objs[j], dt);
+            for (auto& other_obj : nearby_objs)
+            {
+                if (obj->id >= other_obj->id)
+                    continue;
+
+                compareObjects(obj, other_obj, dt);
+            }
+        }
+
+        {
+            auto nearby_objs = static_obj_hash.lookup(obj->getPos());
+
+            for (auto& other_obj : nearby_objs)
+            {
+                compareObjects(obj, other_obj, dt);
+            }
         }
     }
 
@@ -140,10 +182,72 @@ void Verlet::update(float dt)
             compareObjects(objects[i].get(), objects[j].get(), dt);
         }
     }*/
-	
-	removeDestroyedObjects(infinite_objs);
-	removeDestroyedObjects(finite_objs);
-	removeDestroyedObjects(objects);
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    float elapsed_time_ms = std::chrono::duration<float, std::milli>(end_time-start_time).count();
+
+    if (profile_compare_objects_ms == 0)
+        profile_compare_objects_ms = elapsed_time_ms;
+    else
+    {
+        profile_compare_objects_ms *= (1.0f-profile_alpha);
+        profile_compare_objects_ms += elapsed_time_ms;
+    }
+}
+
+void Verlet::removeAllDestroyedObjects()
+{
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    for (auto& obj : dynamic_objs)
+    {
+        if (!obj->getDestroy())
+            continue;
+        dynamic_obj_hash.removeFanOut(obj->hash_cell, obj);
+    }
+
+    for (auto& obj : static_objs)
+    {
+        if (!obj->getDestroy())
+            continue;
+        static_obj_hash.removeFanOut(obj->hash_cell, obj);
+    }
+
+    removeDestroyedObjects(infinite_objs);
+	removeDestroyedObjects(dynamic_objs);
+    removeDestroyedObjects(static_objs);
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    float elapsed_time_ms = std::chrono::duration<float, std::milli>(end_time-start_time).count();
+
+    if (profile_remove_objects_ms == 0)
+        profile_remove_objects_ms = elapsed_time_ms;
+    else
+    {
+        profile_remove_objects_ms *= (1.0f-profile_alpha);
+        profile_remove_objects_ms += elapsed_time_ms;
+    }
+}
+
+void Verlet::update(float dt)
+{
+    updateObjectPositions(dt);
+
+    satisfyConstraints();
+
+    compareAllObjects(dt);
+
+    removeAllDestroyedObjects();
+}
+
+void Verlet::printProfileInfo()
+{
+    v4print "Update objects:", profile_update_object_positions_ms, "ms";
+    v4print "Satisfy constraints:", profile_satisfy_constraints_ms, "ms";
+    v4print "Compare objects:", profile_compare_objects_ms, "ms";
+    v4print "Remove objects:", profile_remove_objects_ms, "ms";
+    v4print "Last num comparisons:", profile_last_num_comparisons;
+    v4print "Last num comparisons (dist):", profile_last_num_comparisons_dist;
 }
 
 void Verlet::compareObjects(
@@ -151,8 +255,12 @@ void Verlet::compareObjects(
     const shared_ptr<PhysicsObject>& obj2, 
     float dt)
 {
+    profile_last_num_comparisons++;
+
     if (obj1->mass == 0.0f && obj2->mass == 0.0f)
         return;
+
+    profile_last_num_comparisons_dist++;
 
     Vec3 push_dir;
     float dist = checkCollisionDist(*obj1, *obj2, push_dir);
@@ -160,6 +268,8 @@ void Verlet::compareObjects(
     if (dist > 0.0f)
     {
         Vec3 total_push = push_dir * dist;
+
+        total_push = total_push.array() * force_allowed.array();
 
         if (obj1->mass == 0.0f)
         {

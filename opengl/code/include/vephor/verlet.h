@@ -79,6 +79,8 @@ public:
         bool water = false;
 		bool gravity = true;
 		CollisionCallback collision_callback = NULL;
+		int id;
+		VecDi<3> hash_cell;
 		
 		void setDestroy() {destroy = true;}
 		bool getDestroy() const {return destroy;}
@@ -130,6 +132,14 @@ public:
 		auto s = make_shared<SolidShape>();
 		s->type = ShapeType::SOLID;
         s->solid = solid;
+
+		Eigen::RowVector3f center = solid.verts.colwise().mean();
+
+		Eigen::VectorXf sq_dists = (solid.verts.rowwise() - center).rowwise().squaredNorm();
+		double radius = std::sqrt(sq_dists.maxCoeff());
+
+		s->radius = std::sqrt(sq_dists.maxCoeff());
+
         return s;
 	}
 	
@@ -226,13 +236,21 @@ public:
     };
 
     Verlet(float p_grav_acc=9.8, float p_hash_dist=30.0)
-    : grav_acc(p_grav_acc), hash_dist(p_hash_dist)
+    : grav_acc(p_grav_acc), 
+	hash_dist(p_hash_dist),
+	dynamic_obj_hash(hash_dist),
+    static_obj_hash(hash_dist)
     {}
+
+	void setForceAllowed(const Vec3& p_force_allowed)
+	{
+		force_allowed = p_force_allowed;
+	}
+
     template <class T>
     shared_ptr<PhysicsObject> add(const shared_ptr<T>& obj, const shared_ptr<Shape>& shape, float mass = 0.0f, bool water = false, bool gravity = true)
     {
         shared_ptr<PhysicsObject> inner_obj = make_shared<TPhysicsObject<T>>(obj);
-        objects.push_back(inner_obj);
         inner_obj->last_pos = obj->getPos();
         inner_obj->shape = shape;
         inner_obj->mass = mass;
@@ -242,7 +260,22 @@ public:
 		if (inner_obj->shape->radius == 0.0f)
 			infinite_objs.push_back(inner_obj);
 		else
-			finite_objs.push_back(inner_obj);
+		{
+			// TODO: different sized hashes for different sized objects
+			if (mass == 0.0f)
+			{
+				static_objs.push_back(inner_obj);
+				inner_obj->hash_cell = static_obj_hash.addAndFanOut(obj->getPos(), inner_obj);
+			}
+			else
+			{
+				dynamic_objs.push_back(inner_obj);
+				inner_obj->hash_cell = dynamic_obj_hash.addAndFanOut(obj->getPos(), inner_obj);
+			}
+		}
+
+		inner_obj->id = next_id;
+		next_id++;
 		
         return inner_obj;
     }
@@ -255,9 +288,16 @@ public:
         constraints.push_back(Constraint{obj1, obj2, dist});
     }
     void update(float dt);
+	void printProfileInfo();
 private:
     float grav_acc;
 	float hash_dist;
+	Vec3 force_allowed = Vec3(1,1,1);
+
+	void updateObjectPositions(float dt);
+	void satisfyConstraints();
+	void compareAllObjects(float dt);
+	void removeAllDestroyedObjects();
 
     void compareObjects(
 		const shared_ptr<PhysicsObject>& obj1, 
@@ -268,10 +308,23 @@ private:
 	float checkSphereHeightMapCollisionDist(const PhysicsObject& sphere, const PhysicsObject& hm, Vec3& push_dir);
 	float checkCollisionDist(const PhysicsObject& obj1, const PhysicsObject& obj2, Vec3& push_dir);
 
-    vector<shared_ptr<PhysicsObject>> objects;
 	vector<shared_ptr<PhysicsObject>> infinite_objs;
-	vector<shared_ptr<PhysicsObject>> finite_objs;
+	vector<shared_ptr<PhysicsObject>> dynamic_objs;
+	vector<shared_ptr<PhysicsObject>> static_objs;
     vector<Constraint> constraints;
+
+	SpatialHash<shared_ptr<PhysicsObject>, 3> dynamic_obj_hash;
+    SpatialHash<shared_ptr<PhysicsObject>, 3> static_obj_hash;
+
+	int next_id = 0;
+
+	const float profile_alpha = 0.05;
+	float profile_update_object_positions_ms = 0;
+	float profile_satisfy_constraints_ms = 0;
+	float profile_compare_objects_ms = 0;
+	float profile_remove_objects_ms = 0;
+	int profile_last_num_comparisons = 0;
+	int profile_last_num_comparisons_dist = 0;
 };
 
 } // namespace ogl

@@ -285,6 +285,7 @@ void init_ogl(py::module_ &m)
 	verlet
 		.def(py::init<float,float>())
 		.def("update",&ogl::Verlet::update)
+		.def("printProfileInfo",&ogl::Verlet::printProfileInfo)
 		.def_static("makeSphere", &ogl::Verlet::makeSphere)
 		.def_static("makePlane", &ogl::Verlet::makePlane)
 		.def_static("makeSolid", &ogl::Verlet::makeSolid)
