@@ -325,6 +325,7 @@ PYBIND11_MODULE(_core, m) {
 		.def("inverse", &Orient3::inverse)
 		.def("normalize", &Orient3::normalize)
 		.def("rvec", &Orient3::rvec)
+		.def("qvec", &Orient3::qvec)
 		.def("matrix", &Orient3::matrix)
 		.def(py::self * py::self)
 		.def(py::self * Vec3())
@@ -343,7 +344,8 @@ PYBIND11_MODULE(_core, m) {
 		.def("setRotation", &Transform3::setRotation)
 		.def("orient", &Transform3::orient)
 		.def("matrix", &Transform3::matrix)
-		.def("interp", &Transform3::interp);
+		.def("interp", &Transform3::interp)
+		.def_static("fromMatrix", &Transform3::fromMatrix);
     py::class_<TransformSim3>(m, "TransformSim3")
 		.def(py::init<>())
 		.def(py::init<const Vec3&,const Vec3,float>(),py::arg("t"),py::arg("r")=Vec3(0,0,0),py::arg("scale")=1.0f)

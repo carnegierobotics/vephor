@@ -985,6 +985,13 @@ public:
 	{
 		return q;
 	}
+    Vec4 qvec() const
+	{
+        Vec4 qout;
+        qout[0] = q.coeffs()[3];
+        qout.tail<3>() = q.coeffs().head<3>();
+		return qout;
+	}
 	Vec3 rvec() const
 	{
 		Eigen::AngleAxisf aa(q);
@@ -1020,6 +1027,13 @@ public:
 	Transform3 inverse() const
 	{
 		return Transform3(transform.inverse());
+	}
+    static Transform3 fromMatrix(const Mat4& T)
+	{
+		return Transform3(
+            T.block<3,1>(0,3),
+            Orient3::fromMatrix(T.block<3,3>(0,0))
+        );
 	}
 	Mat4 matrix() const
 	{
