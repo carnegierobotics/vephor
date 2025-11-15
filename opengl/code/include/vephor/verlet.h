@@ -318,11 +318,7 @@ private:
 
 	int next_id = 0;
 
-	const float profile_alpha = 0.05;
-	float profile_update_object_positions_ms = 0;
-	float profile_satisfy_constraints_ms = 0;
-	float profile_compare_objects_ms = 0;
-	float profile_remove_objects_ms = 0;
+	Profiler profiler;
 	int profile_last_num_comparisons = 0;
 	int profile_last_num_comparisons_dist = 0;
 };

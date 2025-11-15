@@ -722,8 +722,11 @@ Window::ReflectiveSurfaceTextures Window::addReflectiveSurface(const Vec4& plane
 
 void Window::renderScene()
 {
+	ProfilerSection section(&profiler, "Render scene");
+
 	for (auto& objects : object_layers)
 	{
+		profiler.pushSectionAccumulate("Gather objects");
 		vector<size_t> obj_inds;
 		obj_inds.reserve(objects.size());
 		
@@ -734,13 +737,21 @@ void Window::renderScene()
 		{
 			obj_inds.push_back(obj_inds.size());
 			cam_pos.push_back(cam_from_world * obj->getPos());
+
+			// TODO: frustum check
 		}
+		profiler.popSectionAccumulate();
+
 		
+		profiler.pushSectionAccumulate("Sort objects");
 		std::sort(obj_inds.begin(), obj_inds.end(), [&](size_t l, size_t r)
 		{
 			return cam_pos[l][2] < cam_pos[r][2];
 		});
+		profiler.popSectionAccumulate();
 
+
+		profiler.pushSectionAccumulate("Render objects");
 		for (auto ind : obj_inds)
 		{
 			if (objects[ind]->getShow())
@@ -748,11 +759,18 @@ void Window::renderScene()
 				objects[ind]->render(this);
 			}
 		}
+		profiler.popSectionAccumulate();
 	}
+
+	profiler.finishSectionAccumulate("Gather objects");
+	profiler.finishSectionAccumulate("Sort objects");
+	profiler.finishSectionAccumulate("Render objects");
 }
 
 bool Window::render()
 {
+	ProfilerSection section(&profiler, "Render");
+
 	if (window == NULL)
 		return false;
 	
@@ -803,6 +821,7 @@ bool Window::render()
 	// Swap buffers
 	glfwSwapBuffers(window);
 
+	profiler.pushSection("Poll events");
 	while (true) {
 		glfwPollEvents();
 
@@ -818,6 +837,7 @@ bool Window::render()
 		else
 			break;
 	}
+	profiler.popSection();
 
 
 	last_time = high_resolution_clock::now();
@@ -845,6 +865,14 @@ bool Window::render()
 	}
 	
 	return !close;
+}
+
+void Window::printProfileInfo()
+{
+	v4print "\nWindow Profiler";
+    v4print "================";
+	profiler.print();
+	v4print "================";
 }
 
 void Window::shutdown()

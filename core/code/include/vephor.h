@@ -25,3 +25,4 @@
 #include "vephor/base/io.h"
 #include "vephor/base/process.h"
 #include "vephor/base/mcubes.h"
+#include "vephor/base/profiler.h"

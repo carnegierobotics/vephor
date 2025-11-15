@@ -87,6 +87,27 @@ void ShowRecordWindow::update(bool debug)
 		v4print "ShowRecordWindow::update - camera/controls";
 	camera->update(*window.get(), dt, control_info);
 	control_info.onUpdate();
+
+	if (render_count % 2000 == 0)
+	{
+		json layout_data;
+		if (fs::exists("/tmp/vephor_layout.json"))
+		{
+			std::ifstream layout_fin("/tmp/vephor_layout.json");
+			layout_data = json::parse(layout_fin);
+		}
+
+		layout_data[window->getTitle()] = {
+			{"pos", toJson(window->getPosition())},
+			{"size", toJson(window->getSize())}
+		};
+
+		ofstream fout("/tmp/vephor_layout.json");
+		fout << layout_data;
+		fout.close();
+	}
+
+	render_count++;
 }
 
 void ShowRecordWindow::close()
@@ -203,9 +224,22 @@ void ShowRecordWindow::setup(const json& data,
 
 			v4print "\t", "Size:", width, height, "Pos:", x_position, y_position;
 		}
-
-		
 	}
+
+	/*if (fs::exists("/tmp/vephor_layout.json"))
+	{
+		std::ifstream layout_fin("/tmp/vephor_layout.json");
+		json layout_data = json::parse(layout_fin);
+		if (layout_data.contains(title))
+		{
+			auto window_data = layout_data[title];
+			x_position = window_data["pos"][0];
+			y_position = window_data["pos"][1];
+			width = window_data["size"][0];
+			height = window_data["size"][1];
+			v4print "Loaded window layout for", title, ":", x_position, y_position, width, height;
+		}	
+	}*/
 
 	WindowOptions opts;
 	opts.show = false;

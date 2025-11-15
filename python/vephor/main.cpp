@@ -242,6 +242,7 @@ void init_ogl(py::module_ &m)
 		.def("getCubeTextureFromDir", &ogl::Window::getCubeTextureFromDir)
 		.def("getScreenImage", &ogl::Window::getScreenImage)
 		.def("getDepthImage", &ogl::Window::getDepthImage)
+		.def("printProfileInfo",&ogl::Window::printProfileInfo)
 		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
             const Vec3&,
 			const Vec3&,
@@ -671,9 +672,9 @@ PYBIND11_MODULE(_core, m) {
 		.def("setLineStrip",&Lines::setLineStrip,py::arg("strip")=true);
 
 	py::class_<Particle, shared_ptr<Particle>>(m, "Particle")
-		.def(py::init([](const MatX& verts, const MatX& colors){
-			return make_shared<Particle>(verts, colors);
-		}), py::arg("verts"), py::arg("colors")=MatX())
+		.def(py::init([](const MatX& verts, const MatX& colors, const VecX& sizes){
+			return make_shared<Particle>(verts, colors, sizes);
+		}), py::arg("verts"), py::arg("colors")=MatX(), py::arg("sizes")=VecX())
 		.def("setColor",[](Particle& p, 
 			const Color& c){
 				p.setColor(c);
@@ -690,6 +691,7 @@ PYBIND11_MODULE(_core, m) {
 			}, 
 			py::arg("rgba"))
 		.def("setSize",&Particle::setSize,py::arg("size"))
+		.def("setSizes",&Particle::setSizes,py::arg("sizes"))
 		.def("setScreenSpaceMode",&Particle::setScreenSpaceMode,py::arg("ss_mode")=true);
 
 	py::class_<Sprite, shared_ptr<Sprite>>(m, "Sprite")

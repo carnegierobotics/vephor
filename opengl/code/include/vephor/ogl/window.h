@@ -534,13 +534,41 @@ public:
         return cam_from_world_matrix;
     }
 
-    const Vec2i& getSize() const {return window_size;}
-    const int getWidth() const {return window_size[0];}
-    const int getHeight() const {return window_size[1];}
+    const Vec2i getSize() const 
+    {
+        Vec2i curr_window_size;
+        glfwGetFramebufferSize(window, &curr_window_size[0], &curr_window_size[1]);
+        return curr_window_size;
+    }
+    const int getWidth() const 
+    {
+        return getSize()[0];
+    }
+    const int getHeight() const 
+    {
+        return getSize()[1];
+    }
+    const std::string getTitle() const {return title;}
 
-    [[nodiscard]] const Vec2i& getPosition() const { return window_position; }
-    [[nodiscard]] const int getXPosition() const { return window_position[0]; }
-    [[nodiscard]] const int getYPosition() const { return window_position[1]; }
+    [[nodiscard]] const Vec2i getPosition() const
+    { 
+        auto* monitor = glfwGetPrimaryMonitor();
+        Vec2i monitor_pos;
+        glfwGetMonitorPos(monitor, &monitor_pos[0], &monitor_pos[1]);
+
+        Vec2i curr_window_position;
+        glfwGetWindowPos(window, &curr_window_position[0], &curr_window_position[1]);
+
+        return curr_window_position - monitor_pos; 
+    }
+    [[nodiscard]] const int getXPosition() const
+    {
+        return getPosition()[0]; 
+    }
+    [[nodiscard]] const int getYPosition() const 
+    {
+        return getPosition()[1]; 
+    }
 
     void setPosition(const Vec2i& pos)
     {
@@ -553,8 +581,11 @@ public:
 
     bool render();
 
+    void printProfileInfo();
+
     Vec2 getMousePos() const
     {
+        // TODO: what happens when the window is resized
         double x, y;
         glfwGetCursorPos(window, &x, &y);
         return Vec2(x,window_size[1]-y);
@@ -928,6 +959,8 @@ private:
     float canonical_time = 0.0f;
 
     inline static bool debug = false;
+
+    Profiler profiler;
 };
 
 } // namespace ogl

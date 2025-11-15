@@ -45,7 +45,7 @@ void removeDestroyedObjects(vector<T>& objects)
 
 void Verlet::updateObjectPositions(float dt)
 {
-    auto start_time = std::chrono::high_resolution_clock::now();
+    ProfilerSection section(&profiler, "Update objects");
 
     // Verlet update
     for (auto& obj : dynamic_objs)
@@ -71,22 +71,11 @@ void Verlet::updateObjectPositions(float dt)
             obj->hash_cell = dynamic_obj_hash.addAndFanOut(obj->getPos(), obj);
         }
     }
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-    float elapsed_time_ms = std::chrono::duration<float, std::milli>(end_time-start_time).count();
-
-    if (profile_update_object_positions_ms == 0)
-        profile_update_object_positions_ms = elapsed_time_ms;
-    else
-    {
-        profile_update_object_positions_ms *= (1.0f-profile_alpha);
-        profile_update_object_positions_ms += elapsed_time_ms;
-    }
 }
 
 void Verlet::satisfyConstraints()
 {
-    auto start_time = std::chrono::high_resolution_clock::now();
+    ProfilerSection section(&profiler, "Satisfy constraints");
 
     for (int i = 0; i < 2; i++)
     {
@@ -122,17 +111,6 @@ void Verlet::satisfyConstraints()
             }
         }
     }
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-    float elapsed_time_ms = std::chrono::duration<float, std::milli>(end_time-start_time).count();
-
-    if (profile_satisfy_constraints_ms == 0)
-        profile_satisfy_constraints_ms = elapsed_time_ms;
-    else
-    {
-        profile_satisfy_constraints_ms *= (1.0f-profile_alpha);
-        profile_satisfy_constraints_ms += elapsed_time_ms;
-    }
 }
 
 void Verlet::compareAllObjects(float dt)
@@ -140,7 +118,7 @@ void Verlet::compareAllObjects(float dt)
     profile_last_num_comparisons = 0;
     profile_last_num_comparisons_dist = 0;
 
-    auto start_time = std::chrono::high_resolution_clock::now();
+    ProfilerSection section(&profiler, "Compare objects");
 
     for (const auto& obj1 : dynamic_objs)
     {
@@ -182,22 +160,11 @@ void Verlet::compareAllObjects(float dt)
             compareObjects(objects[i].get(), objects[j].get(), dt);
         }
     }*/
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-    float elapsed_time_ms = std::chrono::duration<float, std::milli>(end_time-start_time).count();
-
-    if (profile_compare_objects_ms == 0)
-        profile_compare_objects_ms = elapsed_time_ms;
-    else
-    {
-        profile_compare_objects_ms *= (1.0f-profile_alpha);
-        profile_compare_objects_ms += elapsed_time_ms;
-    }
 }
 
 void Verlet::removeAllDestroyedObjects()
 {
-    auto start_time = std::chrono::high_resolution_clock::now();
+    ProfilerSection section(&profiler, "Remove objects");
 
     for (auto& obj : dynamic_objs)
     {
@@ -216,17 +183,6 @@ void Verlet::removeAllDestroyedObjects()
     removeDestroyedObjects(infinite_objs);
 	removeDestroyedObjects(dynamic_objs);
     removeDestroyedObjects(static_objs);
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-    float elapsed_time_ms = std::chrono::duration<float, std::milli>(end_time-start_time).count();
-
-    if (profile_remove_objects_ms == 0)
-        profile_remove_objects_ms = elapsed_time_ms;
-    else
-    {
-        profile_remove_objects_ms *= (1.0f-profile_alpha);
-        profile_remove_objects_ms += elapsed_time_ms;
-    }
 }
 
 void Verlet::update(float dt)
@@ -242,12 +198,12 @@ void Verlet::update(float dt)
 
 void Verlet::printProfileInfo()
 {
-    v4print "Update objects:", profile_update_object_positions_ms, "ms";
-    v4print "Satisfy constraints:", profile_satisfy_constraints_ms, "ms";
-    v4print "Compare objects:", profile_compare_objects_ms, "ms";
-    v4print "Remove objects:", profile_remove_objects_ms, "ms";
+    v4print "\nVerlet Profiler";
+    v4print "================";
+    profiler.print();
     v4print "Last num comparisons:", profile_last_num_comparisons;
     v4print "Last num comparisons (dist):", profile_last_num_comparisons_dist;
+    v4print "================";
 }
 
 void Verlet::compareObjects(
