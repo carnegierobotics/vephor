@@ -1077,6 +1077,9 @@ shared_ptr<RenderNode> ShowRecordWindow::addFromJSON(const json& obj, const vect
 		if (obj.contains("ss_mode"))
 			draw_obj->setScreenSpaceMode(obj["ss_mode"]);
 
+		if (obj.contains("depth_test"))
+			draw_obj->setDepthTest(obj["depth_test"]);
+
 		auto world_from_body = readTransformSim3(obj["pose"]);
 		bool overlay = readDefault(obj, "overlay", false);
 		auto node = window->add(draw_obj, world_from_body, overlay, readDefault(obj, "layer", 0));

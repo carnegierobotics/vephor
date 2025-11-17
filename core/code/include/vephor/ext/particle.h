@@ -88,6 +88,10 @@ public:
 	{
 		ss_mode = p_ss_mode;
 	}
+    void setDepthTest(bool p_depth_test)
+	{
+		depth_test = p_depth_test;
+	}
 	json serialize(vector<vector<char>>* bufs)
 	{	
 		json json_data = {
@@ -101,6 +105,7 @@ public:
 		}
 		
 		VEPHOR_SERIALIZE_IF_STANDARD(ss_mode);
+        VEPHOR_SERIALIZE_IF_STANDARD(depth_test);
 
         if (bufs)
         {
@@ -162,6 +167,9 @@ private:
 
 	inline const static bool ss_mode_default = false;
 	bool ss_mode = ss_mode_default;
+
+    inline const static bool depth_test_default = true;
+	bool depth_test = depth_test_default;
 };
 
 } // namespace vephor

@@ -37,6 +37,7 @@ public:
     void setSizes(const MatXRef& p_sizes);
     void setOpacity(const float& p_opacity);
     void setScreenSpaceMode(bool p_ss_mode);
+    void setDepthTest(bool p_depth_test){depth_test = p_depth_test;}
 
     void renderOGL(Window* window, const TransformSim3& world_from_body);
 
@@ -56,6 +57,8 @@ private:
     RVecX sizes;
     float size = 0.03f;
     bool ss_mode = false;
+
+    bool depth_test = true;
 
 	shared_ptr<MaterialProgram> material;
 	MaterialState material_state;

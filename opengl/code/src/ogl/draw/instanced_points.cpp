@@ -188,6 +188,13 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
 
 	glBindVertexArray(vao_id);
 
+    GLboolean gl_depth_test;
+
+    if (!depth_test)
+    {
+        glGetBooleanv(GL_DEPTH_TEST, &gl_depth_test);
+        glDisable(GL_DEPTH_TEST);
+    }
 
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
@@ -196,6 +203,12 @@ void InstancedPoints::renderOGL(Window* window, const TransformSim3& world_from_
 	
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
+
+    if (!depth_test)
+    {
+        if (gl_depth_test)
+            glEnable(GL_DEPTH_TEST);
+    }
 
 	glBindVertexArray(0);
 
