@@ -146,6 +146,7 @@ public:
     bool frag_cam_from_world = false;
     bool frag_proj_from_camera = false;
     bool z_limits = false;
+    bool order_independent_transparency = false;
 
     unordered_map<string, vector<string>> extra_sections;
     vector<string> extra_textures;

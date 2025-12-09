@@ -266,6 +266,10 @@ string vertexShaderVertexColorOut = R"(
 out vec4 vo_color;
 )";
 
+string vertexShaderRevealageOut = R"(
+out float revealage;
+)";
+
 string vertexShaderUniforms = R"(
 
 uniform mat4 proj_from_model;
@@ -465,6 +469,9 @@ std::string MaterialBuilder::produceVertexShader() const
     if (vertex_color)
         shader += vertexShaderVertexColorOut;
 
+    if (order_independent_transparency)
+        shader += vertexShaderRevealageOut;
+
     shader += vertexShaderUniforms;
 
     if (billboard)
@@ -608,6 +615,10 @@ in vec4 vo_color;
 string fragmentShaderOut = R"(
 
 out vec4 out_color;
+)";
+
+string fragmentShaderRevealageOut = R"(
+out float revealage;
 )";
 
 string fragmentShaderMaterialsUniforms = R"(
@@ -916,6 +927,11 @@ string fragmentShaderVertexColorMainEnd = R"(
     out_color *= vo_color;
 )";
 
+string fragmentShaderOITMainEnd = R"(
+    out_color = vec4(out_color.rgb * out_color.a, out_color.a);
+    revelage = in_color.a;
+)";
+
 string fragmentShaderMainFooter = R"(
     if (out_color.a < 0.01f)
         discard;
@@ -963,6 +979,9 @@ std::string MaterialBuilder::produceFragmentShader() const
 
     if (!no_color)
         shader += fragmentShaderOut;
+
+    if (order_independent_transparency)
+        shader += fragmentShaderRevealageOut;
 
     shader += "\n";
 
@@ -1076,6 +1095,9 @@ std::string MaterialBuilder::produceFragmentShader() const
 
     if (vertex_color)
         shader += fragmentShaderVertexColorMainEnd;
+
+    if (order_independent_transparency)
+        shader += fragmentShaderOITMainEnd;
 
     if (no_color)
         shader += fragmentShaderNoColorMainFooter;
