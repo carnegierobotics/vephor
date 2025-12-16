@@ -802,6 +802,16 @@ public:
         key_press_with_message_callback = p_callback;
     }
 
+	void setKeyReleaseCallback(KeyActionCallback p_callback)
+    {
+        key_release_callback = p_callback;
+    }
+
+	void setKeyReleaseWithMessageCallback(KeyActionWithMessageCallback p_callback)
+    {
+        key_release_with_message_callback = p_callback;
+    }
+
 	void setMouseClickCallback(MouseClickActionCallback p_callback)
     {
         mouse_click_callback = p_callback;
@@ -961,6 +971,18 @@ public:
 				{
 					key_event = true;
 					v4print "Continue key event received for window:", id;
+				}
+			}
+			else if (msg["type"] == "key_release")
+			{	
+				if (key_release_callback)
+				{
+					key_release_callback(msg["key"]);
+				}
+
+				if (key_release_with_message_callback)
+				{
+					key_release_with_message_callback(msg["key"], msg);
 				}
 			}
 			else if (msg["type"] == "mouse_click")
@@ -1847,6 +1869,8 @@ private:
 	unordered_map<ConnectionID, bool> camera_up_to_date;
 	KeyActionCallback key_press_callback = NULL;
 	KeyActionWithMessageCallback key_press_with_message_callback = NULL;
+	KeyActionCallback key_release_callback = NULL;
+	KeyActionWithMessageCallback key_release_with_message_callback = NULL;
 	MouseClickActionCallback mouse_click_callback = NULL;
 	MouseClickActionWithMessageCallback mouse_click_with_message_callback = NULL;
 	size_t total_network_use_bytes = 0;

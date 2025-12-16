@@ -348,12 +348,6 @@ public:
     {
         const auto n_points = x.rows();
 
-        // Empty plots can shortcut the downstream logic
-        if (n_points == 0)
-        {
-            return;
-        }
-
         // Fill Y values if only one is provided
         {
             if (n_points > 1 && y.rows() == 1 && y.cols() == 1)
@@ -402,6 +396,7 @@ public:
         // s ∈ R(N, M) or s ∈ R(0, ?)
         MatX points = MatX::Zero(x.rows(), 3);
         points.col(0) = x;
+
         for (int set = 0; set < y.cols(); set++)
         {
             const VecX& set_y = y.col(set);
@@ -475,13 +470,16 @@ public:
                 }
             }
 
-
-            particle->setScreenSpaceMode(true);
-
             std::string marker_name{magic_enum::enum_name(opts.marker)};
             marker_name = to_lower(marker_name);
-            particle->setTexture("/assets/" + marker_name + ".png", false);
-            inner_window.add(particle, Vec3(0, 0, plot_index + 1));
+
+            if (n_points > 0)
+            {
+                particle->setScreenSpaceMode(true);
+
+                particle->setTexture("/assets/" + marker_name + ".png", false);
+                inner_window.add(particle, Vec3(0, 0, plot_index + 1));
+            }
 
             if (!opts.label.empty())
             {
@@ -1174,6 +1172,13 @@ public:
 	void setKeyPressCallback(PlotKeyActionCallback p_callback)
     {
 		inner_window.setKeyPressWithMessageCallback([p_callback](int key_code, const json& msg){
+			p_callback(key_code, readVec2(msg["plot_pos"]));
+		});
+    }
+
+    void setKeyReleaseCallback(PlotKeyActionCallback p_callback)
+    {
+		inner_window.setKeyReleaseWithMessageCallback([p_callback](int key_code, const json& msg){
 			p_callback(key_code, readVec2(msg["plot_pos"]));
 		});
     }

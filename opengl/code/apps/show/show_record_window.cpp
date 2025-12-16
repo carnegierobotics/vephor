@@ -93,8 +93,12 @@ void ShowRecordWindow::update(bool debug)
 		json layout_data;
 		if (fs::exists("/tmp/vephor_layout.json"))
 		{
-			std::ifstream layout_fin("/tmp/vephor_layout.json");
-			layout_data = json::parse(layout_fin);
+			try {
+				std::ifstream layout_fin("/tmp/vephor_layout.json");
+				layout_data = json::parse(layout_fin);
+			} catch (...) {
+				v4print "Could not parse layout file.";
+			}
 		}
 
 		layout_data[window->getTitle()] = {
@@ -445,8 +449,19 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 		}
 	});
 
-	window->setKeyPressCallback([&](int key){
+	window->setKeyPressCallback([&, net_manager](int key){
 		control_info.onKeyPress(key);
+
+		if (net_manager)
+		{
+			json key_press = {
+				{"type", "key_press"},
+				{"window", window_id},
+				{"key", key}
+			};
+			camera->augmentInputEvent(*window, key_press);
+			net_manager->sendJSONBMessage(conn_id, key_press, {});
+		}	
 
 		if (key == GLFW_KEY_V)
 		{
@@ -472,13 +487,13 @@ void ShowRecordWindow::setupInputHandlers(NetworkManager* net_manager)
 
 		if (net_manager)
 		{
-			json key_press = {
-				{"type", "key_press"},
+			json key_release = {
+				{"type", "key_release"},
 				{"window", window_id},
 				{"key", key}
 			};
-			camera->augmentInputEvent(*window, key_press);
-			net_manager->sendJSONBMessage(conn_id, key_press, {});
+			camera->augmentInputEvent(*window, key_release);
+			net_manager->sendJSONBMessage(conn_id, key_release, {});
 		}		
 	});
 

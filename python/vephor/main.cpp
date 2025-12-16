@@ -893,6 +893,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color_2"),
 			py::arg("n_cells")=Vec2i(8,8))
 		.def("setKeyPressCallback", &Window::setKeyPressCallback)
+		.def("setKeyReleaseCallback", &Window::setKeyReleaseCallback)
 		.def("setMouseClickCallback", &Window::setMouseClickCallback)
 		.def("setPlotMode", &Window::setPlotMode, py::arg("equal")=false)
 		.def("setOpacity", &Window::setOpacity)
@@ -1233,6 +1234,7 @@ PYBIND11_MODULE(_core, m) {
 		.def("clear", &Plot::clear)
 		.def("save", &Plot::save)
 		.def("setKeyPressCallback", &Plot::setKeyPressCallback)
+		.def("setKeyReleaseCallback", &Plot::setKeyReleaseCallback)
 		.def("setMouseClickCallback", &Plot::setMouseClickCallback);
 
 	py::class_<Plot3D>(m, "Plot3D")
