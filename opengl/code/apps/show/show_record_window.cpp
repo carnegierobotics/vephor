@@ -26,6 +26,8 @@ void waitForMessages(NetworkManager* net_manager, std::deque<JSONBMessage>* mess
 				messages->push_back(msg);
 		}
 	}
+
+	v4print "Exiting waitForMessages.";
 }
 
 void ShowRecordWindow::update(bool debug)
@@ -50,7 +52,7 @@ void ShowRecordWindow::update(bool debug)
 
 	if (shutdown)
 	{
-		v4print "Closing window:", window_id;
+		v4print "Closing window (render false):", window_id;
 		
 		if (net_manager)
 		{
@@ -120,7 +122,7 @@ void ShowRecordWindow::close()
 		return;
 	window->shutdown();
 	
-	v4print "Closing window:", window_id;
+	v4print "Closing window (close call):", window_id;
 	
 	if (net_manager)
 	{

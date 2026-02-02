@@ -288,6 +288,8 @@ Window::Window(int p_width,
 		glfw_initialized = true;
 	}
 
+	glfwDefaultWindowHints();
+
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -772,7 +774,9 @@ bool Window::render()
 	ProfilerSection section(&profiler, "Render");
 
 	if (window == NULL)
+	{
 		return false;
+	}
 	
 	glfwMakeContextCurrent(window);
 

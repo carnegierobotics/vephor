@@ -765,8 +765,8 @@ public:
 	}
 	void connectClient(bool wait_for_connection = true, const string& host = "localhost", int port = VEPHOR_DEFAULT_PORT)
 	{
-		if (client_mode)
-			throw std::runtime_error("Client mode already active");
+		//if (client_mode)
+		//	throw std::runtime_error("Client mode already active");
 		if (server_mode)
 			throw std::runtime_error("Can't use server and client mode at the same time.");
 

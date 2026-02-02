@@ -51,6 +51,8 @@ struct ShowRecord
 	std::thread message_thread;
 	bool had_connection = false;
 	bool client_mode = false;
+	string host;
+	int port;
 	string record_path;
 	string video_path;
 	int message_index = 0;
@@ -161,10 +163,12 @@ struct ShowRecord
 			windows[window_id]->video_path = window_video_path;
 		}
 	}
-	void connectClient(const string& host, int port)
+	void connectClient(const string& p_host, int p_port)
 	{
-		network_mode = true;
 		client_mode = true;
+
+		host = p_host;
+		port = p_port;
 		
 		net_manager.connectClient(true, host, port);
 	
@@ -174,8 +178,6 @@ struct ShowRecord
 	}
 	void connectServer(int port)
 	{
-		network_mode = true;
-		
 		net_manager.connectServer(false, port);
 		
         v4print "Connected.";
@@ -184,9 +186,12 @@ struct ShowRecord
 	}
 	void startNetwork()
 	{
-        assets.addFolder(fs::current_path().string());
-		
-		message_thread = std::thread(waitForMessages, &net_manager, &message_list, &message_mutex, &shutdown);
+		if (!network_mode)
+		{
+        	assets.addFolder(fs::current_path().string());
+			message_thread = std::thread(waitForMessages, &net_manager, &message_list, &message_mutex, &shutdown);
+			network_mode = true;
+		}
 	}
 	void setupFromPath(const string& path)
 	{
@@ -778,8 +783,30 @@ struct ShowRecord
 			else
 			if (client_mode && had_connection)
 			{
-				v4print "Client is closing because all connections closed.";
-				break;
+				if (1)
+				{
+					v4print "Client is reconnecting because all connections closed.";
+					objects_by_id.clear();
+					for (auto& window : windows)
+					{
+						window.second->close();
+					}
+					windows.clear();
+					for (auto control_window : control_window_per_conn)
+					{
+						control_window.second->shutdown();
+					}
+					control_window_per_conn.clear();
+					closed_windows.clear();
+					flags_per_conn.clear();
+					connectClient(host, port);
+					continue;
+				}
+				else
+				{
+					v4print "Client is closing because all connections closed.";
+					break;
+				}
 			}
 			
 			if (windows.empty())
@@ -807,7 +834,9 @@ struct ShowRecord
 			for (auto control_window : control_window_per_conn)
 			{
 				if (net_manager.isActiveConn(control_window.first))
+				{
 					control_window.second->render();
+				}
 				else
 				{
 					control_window.second->shutdown();
@@ -834,7 +863,10 @@ struct ShowRecord
 			}
 			windows = curr_windows;
 			if (!daemon && !closed_windows.empty())
+			{
+				v4print "Not a daemon and windows have been closed - exiting.";
 				break;
+			}
 
 			if (save_flag)
 			{
