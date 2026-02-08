@@ -37,6 +37,10 @@ public:
 		mesh->setAmbient(p_color.getRGB());
 		mesh->setOpacity(p_color.getAlpha());
 	}
+	void setSpecular(bool p_specular)
+	{
+		mesh->setSpecular(p_specular);
+	}
 	void setTexture(const shared_ptr<Texture>& p_tex){mesh->setTexture(p_tex);}
 	void renderOGL(Window* window, const TransformSim3& world_from_body)
 	{

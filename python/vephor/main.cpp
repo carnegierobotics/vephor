@@ -91,7 +91,7 @@ void init_ogl(py::module_ &m)
 		.def("getDestroy", &ogl::RenderNode::getDestroy);
 
 	py::class_<ogl::Axes, shared_ptr<ogl::Axes>>(m, "Axes")
-        .def(py::init<float>(),py::arg("size"))
+        .def(py::init<float>(),py::arg("size")=1.0f)
 		.def("setColors",&ogl::Axes::setColors);
 
 	py::class_<ogl::Cone, shared_ptr<ogl::Cone>>(m, "Cone")
@@ -99,18 +99,30 @@ void init_ogl(py::module_ &m)
 			py::arg("rad")=1.0f,
 			py::arg("height")=1.0f,
 			py::arg("slices")=16)
-		.def("setColor",&ogl::Cone::setColor);
+		.def("setColor",[](ogl::Cone& c, 
+			const Vec3& rgb){
+				c.setColor(rgb);
+			}, 
+			py::arg("rgb"));
 
 	py::class_<ogl::Cube, shared_ptr<ogl::Cube>>(m, "Cube")
-        .def(py::init<float>(),py::arg("rad"))
-		.def("setColor",&ogl::Cube::setColor);
+        .def(py::init<float>(),py::arg("rad")=1.0f)
+		.def("setColor",[](ogl::Cube& c, 
+			const Vec3& rgb){
+				c.setColor(rgb);
+			}, 
+			py::arg("rgb"));
 
 	py::class_<ogl::Cylinder, shared_ptr<ogl::Cylinder>>(m, "Cylinder")
         .def(py::init<float,float,int>(),
 			py::arg("rad")=1.0f,
 			py::arg("height")=1.0f,
 			py::arg("slices")=16)
-		.def("setColor",&ogl::Cylinder::setColor);
+		.def("setColor",[](ogl::Cylinder& c, 
+			const Vec3& rgb){
+				c.setColor(rgb);
+			}, 
+			py::arg("rgb"));
 
 	py::class_<ogl::Mesh, shared_ptr<ogl::Mesh>>(m, "Mesh")
         .def(py::init([](
@@ -158,8 +170,19 @@ void init_ogl(py::module_ &m)
 	py::class_<ogl::AmbientLight, shared_ptr<ogl::AmbientLight>>(m, "AmbientLight")
         .def(py::init<Vec3>(),py::arg("strength"));
 
+	py::class_<ogl::ShadowOptions>(m, "ShadowOptions")
+		.def(py::init<>())
+		.def_readwrite("map_size", &ogl::ShadowOptions::map_size)
+		.def_readwrite("debug", &ogl::ShadowOptions::debug)
+		.def_readwrite("rad_m", &ogl::ShadowOptions::rad_m)
+		.def_readwrite("border_m", &ogl::ShadowOptions::border_m)
+		.def_readwrite("light_height", &ogl::ShadowOptions::light_height)
+		.def_readwrite("min_dist_m", &ogl::ShadowOptions::min_dist_m)
+		.def_readwrite("max_dist_m", &ogl::ShadowOptions::max_dist_m);
+
 	py::class_<ogl::DirLight, shared_ptr<ogl::DirLight>>(m, "DirLight")
-        .def(py::init<Vec3,float>(),py::arg("dir"),py::arg("strength"));
+        .def(py::init<Vec3,float>(),py::arg("dir"),py::arg("strength"))
+		.def("enableShadows", &ogl::DirLight::enableShadows, py::arg("opts")=ogl::ShadowOptions());
 
 	py::class_<ogl::Grid, shared_ptr<ogl::Grid>>(m, "Grid")
 		.def(py::init<float, const Vec3&, const Vec3&, float, const Vec3&>(),
@@ -172,7 +195,12 @@ void init_ogl(py::module_ &m)
 	py::class_<ogl::Plane, shared_ptr<ogl::Plane>>(m, "Plane")
 		.def(py::init<const Vec2&>(),
 			py::arg("size"))
-		.def("setColor", &ogl::Plane::setColor)
+		.def("setColor",[](ogl::Plane& p, 
+			const Vec3& rgb){
+				p.setColor(Color(rgb));
+			}, 
+			py::arg("rgb"))
+		.def("setSpecular", &ogl::Plane::setSpecular)
 		.def("setTexture", &ogl::Plane::setTexture);
 
 	py::class_<ogl::Text, shared_ptr<ogl::Text>>(m, "Text")
@@ -216,6 +244,7 @@ void init_ogl(py::module_ &m)
 			py::arg("width")=-1,
 			py::arg("height")=-1,
 			py::arg("name")="show")
+		.def("setClearColor", &ogl::Window::setClearColor, py::arg("color"), py::arg("alpha")=0.0f)
 		.def("setFrameLock", &ogl::Window::setFrameLock)
 		.def("captureCursor", &ogl::Window::captureCursor)
 		.def("clear", &ogl::Window::clear)
@@ -224,6 +253,8 @@ void init_ogl(py::module_ &m)
 		.def("getCamFromWorld", &ogl::Window::getCamFromWorld)
 		.def("setProjectionMatrix", &ogl::Window::setProjectionMatrix)
 		.def("getSize", &ogl::Window::getSize)
+		.def("setNearZ", &ogl::Window::setNearZ)
+		.def("setFarZ", &ogl::Window::setFarZ)
 		.def("getMousePos", &ogl::Window::getMousePos)
 		.def("getWorldRayForMousePos", [](ogl::Window& w, 
 			const Vec2& mouse_pos){
@@ -239,6 +270,7 @@ void init_ogl(py::module_ &m)
 		.def("setKeyReleaseCallback", &ogl::Window::setKeyReleaseCallback)
 		.def("setScrollCallback", &ogl::Window::setScrollCallback)
 		.def("loadTexture", &ogl::Window::loadTexture)
+		.def("getTextureFromImage", &ogl::Window::getTextureFromImage, py::arg("img"), py::arg("nearest")=false)
 		.def("getCubeTextureFromDir", &ogl::Window::getCubeTextureFromDir)
 		.def("getScreenImage", &ogl::Window::getScreenImage)
 		.def("getDepthImage", &ogl::Window::getDepthImage)
@@ -303,6 +335,46 @@ void init_ogl(py::module_ &m)
 			py::arg("gravity")=true);
 }
 #endif
+
+Color standardizeNumpyColor(py::buffer color)
+{
+	py::buffer_info info = color.request();
+	if (info.size != 3 && info.size != 4)
+		throw std::runtime_error("Color must be either 3 or 4 elements in size.");
+	if (info.format == py::format_descriptor<uint8_t>::format())
+	{
+		const uint8_t* ptr = reinterpret_cast<const uint8_t*>(info.ptr);
+		
+		if (info.size == 3)
+		{
+			Vec3 rgb(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f);
+			return Color(rgb);
+		}
+		else
+		{
+			Vec4 rgba(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f, ptr[3] / 255.0f);
+			return Color(rgba);
+		}
+	}
+	else if (info.format == py::format_descriptor<double>::format())
+	{
+		const double* ptr = reinterpret_cast<const double*>(info.ptr);
+		
+		if (info.size == 3)
+		{
+			Vec3 rgb(ptr[0], ptr[1], ptr[2]);
+			return Color(rgb);
+		}
+		else
+		{
+			Vec4 rgba(ptr[0], ptr[1], ptr[2], ptr[3]);
+			return Color(rgba);
+		}
+	}
+
+	throw std::runtime_error("Did not understand numpy color format.");
+	return Color();
+}
 
 PYBIND11_MODULE(_core, m) {
     m.doc() = R"pbdoc(
@@ -412,7 +484,7 @@ PYBIND11_MODULE(_core, m) {
 	m.def("getBaseAssetDir", &getBaseAssetDir);
 	m.def("makePerspectiveProj", &makePerspectiveProj);
 	m.def("makeOrthoProj", &makeOrthoProj);
-	m.def("makeLookAtTransform", &makeLookAtTransform);
+	m.def("makeLookAtTransform", &makeLookAtTransform, py::arg("look_at"), py::arg("look_from"), py::arg("up_hint"));
 	m.def("createSolidFromTris", &createSolidFromTris);
 
 	m.def("calcSurfaces", [](
@@ -473,44 +545,15 @@ PYBIND11_MODULE(_core, m) {
 		});
 		
 	m.def("generateSimpleImage", [](const Vec2i& size, py::buffer color){
-		py::buffer_info info = color.request();
-		if (info.size != 3 && info.size != 4)
-			throw std::runtime_error("Color must be either 3 or 4 elements in size.");
-		if (info.format == py::format_descriptor<uint8_t>::format())
-		{
-			const uint8_t* ptr = reinterpret_cast<const uint8_t*>(info.ptr);
-			
-			if (info.size == 3)
-			{
-				Vec3 rgb(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f);
-				return generateSimpleImage(size, rgb);
-			}
-			else
-			{
-				Vec4 rgba(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f, ptr[3] / 255.0f);
-				return generateSimpleImage(size, rgba);
-			}
-		}
-		else if (info.format == py::format_descriptor<double>::format())
-		{
-			const double* ptr = reinterpret_cast<const double*>(info.ptr);
-			
-			if (info.size == 3)
-			{
-				Vec3 rgb(ptr[0], ptr[1], ptr[2]);
-				return generateSimpleImage(size, rgb);
-			}
-			else
-			{
-				Vec4 rgba(ptr[0], ptr[1], ptr[2], ptr[3]);
-				return generateSimpleImage(size, rgba);
-			}
-		}
-		else
-			throw std::runtime_error("Only supports uint8 or double typed color.");
-		
-		return shared_ptr<Image<uint8_t>>(NULL);
+		Vec4 rgba = standardizeNumpyColor(color).getRGBA();
+		return generateSimpleImage(size, rgba);
 	}, py::arg("size"), py::arg("color"));
+
+	m.def("generateCheckerboardImage", [](const Vec2i& size, const Vec2i& n_cells, py::buffer color_1, py::buffer color_2){
+		Vec4 rgba_1 = standardizeNumpyColor(color_1).getRGBA();
+		Vec4 rgba_2 = standardizeNumpyColor(color_2).getRGBA();
+		return generateCheckerboardImage(size, n_cells, rgba_1, rgba_2);
+	}, py::arg("size"), py::arg("n_cells"), py::arg("color_1"), py::arg("color_2"));
 
 	py::class_<ShowMetadata>(m, "ShowMetadata");
 

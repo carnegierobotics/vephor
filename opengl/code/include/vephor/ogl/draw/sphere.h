@@ -31,7 +31,7 @@ public:
 		builder.point_lights = true;
 		mesh = make_shared<Mesh>(data, builder.buildSet());
 	}
-	void setColor(const Vec3& p_color)
+	void setColor(const Color& p_color)
 	{
 		mesh->setDiffuse(p_color);
 		mesh->setAmbient(p_color);

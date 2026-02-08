@@ -26,7 +26,7 @@ public:
 	json serialize(vector<vector<char>>*)
 	{	
 		json json_data = {
-            {"type", "cone"}
+            {"type", "cylinder"}
         };
 
 		VEPHOR_SERIALIZE_IF_STANDARD(rad);
