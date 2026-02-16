@@ -708,7 +708,11 @@ public:
         size = *reinterpret_cast<int*>(size_buf.data());
 		
 		auto payload_count_buf = receive_safe(sizeof(uint64_t));
-        payload_count = *reinterpret_cast<int*>(payload_count_buf.data());
+		if (payload_count_buf.size() != sizeof(uint64_t))
+		{
+			throw std::runtime_error(string("Incorrect JSONB payload count read: ") + std::to_string(payload_count_buf.size()) + "/" + std::to_string(sizeof(uint64_t)));
+		}
+        payload_count = *reinterpret_cast<uint64_t*>(payload_count_buf.data());
 		
 		
 		uint64_t received_size = sizeof(uint64_t) * (1 + payload_count);

@@ -45,6 +45,7 @@ int main(int argc, char* argv[])
 	float playback_speed = 1;
 	bool daemonize = false;
 	bool debug = false;
+	bool profile = false;
 	string screenshot_path;
 	
 	int opt;
@@ -52,7 +53,7 @@ int main(int argc, char* argv[])
 	while (optind < argc)
 	{
 		v4print "optind:", optind;
-		if((opt = getopt(argc, argv, "dDhi:m:o:p:P:rR:S:v:")) != -1) 
+		if((opt = getopt(argc, argv, "dDFhi:m:o:p:P:rR:S:v:")) != -1) 
 		{
 			switch(opt)
 			{
@@ -61,6 +62,9 @@ int main(int argc, char* argv[])
 				break;
 			case 'D':
 				debug = true;
+				break;
+			case 'F':
+				profile = true;
 				break;
 			case 'h':
 				usage(argv);
@@ -182,7 +186,7 @@ int main(int argc, char* argv[])
 		show.setupFromPath(input_dir);
     }
     
-	show.spin(use_server || daemonize, debug);
+	show.spin(use_server || daemonize, debug, profile);
 
 	if (!screenshot_path.empty())
 	{

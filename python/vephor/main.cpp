@@ -252,9 +252,12 @@ void init_ogl(py::module_ &m)
 		.def("setCamFromWorld", &ogl::Window::setCamFromWorld)
 		.def("getCamFromWorld", &ogl::Window::getCamFromWorld)
 		.def("setProjectionMatrix", &ogl::Window::setProjectionMatrix)
+		.def("getProjectionMatrix", &ogl::Window::getProjectionMatrix)
 		.def("getSize", &ogl::Window::getSize)
-		.def("setNearZ", &ogl::Window::setNearZ)
-		.def("setFarZ", &ogl::Window::setFarZ)
+		.def("setNearZ", &ogl::Window::setNearZ, py::arg("near_z"), py::arg("proj_update")=true)
+		.def("setFarZ", &ogl::Window::setFarZ, py::arg("far_z"), py::arg("proj_update")=true)
+		.def("getNearZ", &ogl::Window::getNearZ)
+		.def("getFarZ", &ogl::Window::getFarZ)
 		.def("getMousePos", &ogl::Window::getMousePos)
 		.def("getWorldRayForMousePos", [](ogl::Window& w, 
 			const Vec2& mouse_pos){
@@ -274,6 +277,8 @@ void init_ogl(py::module_ &m)
 		.def("getCubeTextureFromDir", &ogl::Window::getCubeTextureFromDir)
 		.def("getScreenImage", &ogl::Window::getScreenImage)
 		.def("getDepthImage", &ogl::Window::getDepthImage)
+		.def("getDepthImageFloat", &ogl::Window::getDepthImageFloat)
+		.def("getDepthImageFloatMetric", &ogl::Window::getDepthImageFloatMetric)
 		.def("printProfileInfo",&ogl::Window::printProfileInfo)
 		.def("add", static_cast<shared_ptr<ogl::RenderNode> (ogl::Window::*)(
             const Vec3&,
@@ -527,7 +532,7 @@ PYBIND11_MODULE(_core, m) {
 		py::arg("thresh"),
 		py::arg("cell_size"));
 	
-	py::class_<Image<uint8_t>, shared_ptr<Image<uint8_t>>>(m, "Image", pybind11::buffer_protocol())
+	py::class_<Image<uint8_t>, shared_ptr<Image<uint8_t>>>(m, "Image<uint8_t>", pybind11::buffer_protocol())
 		.def_buffer([](Image<uint8_t>& img) -> pybind11::buffer_info {
 			return py::buffer_info(
 				(void*)img.getData().data(),                /* Pointer to buffer */
@@ -539,6 +544,23 @@ PYBIND11_MODULE(_core, m) {
 					sizeof(uint8_t) * img.getSize()[0] * img.getChannels(),
 					sizeof(uint8_t) * img.getChannels(),
 					sizeof(uint8_t)
+				}
+														 /* Strides (in bytes) for each index */
+			);
+		});
+
+	py::class_<Image<float>, shared_ptr<Image<float>>>(m, "Image<float>", pybind11::buffer_protocol())
+		.def_buffer([](Image<float>& img) -> pybind11::buffer_info {
+			return py::buffer_info(
+				(void*)img.getData().data(),                /* Pointer to buffer */
+				sizeof(float),                         /* Size of one scalar */
+				py::format_descriptor<float>::format(), /* Python struct-style format descriptor */
+				3,                                       /* Number of dimensions */
+				{ img.getSize()[1], img.getSize()[0], img.getChannels() },                  /* Buffer dimensions */
+				{ 
+					sizeof(float) * img.getSize()[0] * img.getChannels(),
+					sizeof(float) * img.getChannels(),
+					sizeof(float)
 				}
 														 /* Strides (in bytes) for each index */
 			);
@@ -1254,6 +1276,8 @@ PYBIND11_MODULE(_core, m) {
 						for (int j = 0; j < info.shape[1]; j++)
 						{
 							const double* vec_ptr = ptr + i * info.shape[1] * n_channels + j * n_channels;
+
+							// TODO: should we complain if given something over 1?
 							for (int c = 0; c < n_channels; c++)
 								image(j,i)[c] = vec_ptr[c]*255;
 						}

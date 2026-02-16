@@ -30,7 +30,7 @@ void waitForMessages(NetworkManager* net_manager, std::deque<JSONBMessage>* mess
 	v4print "Exiting waitForMessages.";
 }
 
-void ShowRecordWindow::update(bool debug)
+void ShowRecordWindow::update(bool debug, bool profile)
 {
 	if (shutdown)
 		return;
@@ -112,6 +112,9 @@ void ShowRecordWindow::update(bool debug)
 		fout << layout_data;
 		fout.close();
 	}
+
+	if (profile)
+		window->printProfileInfo();
 
 	render_count++;
 }

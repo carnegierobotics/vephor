@@ -136,7 +136,6 @@ public:
 		Eigen::RowVector3f center = solid.verts.colwise().mean();
 
 		Eigen::VectorXf sq_dists = (solid.verts.rowwise() - center).rowwise().squaredNorm();
-		double radius = std::sqrt(sq_dists.maxCoeff());
 
 		s->radius = std::sqrt(sq_dists.maxCoeff());
 

@@ -770,7 +770,7 @@ struct ShowRecord
 			saveImage(output_folder + "/screenshot.png", screenshot);
 		}
 	}
-	void spin(bool daemon, bool debug=false)
+	void spin(bool daemon, bool debug=false, bool profile=false)
 	{
 		v4print "Daemon:", daemon;
 		
@@ -825,7 +825,7 @@ struct ShowRecord
 			bool save_flag = false;
 			for (auto& window : windows)
 			{
-				window.second->update(debug);
+				window.second->update(debug, profile);
 				save_flag |= window.second->save_flag;
 				window.second->save_flag = false;
 			}

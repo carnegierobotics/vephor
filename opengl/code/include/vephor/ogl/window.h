@@ -540,11 +540,11 @@ public:
         glfwGetFramebufferSize(window, &curr_window_size[0], &curr_window_size[1]);
         return curr_window_size;
     }
-    const int getWidth() const 
+    int getWidth() const 
     {
         return getSize()[0];
     }
-    const int getHeight() const 
+    int getHeight() const 
     {
         return getSize()[1];
     }
@@ -561,11 +561,11 @@ public:
 
         return curr_window_position - monitor_pos; 
     }
-    [[nodiscard]] const int getXPosition() const
+    [[nodiscard]] int getXPosition() const
     {
         return getPosition()[0]; 
     }
-    [[nodiscard]] const int getYPosition() const 
+    [[nodiscard]] int getYPosition() const 
     {
         return getPosition()[1]; 
     }
@@ -698,6 +698,7 @@ public:
 
     Image<uint8_t> getScreenImage();
     Image<float> getDepthImageFloat();
+    Image<float> getDepthImageFloatMetric();
     Image<uint8_t> getDepthImage();
     
     void clear();
@@ -716,17 +717,21 @@ public:
         return canonical_time;
     }
 
-    void setNearZ(float p_near_z)
+    void setNearZ(float p_near_z, bool proj_update=true)
     {
         near_z = p_near_z;
+        if (proj_update)
+            resize_callback(this, getSize());
     }
     float getNearZ() const
     {
         return near_z;
     }
-    void setFarZ(float p_far_z)
+    void setFarZ(float p_far_z, bool proj_update=true)
     {
         far_z = p_far_z;
+        if (proj_update)
+            resize_callback(this, getSize());
     }
     float getFarZ() const
     {

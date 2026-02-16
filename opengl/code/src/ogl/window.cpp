@@ -780,11 +780,14 @@ bool Window::render()
 	
 	glfwMakeContextCurrent(window);
 
+	profiler.pushSection("Remove destroyed");
 	for (auto& objects : object_layers)
 	{
 		removeDestroyedObjects(objects);
 	}
+	profiler.popSection();
 
+	profiler.pushSection("Fancy rendering");
 	if (dir_light_shadows)
 	{
 		renderDirLightShadowMap();
@@ -794,6 +797,7 @@ bool Window::render()
 	{
 		renderReflectiveSurface(surface);
 	}
+	profiler.popSection();
 	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -803,6 +807,8 @@ bool Window::render()
 
 	overlay_phase = true;
 
+
+	profiler.pushSection("Overlay objects");
 	glDisable(GL_DEPTH_TEST);
 
 	for (auto& objects : overlay_object_layers)
@@ -817,8 +823,9 @@ bool Window::render()
 			}
 		}
 	}
-
+	
 	glEnable(GL_DEPTH_TEST);
+	profiler.popSection();
 
 	overlay_phase = false;
 	
@@ -1261,6 +1268,18 @@ Image<float> Window::getDepthImageFloat()
 
 	image.flipYInPlace();
 	
+	return image;
+}
+
+Image<float> Window::getDepthImageFloatMetric()
+{
+	auto image = getDepthImageFloat();
+
+	VecX depth = image.getData();
+	depth = depth.array() * 2.0f - 1.0f; //back to NDC
+    depth = (2.0f * near_z * far_z) / (-depth.array() * (far_z - near_z) + far_z + near_z);
+	image.setData(depth);
+
 	return image;
 }
 

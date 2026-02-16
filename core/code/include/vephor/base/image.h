@@ -170,6 +170,10 @@ public:
 	{
 		data = p_data;
 	}
+	void setData(const Eigen::Matrix<T, Eigen::Dynamic, 1>& p_data)
+	{
+		data.setData(p_data);
+	}
 private:
 	int channels;
 	Tensor<3, T> data;
