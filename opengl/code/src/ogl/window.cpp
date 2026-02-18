@@ -137,6 +137,36 @@ unordered_map<GLFWwindow*, Window*> v4_window_from_gl_window;
 GLFWwindow* first_window = NULL;
 bool glfw_initialized = false;
 
+void attemptglfwInit()
+{
+	if (!glfw_initialized)
+	{
+		v4print "GLFW version:", glfwGetVersionString();
+
+		// This is supposedly able to give us headless rendering
+		// Haven't gotten it working yet, may need a certain combination of GLFW and GLEW versions
+		//glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_NULL);
+
+		if (!glfwInit())
+		{
+			fprintf(stderr, "Failed to initialize GLFW\n" );
+
+			const char* description = NULL;
+			int code = glfwGetError(&description);
+			fprintf(stderr, "GLFW error %d: %s\n", code, description ? description : "No description");
+
+			getchar();
+			throw std::runtime_error("Failed to initialize GLFW");
+		}
+
+		char platform_str[256];
+		sprintf(platform_str, "%X", glfwGetPlatform());
+		v4print "GLFW platform:", platform_str;
+
+		glfw_initialized = true;
+	}
+}
+
 void global_mouse_handler(GLFWwindow* gl_window, int button, int action, int mods){
 	auto window_ptr = v4_window_from_gl_window[gl_window];
 	
@@ -276,21 +306,12 @@ Window::Window(int p_width,
 		};
 	}
 
-    // Initialise GLFW
-	if (!glfw_initialized)
-	{
-		if( !glfwInit() )
-		{
-			fprintf( stderr, "Failed to initialize GLFW\n" );
-			getchar();
-			throw std::runtime_error("Failed to initialize GLFW");
-		}
-		glfw_initialized = true;
-	}
+    // Initialize GLFW
+	attemptglfwInit();
 
 	glfwDefaultWindowHints();
 
-	//glfwWindowHint(GLFW_SAMPLES, 4); // 4xMSAA, this messes with off screen rendering
+	// glfwWindowHint(GLFW_SAMPLES, 4); // 4xMSAA, this messes with off screen rendering
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
@@ -408,8 +429,11 @@ Window::Window(int p_width,
 	v4print "Window pos:", window_position[0], window_position[1];
 
     // Initialize GLEW
-	if (glewInit() != GLEW_OK) {
+	glewExperimental=true;
+	GLenum err = glewInit(); 
+	if (err != GLEW_OK) {
 		fprintf(stderr, "Failed to initialize GLEW\n");
+		fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
 		getchar();
 		glfwTerminate();
 		throw std::runtime_error("Failed to initialize GLEW");
@@ -502,16 +526,7 @@ Window::~Window() = default;
 
 std::vector<MonitorInfo> Window::getMonitorInfo()
 {
-	if (!glfw_initialized)
-	{
-		if( !glfwInit() )
-		{
-			fprintf( stderr, "Failed to initialize GLFW\n" );
-			getchar();
-			throw std::runtime_error("Failed to initialize GLFW");
-		}
-		glfw_initialized = true;
-	}
+	attemptglfwInit();
 
 	int monitor_count;
     const auto *monitors = glfwGetMonitors(/* count */ &monitor_count);
@@ -831,6 +846,7 @@ bool Window::render()
 	
 	// Swap buffers
 	glfwSwapBuffers(window);
+
 
 	profiler.pushSection("Poll events");
 	while (true) {
