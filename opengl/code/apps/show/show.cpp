@@ -22,15 +22,17 @@ using namespace vephor::ogl;
 void usage(char* argv[])
 {
 	v4print "Usage:", argv[0];
-	v4print "\t-d                  - daemonizes a client, allowing it to survive window close";
-	v4print "\t-h                  - shows usage";
-	v4print "\t-i <input dir>      - specifies path to saved viz";
-	v4print "\t-m <mode>           - sets show mode, can be server or client";
-	v4print "\t-o <host>           - sets host for client to connect to";
-	v4print "\t-p <port>           - sets port to use for client or server";
-	v4print "\t-P <playback speed> - sets playback speed as a multiplier, with 1 being normal";
-	v4print "\t-r                  - redirects console output to a temporary dir";
-	v4print "\t-R <record dir>     - sets dir to record inputs into for later playback";
+	v4print "\t-d                   - daemonizes a client, allowing it to survive window close";
+	v4print "\t-h                   - shows usage";
+	v4print "\t-i <input dir>       - specifies path to saved viz";
+	v4print "\t-m <mode>            - sets show mode, can be server or client";
+	v4print "\t-o <host>            - sets host for client to connect to";
+	v4print "\t-p <port>            - sets port to use for client or server";
+	v4print "\t-P <playback speed>  - sets playback speed as a multiplier, with 1 being normal";
+	v4print "\t-r                   - redirects console output to a temporary dir";
+	v4print "\t-R <record dir>      - sets dir to record inputs into for later playback";
+	v4print "\t-S <screenshot path> - saves a screenshot from each window to given path and exits";
+	v4print "\t-E                   - keep windows hidden, for use in conjunction with screenshots";
 }
 
 int main(int argc, char* argv[])
@@ -47,13 +49,14 @@ int main(int argc, char* argv[])
 	bool debug = false;
 	bool profile = false;
 	string screenshot_path;
+	bool keep_hidden = false;
 	
 	int opt;
 	int pos_arg_ind = 0;
 	while (optind < argc)
 	{
 		v4print "optind:", optind;
-		if((opt = getopt(argc, argv, "dDFhi:m:o:p:P:rR:S:v:")) != -1) 
+		if((opt = getopt(argc, argv, "dDEFhi:m:o:p:P:rR:S:v:")) != -1) 
 		{
 			switch(opt)
 			{
@@ -62,6 +65,9 @@ int main(int argc, char* argv[])
 				break;
 			case 'D':
 				debug = true;
+				break;
+			case 'E':
+				keep_hidden = true;
 				break;
 			case 'F':
 				profile = true;
@@ -161,11 +167,11 @@ int main(int argc, char* argv[])
 	show.record_path = record_path;
 	show.video_path = video_path;
 	show.playback_speed = playback_speed;
+	show.keep_windows_hidden = keep_hidden;
 
 	if (!screenshot_path.empty())
 	{
 		show.exit_counter = 2;
-		show.keep_windows_hidden = false;
 	}
 
     if (use_net)
