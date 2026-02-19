@@ -146,7 +146,8 @@ void ShowRecordWindow::setup(const json& data,
 	ConnectionID p_conn_id, 
 	NetworkManager* p_net_manager, 
 	AssetManager& assets, 
-	bool hide_windows)
+	bool hide_windows,
+	bool headless_rendering)
 {
 	window_id = p_window_id;
 	conn_id = p_conn_id;
@@ -253,6 +254,7 @@ void ShowRecordWindow::setup(const json& data,
 	WindowOptions opts;
 	opts.show = false;
     opts.always_on_top = false;
+	opts.headless = headless_rendering;
     window = make_shared<Window>(/* width */ width,
                                  /* height */ height,
                                  /* x_position */ x_position,

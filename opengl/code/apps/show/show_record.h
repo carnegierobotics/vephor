@@ -153,7 +153,7 @@ struct ShowRecord
 		NetworkManager* net_manager_ptr = NULL;
 		if (network_mode)
 			net_manager_ptr = &net_manager;
-		windows[window_id]->setup(data, base_window_id, conn_id, net_manager_ptr, assets, network_mode);
+		windows[window_id]->setup(data, base_window_id, conn_id, net_manager_ptr, assets, network_mode, keep_windows_hidden);
 
 		if (!video_path.empty())
 		{

@@ -58,7 +58,8 @@ struct ShowRecordWindow
 		ConnectionID p_conn_id, 
 		NetworkManager* p_net_manager, 
 		AssetManager& assets, 
-		bool hide_windows);
+		bool hide_windows,
+		bool headless_rendering);
 	void updateData(const json& data, AssetManager& assets);
 	void positionCameraFromObjectBounds();
 	void setupCamera(const json& data, AssetManager& assets);

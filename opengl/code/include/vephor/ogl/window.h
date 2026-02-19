@@ -169,6 +169,7 @@ struct WindowOptions
     bool fullscreen = false;
     bool show = true;
     bool always_on_top = false;
+    bool headless = false;
 };
 
 struct MonitorInfo
