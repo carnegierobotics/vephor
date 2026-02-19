@@ -159,9 +159,10 @@ void attemptglfwInit()
 			throw std::runtime_error("Failed to initialize GLFW");
 		}
 
-		char platform_str[256];
-		sprintf(platform_str, "%X", glfwGetPlatform());
-		v4print "GLFW platform:", platform_str;
+		// Only available in glfw 3.4+
+		//char platform_str[256];
+		//sprintf(platform_str, "%X", glfwGetPlatform());
+		//v4print "GLFW platform:", platform_str;
 
 		glfw_initialized = true;
 	}
@@ -311,7 +312,7 @@ Window::Window(int p_width,
 
 	glfwDefaultWindowHints();
 
-	// glfwWindowHint(GLFW_SAMPLES, 4); // 4xMSAA, this messes with off screen rendering
+	glfwWindowHint(GLFW_SAMPLES, 4); // 4xMSAA, this messes with off screen rendering
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed

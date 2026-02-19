@@ -196,7 +196,11 @@ int main(int argc, char* argv[])
 
 	if (!screenshot_path.empty())
 	{
-		std::filesystem::create_directory(screenshot_path);
+		bool dir_created = std::filesystem::create_directory(screenshot_path);
+		if (dir_created)
+			v4print "Created directory", screenshot_path, "for screenshots.";
+		else
+			v4print "Did not create directory", screenshot_path, "for screenshots.";
 		show.saveScreenshots(screenshot_path);
 	}
 

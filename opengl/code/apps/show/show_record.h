@@ -767,7 +767,9 @@ struct ShowRecord
 		for (const auto& window : windows)
 		{
 			auto screenshot = window.second->window->getScreenImage();
-            saveImage(output_folder + "/window_" + std::to_string(index) + ".png", screenshot);
+			std::string screenshot_path = output_folder + "/window_" + std::to_string(index) + ".png";
+			v4print "Saving screenshot to", screenshot_path;
+            saveImage(screenshot_path, screenshot);
 		}
 	}
 	void spin(bool daemon, bool debug=false, bool profile=false)
