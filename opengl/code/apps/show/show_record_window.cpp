@@ -86,8 +86,11 @@ void ShowRecordWindow::update(bool debug, bool profile)
 	}
 
 	if (debug)
-		v4print "ShowRecordWindow::update - camera/controls";
+		v4print "ShowRecordWindow::update - camera";
 	camera->update(*window.get(), dt, control_info);
+
+	if (debug)
+		v4print "ShowRecordWindow::update - controls";
 	control_info.onUpdate();
 
 	if (render_count % 2000 == 0)
@@ -147,7 +150,8 @@ void ShowRecordWindow::setup(const json& data,
 	NetworkManager* p_net_manager, 
 	AssetManager& assets, 
 	bool hide_windows,
-	bool headless_rendering)
+	bool headless_rendering,
+	bool screenshot_mode)
 {
 	window_id = p_window_id;
 	conn_id = p_conn_id;
@@ -295,7 +299,7 @@ void ShowRecordWindow::setup(const json& data,
 	on_top_indicator_node->setParent(window->getWindowTopLeftNode());
 	on_top_indicator_node->setShow(false);
 
-	setupCamera(data, assets);
+	setupCamera(data, assets, screenshot_mode);
 	
 	setupInputHandlers(net_manager);
 }
@@ -333,11 +337,16 @@ void ShowRecordWindow::positionCameraFromObjectBounds()
 	camera->autoFitPoints(*window.get(), camera_bound_points);
 }
 
-void ShowRecordWindow::setupCamera(const json& data, AssetManager& assets)
+void ShowRecordWindow::setupCamera(const json& data, AssetManager& assets, bool screenshot_mode)
 {
 	if (data.contains("camera"))
 	{
 		json cam_data = data["camera"];
+
+		if (screenshot_mode)
+		{
+			cam_data["control"]["cursor_callout"] = false;
+		}
 
 		if (cam_data.contains("control"))
 		{

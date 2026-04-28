@@ -59,10 +59,11 @@ struct ShowRecordWindow
 		NetworkManager* p_net_manager, 
 		AssetManager& assets, 
 		bool hide_windows,
-		bool headless_rendering);
+		bool headless_rendering,
+		bool screenshot_mode);
 	void updateData(const json& data, AssetManager& assets);
 	void positionCameraFromObjectBounds();
-	void setupCamera(const json& data, AssetManager& assets);
+	void setupCamera(const json& data, AssetManager& assets, bool screenshot_mode);
 	void setupInputHandlers(NetworkManager* net_manager);
 	shared_ptr<RenderNode> addFromJSON(const json& obj, const vector<vector<char>>& bufs, AssetManager& assets, JSONBMessage& serialization);
 	json produceSceneJSON(vector<vector<char>>* bufs = NULL);

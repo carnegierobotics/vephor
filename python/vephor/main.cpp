@@ -24,6 +24,94 @@
 namespace py = pybind11;
 using namespace vephor;
 
+Color standardizeNumpyColor(py::buffer color)
+{
+	py::buffer_info info = color.request();
+	if (info.size != 3 && info.size != 4)
+		throw std::runtime_error("Color must be either 3 or 4 elements in size.");
+	if (info.format == py::format_descriptor<uint8_t>::format())
+	{
+		const uint8_t* ptr = reinterpret_cast<const uint8_t*>(info.ptr);
+		
+		if (info.size == 3)
+		{
+			Vec3 rgb(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f);
+			return Color(rgb);
+		}
+		else
+		{
+			Vec4 rgba(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f, ptr[3] / 255.0f);
+			return Color(rgba);
+		}
+	}
+	else if (info.format == py::format_descriptor<double>::format())
+	{
+		const double* ptr = reinterpret_cast<const double*>(info.ptr);
+		
+		if (info.size == 3)
+		{
+			Vec3 rgb(ptr[0], ptr[1], ptr[2]);
+			return Color(rgb);
+		}
+		else
+		{
+			Vec4 rgba(ptr[0], ptr[1], ptr[2], ptr[3]);
+			return Color(rgba);
+		}
+	}
+
+	throw std::runtime_error("Did not understand numpy color format.");
+	return Color();
+}
+
+Image<uint8_t> numpyToImageU8(py::buffer buf)
+{
+	py::buffer_info info = buf.request();
+
+	bool is_contiguous = true;
+	ssize_t expected_stride = info.itemsize;
+	for (ssize_t i = info.ndim - 1; i >= 0; --i) {
+		if (info.strides[i] != expected_stride) {
+			is_contiguous = false;
+			break;
+		}
+		expected_stride *= info.shape[i];
+	}
+
+	if (!is_contiguous)
+	{
+		throw std::runtime_error("Sprite only supports contiguous arrays.");
+	}
+
+	int channels = 1;
+	if (info.shape.size() > 2)
+		channels = info.shape[2];
+	
+	Image<uint8_t> image(info.shape[1], info.shape[0], channels);
+	
+	if (info.format == py::format_descriptor<uint8_t>::format())
+		image.copyFromBuffer(reinterpret_cast<const char*>(info.ptr), info.size);
+	else if (info.format == py::format_descriptor<double>::format())
+	{
+		const double* ptr = reinterpret_cast<const double*>(info.ptr);
+		
+		for (int i = 0; i < info.shape[0]; i++)
+		{
+			for (int j = 0; j < info.shape[1]; j++)
+			{
+				const double* vec_ptr = ptr + i * info.shape[1] * channels + j * channels;
+				image(j,i) = Vec3u(vec_ptr[0]*255, vec_ptr[1]*255, vec_ptr[2]*255);
+			}
+		}
+	}
+	else
+	{
+		throw std::runtime_error("Sprite only supports uint8 or double typed arrays.");
+	}
+
+	return image;
+}
+
 template <typename S, typename W, typename R, typename T>
 void defWindowAdd(T& window)
 {
@@ -219,7 +307,10 @@ void init_ogl(py::module_ &m)
 		.def("setAnchorBottomRight", &ogl::Text::setAnchorBottomRight)
 		.def("setAnchorRight", &ogl::Text::setAnchorRight)
 		.def("setAnchorTopRight", &ogl::Text::setAnchorTopRight)
-		.def("setTexture", &ogl::Text::setTexture);
+		.def("setTexture", &ogl::Text::setTexture)
+		.def("setBillboard", &ogl::Text::setBillboard)
+		.def("setXFlip", &ogl::Text::setXFlip)
+		.def("setYFlip", &ogl::Text::setYFlip);
 
 	py::class_<ogl::Sprite, shared_ptr<ogl::Sprite>>(m, "Sprite")
 		.def(py::init<const shared_ptr<ogl::Texture>&, const Vec2i&, bool, bool>(),
@@ -274,6 +365,10 @@ void init_ogl(py::module_ &m)
 		.def("setScrollCallback", &ogl::Window::setScrollCallback)
 		.def("loadTexture", &ogl::Window::loadTexture)
 		.def("getTextureFromImage", &ogl::Window::getTextureFromImage, py::arg("img"), py::arg("nearest")=false)
+		.def("getTextureFromImage", [](ogl::Window& w, py::buffer buf, bool nearest){
+				auto image = numpyToImageU8(buf);
+				return w.getTextureFromImage(image, nearest);
+		}, py::arg("buf"), py::arg("nearest")=false)
 		.def("getCubeTextureFromDir", &ogl::Window::getCubeTextureFromDir)
 		.def("getScreenImage", &ogl::Window::getScreenImage)
 		.def("getDepthImage", &ogl::Window::getDepthImage)
@@ -340,46 +435,6 @@ void init_ogl(py::module_ &m)
 			py::arg("gravity")=true);
 }
 #endif
-
-Color standardizeNumpyColor(py::buffer color)
-{
-	py::buffer_info info = color.request();
-	if (info.size != 3 && info.size != 4)
-		throw std::runtime_error("Color must be either 3 or 4 elements in size.");
-	if (info.format == py::format_descriptor<uint8_t>::format())
-	{
-		const uint8_t* ptr = reinterpret_cast<const uint8_t*>(info.ptr);
-		
-		if (info.size == 3)
-		{
-			Vec3 rgb(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f);
-			return Color(rgb);
-		}
-		else
-		{
-			Vec4 rgba(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f, ptr[3] / 255.0f);
-			return Color(rgba);
-		}
-	}
-	else if (info.format == py::format_descriptor<double>::format())
-	{
-		const double* ptr = reinterpret_cast<const double*>(info.ptr);
-		
-		if (info.size == 3)
-		{
-			Vec3 rgb(ptr[0], ptr[1], ptr[2]);
-			return Color(rgb);
-		}
-		else
-		{
-			Vec4 rgba(ptr[0], ptr[1], ptr[2], ptr[3]);
-			return Color(rgba);
-		}
-	}
-
-	throw std::runtime_error("Did not understand numpy color format.");
-	return Color();
-}
 
 PYBIND11_MODULE(_core, m) {
     m.doc() = R"pbdoc(
@@ -532,7 +587,7 @@ PYBIND11_MODULE(_core, m) {
 		py::arg("thresh"),
 		py::arg("cell_size"));
 	
-	py::class_<Image<uint8_t>, shared_ptr<Image<uint8_t>>>(m, "Image<uint8_t>", pybind11::buffer_protocol())
+	py::class_<Image<uint8_t>, shared_ptr<Image<uint8_t>>>(m, "Image_u8", pybind11::buffer_protocol())
 		.def_buffer([](Image<uint8_t>& img) -> pybind11::buffer_info {
 			return py::buffer_info(
 				(void*)img.getData().data(),                /* Pointer to buffer */
@@ -549,7 +604,7 @@ PYBIND11_MODULE(_core, m) {
 			);
 		});
 
-	py::class_<Image<float>, shared_ptr<Image<float>>>(m, "Image<float>", pybind11::buffer_protocol())
+	py::class_<Image<float>, shared_ptr<Image<float>>>(m, "Image_f", pybind11::buffer_protocol())
 		.def_buffer([](Image<float>& img) -> pybind11::buffer_info {
 			return py::buffer_info(
 				(void*)img.getData().data(),                /* Pointer to buffer */
@@ -576,6 +631,12 @@ PYBIND11_MODULE(_core, m) {
 		Vec4 rgba_2 = standardizeNumpyColor(color_2).getRGBA();
 		return generateCheckerboardImage(size, n_cells, rgba_1, rgba_2);
 	}, py::arg("size"), py::arg("n_cells"), py::arg("color_1"), py::arg("color_2"));
+
+	m.def("generateGradientImage", [](const Vec2i& size, const py::buffer color_1, py::buffer color_2){
+		Vec4 rgba_1 = standardizeNumpyColor(color_1).getRGBA();
+		Vec4 rgba_2 = standardizeNumpyColor(color_2).getRGBA();
+		return generateGradientImage(size, rgba_1, rgba_2);
+	}, py::arg("size"), py::arg("color_1"), py::arg("color_2"));
 
 	py::class_<ShowMetadata>(m, "ShowMetadata");
 
@@ -763,49 +824,7 @@ PYBIND11_MODULE(_core, m) {
 	py::class_<Sprite, shared_ptr<Sprite>>(m, "Sprite")
 		.def(py::init<string,bool>(), py::arg("path"), py::arg("nearest")=false)
 		.def(py::init([](py::buffer buf, bool nearest){
-				py::buffer_info info = buf.request();
-
-				bool is_contiguous = true;
-				ssize_t expected_stride = info.itemsize;
-				for (ssize_t i = info.ndim - 1; i >= 0; --i) {
-					if (info.strides[i] != expected_stride) {
-						is_contiguous = false;
-						break;
-					}
-					expected_stride *= info.shape[i];
-				}
-
-				if (!is_contiguous)
-				{
-					throw std::runtime_error("Sprite only supports contiguous arrays.");
-				}
-
-				int channels = 1;
-				if (info.shape.size() > 2)
-					channels = info.shape[2];
-				
-				Image<uint8_t> image(info.shape[1], info.shape[0], channels);
-				
-				if (info.format == py::format_descriptor<uint8_t>::format())
-					image.copyFromBuffer(reinterpret_cast<const char*>(info.ptr), info.size);
-				else if (info.format == py::format_descriptor<double>::format())
-				{
-					const double* ptr = reinterpret_cast<const double*>(info.ptr);
-					
-					for (int i = 0; i < info.shape[0]; i++)
-					{
-						for (int j = 0; j < info.shape[1]; j++)
-						{
-							const double* vec_ptr = ptr + i * info.shape[1] * channels + j * channels;
-							image(j,i) = Vec3u(vec_ptr[0]*255, vec_ptr[1]*255, vec_ptr[2]*255);
-						}
-					}
-				}
-				else
-				{
-					throw std::runtime_error("Sprite only supports uint8 or double typed arrays.");
-				}
-
+				auto image = numpyToImageU8(buf);
 				return make_shared<Sprite>(image, nearest);
 		}), py::arg("buf"), py::arg("nearest")=false);
 

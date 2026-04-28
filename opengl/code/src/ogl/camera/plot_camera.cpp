@@ -843,6 +843,11 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 	{
 		int tick_index = curr_content_inner_min[0] / tick_res[0];
 		int tick_line_index = 0;
+
+		if (tick_index * tick_res[0] < curr_content_inner_min[0])
+		{
+			tick_index++;
+		}
 		
 		for (auto& tick_node : vert_lines)
 			tick_node->setShow(false);
@@ -851,14 +856,9 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 			text_node->setShow(false);
 		
 		while (true)
-		{
+		{	
 			float value = tick_index * tick_res[0];
-			if (value < curr_content_inner_min[0])
-			{
-				tick_index++;
-				continue;
-			}
-			
+
 			if (value > curr_content_inner_max[0])
 				break;
 			
@@ -898,12 +898,20 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 			
 			tick_line_index++;
 			tick_index++;
+
+			if (tick_line_index > 200) // Handles cases where the math underflows
+				break;
 		}
 	}
 	
 	{
 		int tick_index = curr_content_inner_min[1] / tick_res[1];
 		int tick_line_index = 0;
+
+		if (tick_index * tick_res[1] < curr_content_inner_min[1])
+		{
+			tick_index++;
+		}
 		
 		for (auto& tick_node : horiz_lines)
 			tick_node->setShow(false);
@@ -914,11 +922,6 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 		while (true)
 		{
 			float value = tick_index * tick_res[1];
-			if (value < curr_content_inner_min[1])
-			{
-				tick_index++;
-				continue;
-			}
 			
 			if (value > curr_content_inner_max[1])
 				break;
@@ -958,6 +961,9 @@ void PlotCamera::update(Window& window, float dt, const ControlInfo& control_inf
 			
 			tick_line_index++;
 			tick_index++;
+
+			if (tick_line_index > 200) // Handles cases where the math underflows
+				break;
 		}
 	}
 }

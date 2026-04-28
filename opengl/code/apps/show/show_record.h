@@ -38,6 +38,7 @@ struct ShowRecord
 	shared_ptr<Texture> text_tex;
 	int exit_counter = 0;
 	bool keep_windows_hidden = false;
+	bool screenshot_mode = false;
 	
 	// Object management
 	unordered_map<ObjectID, shared_ptr<RenderNode>> objects_by_id;
@@ -153,7 +154,14 @@ struct ShowRecord
 		NetworkManager* net_manager_ptr = NULL;
 		if (network_mode)
 			net_manager_ptr = &net_manager;
-		windows[window_id]->setup(data, base_window_id, conn_id, net_manager_ptr, assets, network_mode, keep_windows_hidden);
+		windows[window_id]->setup(data, 
+			base_window_id, 
+			conn_id, 
+			net_manager_ptr, 
+			assets, 
+			network_mode, 
+			keep_windows_hidden,
+			screenshot_mode);
 
 		if (!video_path.empty())
 		{
