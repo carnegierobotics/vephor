@@ -283,6 +283,39 @@ public:
         return {r, g, b, a};
     }
 
+    const Vec3 getHSL() {
+        Vec3 rgb = getRGB();
+
+        Eigen::Array3f x = rgb.array();
+        float r = x[0], g = x[1], b = x[2];
+
+        float cmax = std::max({r, g, b});
+        float cmin = std::min({r, g, b});
+        float delta = cmax - cmin;
+
+        float L = 0.5f * (cmax + cmin);
+
+        float S = 0.0f;
+        if (delta > 1e-8f) {
+            float denom = std::max(1.0f - std::abs(2.0f * L - 1.0f), 1e-8f);
+            S = delta / denom;
+        }
+
+        float H = 0.0f;
+        if (delta > 1e-8f) {
+            if (cmax == r) {
+                float h = (g - b) / delta;
+                H = 60.0f * std::fmod(h + 6.0f, 6.0f);
+            } else if (cmax == g) {
+                H = 60.0f * ((b - r) / delta + 2.0f);
+            } else {
+                H = 60.0f * ((r - g) / delta + 4.0f);
+            }
+        }
+
+        return Vec3(H, S, L);
+    }
+
     float getAlpha() const
     {
         return a;

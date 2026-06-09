@@ -521,6 +521,7 @@ PYBIND11_MODULE(_core, m) {
 		.def_static("random", &Color::random)
 		.def("getRGB", &Color::getRGB)
 		.def("getRGBA", &Color::getRGBA)
+		.def("getHSL", &Color::getHSL)
 		.def("getAlpha", &Color::getAlpha);
 	py::class_<Solid>(m, "Solid");
 		
@@ -1202,8 +1203,9 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color"),
 			py::arg("thickness")=0
 		)
-		.def("circle", [](Plot& p, const Vec2& center, float rad, const Vec3& color, float thickness, int slices){
-				p.circle(center, rad, color, thickness, slices);
+		.def("circle", [](Plot& p, const Vec2& center, float rad, py::buffer color, float thickness, int slices){
+				auto color_v4 = standardizeNumpyColor(color);
+				p.circle(center, rad, color_v4, thickness, slices);
 			},
 			py::arg("center"),
 			py::arg("rad"),
@@ -1211,40 +1213,45 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("thickness")=0,
 			py::arg("slices")=16
 		)
-		.def("arrow", [](Plot& p, const Vec2& start, const Vec2& end, const Vec3& color, float radius){
-				p.arrow(start, end, color, radius);
+		.def("arrow", [](Plot& p, const Vec2& start, const Vec2& end, py::buffer color, float radius){
+				auto color_v4 = standardizeNumpyColor(color);
+				p.arrow(start, end, color_v4, radius);
 			},
 			py::arg("start"),
 			py::arg("end"),
 			py::arg("color"),
 			py::arg("radius")=1.0
 		)
-		.def("arrowhead", [](Plot& p, const Vec2& center, float heading, const Vec3& color, float radius){
-				p.arrowhead(center, heading, color, radius);
+		.def("arrowhead", [](Plot& p, const Vec2& center, float heading, py::buffer color, float radius){
+				auto color_v4 = standardizeNumpyColor(color);
+				p.arrowhead(center, heading, color_v4, radius);
 			},
 			py::arg("center"),
 			py::arg("heading"),
 			py::arg("color"),
 			py::arg("radius")=1.0
 		)
-		.def("rect", [](Plot& p, const Vec2& center, const Vec2& size, const Vec3& color, float thickness){
-				p.rect(center, size[0], size[1], color, thickness);
+		.def("rect", [](Plot& p, const Vec2& center, const Vec2& size, py::buffer color, float thickness){
+				auto color_v4 = standardizeNumpyColor(color);
+				p.rect(center, size[0], size[1], color_v4, thickness);
 			},
 			py::arg("center"),
 			py::arg("size"),
 			py::arg("color"),
 			py::arg("thickness")=0
 		)
-		.def("rect_min_max", [](Plot& p, const Vec2& min, const Vec2& max, const Vec3& color, float thickness){
-				p.rectMinMax(min, max, color, thickness);
+		.def("rect_min_max", [](Plot& p, const Vec2& min, const Vec2& max, py::buffer color, float thickness){
+				auto color_v4 = standardizeNumpyColor(color);
+				p.rectMinMax(min, max, color_v4, thickness);
 			},
 			py::arg("min"),
 			py::arg("max"),
 			py::arg("color"),
 			py::arg("thickness")=0
 		)
-		.def("line", [](Plot& p, const Vec2& start, const Vec2& end, const Vec3& color, float thickness){
-				p.line(start, end, color, thickness);
+		.def("line", [](Plot& p, const Vec2& start, const Vec2& end, py::buffer color, float thickness){
+				auto color_v4 = standardizeNumpyColor(color);
+				p.line(start, end, color_v4, thickness);
 			},
 			py::arg("start"),
 			py::arg("end"),
@@ -1253,7 +1260,7 @@ PYBIND11_MODULE(_core, m) {
 		)
 		.def("line", [](Plot& p,
 				const MatX& verts,
-				const Vec3& color,
+				py::buffer color,
 				float thickness
 			){
 				if (verts.cols() != 2)
@@ -1265,7 +1272,9 @@ PYBIND11_MODULE(_core, m) {
 				for (int r = 0; r < verts.rows(); r++)
 					inner_verts.push_back(verts.row(r));
 
-				p.line(inner_verts, color, thickness);
+				auto color_v4 = standardizeNumpyColor(color);
+
+				p.line(inner_verts, color_v4, thickness);
 			},
 			py::arg("verts"),
 			py::arg("color"),
