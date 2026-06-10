@@ -15,11 +15,28 @@ import numpy as np
 import time
 import vephor as v4
 
-metadata = ShowMetadata()
+metadata = v4.ShowMetadata()
 metadata.app_name = "test_add_viz_controls"
-metadata.flags["Add Window"].toggle = False
-metadata.flags["Add Plot"].toggle = False
-v4.Window.setServerMode(port=8921, metadata=metadata)
+metadata.setFlag("Add Window", False)
+metadata.setFlag("Add Plot", False)
+v4.Window.setServerMode(port=8921, show_metadata=metadata)
 
-while True:
+windows = []
+plots = []
+
+exit = False
+while not exit:
+    if v4.Window.checkAndConsumeFlag("Add Window"):
+        windows.append(v4.Window(1000,1000,f"Window {len(windows)}"))
+    if v4.Window.checkAndConsumeFlag("Add Plot"):
+        plots.append(v4.Plot(f"Plot {len(plots)}"))
+
+    for w in windows:
+        if not w.render(False):
+            exit = True
+
+    for p in plots:
+        if not p.show(False):
+            exit = True
+
     time.sleep(0.01)

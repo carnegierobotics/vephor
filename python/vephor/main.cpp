@@ -639,7 +639,16 @@ PYBIND11_MODULE(_core, m) {
 		return generateGradientImage(size, rgba_1, rgba_2);
 	}, py::arg("size"), py::arg("color_1"), py::arg("color_2"));
 
-	py::class_<ShowMetadata>(m, "ShowMetadata");
+	py::class_<ShowFlag>(m, "ShowFlag")
+		.def(py::init<>())
+		.def_readwrite("toggle", &ShowFlag::toggle);
+
+	py::class_<ShowMetadata>(m, "ShowMetadata")
+		.def(py::init<>())
+		.def_readwrite("app_name", &ShowMetadata::app_name)
+		.def("setFlag", [](ShowMetadata& s, const std::string& name, bool toggle){
+			s.flags[name].toggle = toggle;
+		});
 
 	py::class_<Axes, shared_ptr<Axes>>(m, "Axes")
         .def(py::init<float>(),py::arg("size")=1.0f)
@@ -931,6 +940,7 @@ PYBIND11_MODULE(_core, m) {
 		.def_static("setServerModeBYOC", &Window::setServerModeBYOC, 
 			py::arg("record_also")=false,
 			py::arg("record_path")="")
+		.def_static("checkAndConsumeFlag", &Window::checkAndConsumeFlag)
 		.def("getWindowTopLeftNode", &Window::getWindowTopLeftNode)
 		.def("getWindowTopNode", &Window::getWindowTopNode)
 		.def("getWindowTopRightNode", &Window::getWindowTopRightNode)
