@@ -1149,22 +1149,26 @@ function updateConnectionListUI(connections) {
 function selectActiveFeed(connId) {
     state.activeConnId = connId;
     console.log(`[UI] Active feed switched to Connection: ${connId}`);
-    
+
     // Recalculate grid splits for this connection's panels
     updateCanvasGrid();
-    
+
     // Sync telemetry labels
     document.getElementById('tel-source').textContent = `Conn ${connId}`;
-    
+
     // Sync active flags
     if (state.activeFlags[connId]) {
         renderControlFlags(connId, state.activeFlags[connId]);
     } else {
         renderControlFlags(connId, []);
     }
-    
+
     // Request list redraw for active states
     state.ws.send(JSON.stringify({ type: 'get_connections' }));
+
+    // Request the FULL cached state payload (objects + binary buffers) from the gateway 
+    // exactly once upon feed selection to populate the late-joiner canvas!
+    state.ws.send(JSON.stringify({ type: 'request_full_state', conn_id: connId }));
 }
 
 // ==========================================
@@ -1354,8 +1358,10 @@ function parseScenePayload(connId, header, payloads) {
             const mesh = panel.feedObjects[obj.id];
             if (!mesh) return;
             
-            const parentName = obj.pose_parent;
-            if (parentName) {
+            if (obj.pose_parent !== undefined && obj.pose_parent !== null) {
+                // Explicitly cast to string because C++ sends integer IDs but JS dict keys are strings!
+                const parentName = String(obj.pose_parent);
+                
                 const anchors = [
                     "window_top_left", "window_top", "window_top_right",
                     "window_left", "window_center", "window_right",
@@ -1374,27 +1380,13 @@ function parseScenePayload(connId, header, payloads) {
                         parentNode.add(mesh);
                     }
                 }
-            } else {
-                // No parent: ensure it's parented to the default group (main or HUD)
+            } else if (!mesh.parent) {
+                // If C++ omitted pose_parent (because it hasn't changed), DO NOT unparent it!
+                // Only if the mesh currently has NO parent (e.g. freshly created) do we apply root fallbacks.
                 if (obj.overlay) {
-                    let isUnderHUD = (mesh.parent === panel.feedHUDGroup);
-                    if (!isUnderHUD && mesh.parent) {
-                        const anchors = [
-                            "window_top_left", "window_top", "window_top_right",
-                            "window_left", "window_center", "window_right",
-                            "window_bottom_left", "window_bottom", "window_bottom_right"
-                        ];
-                        if (anchors.includes(mesh.parent.name)) {
-                            isUnderHUD = true;
-                        }
-                    }
-                    if (!isUnderHUD) {
-                        panel.feedHUDGroup.add(mesh);
-                    }
+                    panel.feedHUDGroup.add(mesh);
                 } else {
-                    if (mesh.parent !== panel.feedGroup) {
-                        panel.feedGroup.add(mesh);
-                    }
+                    panel.feedGroup.add(mesh);
                 }
             }
         });

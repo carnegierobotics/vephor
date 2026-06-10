@@ -206,25 +206,9 @@ async def handle_tcp_incoming_stream(reader, writer, conn_id, peer, direction):
                             else:
                                 connection_objects[conn_id][window_id][obj_id] = obj
                 
-            # Merge cached metadata and ALL currently active cached objects for this window_id into this frame's payload
-            metadata = connection_metadata.get(conn_id, {}).get(window_id, {})
-            if metadata:
-                if isinstance(data, dict):
-                    for key, val in metadata.items():
-                        if key not in data:
-                            data[key] = val
-                else:
-                    for key, val in metadata.items():
-                        if key not in header:
-                            header[key] = val
-                            
-            # Always broadcast the full state list of active objects for this window to the browser
-            active_objs = connection_objects.get(conn_id, {}).get(window_id, {})
-            if active_objs:
-                if isinstance(data, dict):
-                    data["objects"] = list(active_objs.values())
-                else:
-                    header["objects"] = list(active_objs.values())
+            # We explicitly DO NOT merge the cached metadata or cached objects into this live frame.
+            # To sustain 60 FPS under heavy data loads, the gateway only broadcasts the incremental 
+            # frame directly from C++. Late-joining browsers must request the full cache explicitly.
                 
             # 5. Read payloads
             payloads_base64 = []
@@ -259,9 +243,6 @@ async def handle_tcp_incoming_stream(reader, writer, conn_id, peer, direction):
             # If C++ sent new binary payloads, cache them per window_id
             if payloads_base64:
                 connection_payloads.setdefault(conn_id, {})[window_id] = payloads_base64
-            else:
-                # If C++ sent no payloads, merge the cached ones so the browser has access to the vertex buffers
-                payloads_base64 = connection_payloads.get(conn_id, {}).get(window_id, [])
                 
             # Broadcast to WebSockets
             ws_msg = json.dumps({
@@ -360,6 +341,29 @@ async def handle_websocket_message(ws, msg_str):
                 "type": "connection_list",
                 "connections": get_serialized_connection_list()
             }))
+            
+        elif msg_type == "request_full_state":
+            # Client specifically requested the FULL active cached state (late-joiners / feed switchers)
+            cid = int(msg.get("conn_id"))
+            with conn_lock:
+                for window_id in connection_metadata.get(cid, {}).keys():
+                    header = {"window_id": window_id}
+                    metadata = connection_metadata[cid][window_id]
+                    header.update(metadata)
+                    
+                    active_objs = connection_objects.get(cid, {}).get(window_id, {})
+                    header["objects"] = list(active_objs.values())
+                    
+                    payloads = connection_payloads.get(cid, {}).get(window_id, [])
+                    
+                    ws_msg = json.dumps({
+                        "type": "scene",
+                        "conn_id": cid,
+                        "header": header,
+                        "payloads": payloads
+                    })
+                    # Send only to the requesting client, bypassing the global broadcast loop
+                    asyncio.create_task(ws.send(ws_msg))
             
         elif msg_type == "connect_target":
             # Browser requested connecting as client to a remote Vephor server
