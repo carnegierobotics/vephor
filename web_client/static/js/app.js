@@ -183,6 +183,13 @@ function createPanel(connId, windowId, title) {
     const feedGroup = new THREE.Group();
     scene.add(feedGroup);
     
+    // Create the yellow orbit point indicator sphere
+    const orbitGeom = new THREE.SphereGeometry(1, 16, 16);
+    const orbitMat = new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true, transparent: true, opacity: 0.5 });
+    const orbitPointSphere = new THREE.Mesh(orbitGeom, orbitMat);
+    orbitPointSphere.visible = false;
+    scene.add(orbitPointSphere);
+    
     const panel = {
         connId,
         windowId,
@@ -201,6 +208,7 @@ function createPanel(connId, windowId, title) {
         axesHelper,
         feedGroup,
         feedHUDGroup,
+        orbitPointSphere,
         feedObjects: {},
         objectCounters: {},
         wireframe: state.wireframe,
@@ -212,6 +220,7 @@ function createPanel(connId, windowId, title) {
         
         // Custom Right-Click Drag Scaling parameters
         isRightDragging: false,
+        isLeftDragging: false,
         dragStartMouse: new THREE.Vector2(),
         dragStartFrustum: { left: 0, right: 0, top: 0, bottom: 0 }
     };
@@ -241,10 +250,16 @@ function createPanel(connId, windowId, title) {
             } else {
                 panel.dragStartCamPos = panel.camera.position.clone();
                 panel.controls.enableDamping = false;
+                panel.orbitPointSphere.visible = true; // Show yellow trackball anchor on rotate!
             }
             
             // Capture pointer globally for this card element (modern Web standard)
             panel.card.setPointerCapture(e.pointerId);
+        } else if (e.button === 0) { // Left Click (Pan)
+            if (!panel.is2DPlotMode) {
+                panel.isLeftDragging = true;
+                panel.orbitPointSphere.visible = true; // Show yellow trackball anchor on pan!
+            }
         }
     }, true);
     
@@ -325,7 +340,7 @@ function createPanel(connId, windowId, title) {
     
     // 3. Pointer up right-click release hook
     panel.card.addEventListener('pointerup', (e) => {
-        if (panel.isRightDragging && e.button === 2) {
+        if (e.button === 2 && panel.isRightDragging) {
             panel.isRightDragging = false;
             
             // Release pointer capture
@@ -338,7 +353,11 @@ function createPanel(connId, windowId, title) {
                 panel.orthoControls.enableDamping = true;
             } else {
                 panel.controls.enableDamping = true;
+                panel.orbitPointSphere.visible = false;
             }
+        } else if (e.button === 0 && panel.isLeftDragging) {
+            panel.isLeftDragging = false;
+            panel.orbitPointSphere.visible = false;
         }
     });
     
@@ -634,6 +653,17 @@ function animate() {
             
             // Choose correct active camera (Ortho flat projection vs Perspective 3D)
             const activeCam = panel.is2DPlotMode ? panel.orthoCamera : panel.camera;
+            
+            // Dynamic Trackball Orbit Point Sphere alignment and scaling (matching C++ orbit_point_scene_scale_mult = 1.0/100.0)
+            if (!panel.is2DPlotMode && panel.orbitPointSphere.visible) {
+                const target = panel.controls.target;
+                panel.orbitPointSphere.position.copy(target);
+                
+                // Scale sphere dynamically based on distance to camera to maintain constant visual screen-space size
+                const dist = panel.camera.position.distanceTo(target);
+                const scale = dist * (1.0 / 100.0);
+                panel.orbitPointSphere.scale.set(scale, scale, scale);
+            }
             
             // 1. Render main scene pass
             panel.renderer.clear();
