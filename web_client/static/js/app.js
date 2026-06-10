@@ -101,6 +101,13 @@ function createPanel(connId, windowId, title) {
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     
+    // Remap standard 3D mouse buttons so that LEFT click drags to PAN, and RIGHT click rotates!
+    controls.mouseButtons = {
+        LEFT: THREE.MOUSE.PAN,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.ROTATE
+    };
+    
     // Create Controls (Orthographic camera for flat 2D plotting)
     const orthoControls = new THREE.OrbitControls(orthoCamera, renderer.domElement);
     orthoControls.enableDamping = true;
@@ -175,6 +182,7 @@ function createPanel(connId, windowId, title) {
         gridEnabled: state.gridEnabled,
         axesEnabled: state.axesEnabled,
         is2DPlotMode: false,
+        hasAutoFitted: false,
         
         // Custom Right-Click Drag Scaling parameters
         isRightDragging: false,
@@ -1103,6 +1111,15 @@ function parseScenePayload(connId, header, payloads) {
                 }
             }
         });
+        
+        // Auto-fit bounds on startup (once we have received the first set of visual objects for this panel!)
+        if (!panel.hasAutoFitted && Object.keys(panel.objectCounters).length > 0) {
+            panel.hasAutoFitted = true;
+            // Small delay to ensure WebGL contexts, DOM, and buffers are fully loaded for perfect framing
+            setTimeout(() => {
+                autoFitPanelBounds(panel);
+            }, 100);
+        }
     }
     
     // Update active object counts in telemetry (sum across active connection panels)
@@ -1663,42 +1680,48 @@ function triggerCameraPreset(preset) {
     });
 }
 
+function autoFitPanelBounds(panel) {
+    const box = new THREE.Box3().setFromObject(panel.feedGroup);
+    if (box.isEmpty()) return false;
+    
+    const sphere = box.getBoundingSphere(new THREE.Sphere());
+    const radius = sphere.radius;
+    const center = sphere.center;
+    
+    if (panel.is2DPlotMode) {
+        panel.orthoControls.target.copy(center);
+        
+        // Adjust ortho camera frustum bounds to encase sphere radius
+        const aspect = panel.card.clientWidth / panel.card.clientHeight;
+        const padRadius = radius * 1.25;
+        
+        panel.orthoCamera.left = -padRadius * aspect;
+        panel.orthoCamera.right = padRadius * aspect;
+        panel.orthoCamera.top = padRadius;
+        panel.orthoCamera.bottom = -padRadius;
+        panel.orthoCamera.updateProjectionMatrix();
+        panel.orthoControls.update();
+    } else {
+        panel.controls.target.copy(center);
+        
+        const fov = panel.camera.fov * (Math.PI / 180);
+        let cameraDist = Math.abs(radius / Math.sin(fov / 2)) * 1.25;
+        
+        const dir = new THREE.Vector3().subVectors(panel.camera.position, panel.controls.target).normalize();
+        panel.camera.position.copy(dir).multiplyScalar(cameraDist).add(panel.controls.target);
+        
+        panel.camera.lookAt(center);
+        panel.controls.update();
+    }
+    return true;
+}
+
 function autoFitSceneBounds() {
     let fitted = false;
     Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
-        const box = new THREE.Box3().setFromObject(panel.feedGroup);
-        if (box.isEmpty()) return;
-        
-        const sphere = box.getBoundingSphere(new THREE.Sphere());
-        const radius = sphere.radius;
-        const center = sphere.center;
-        
-        if (panel.is2DPlotMode) {
-            panel.orthoControls.target.copy(center);
-            
-            // Adjust ortho camera frustum bounds to encase sphere radius
-            const aspect = panel.card.clientWidth / panel.card.clientHeight;
-            const padRadius = radius * 1.25;
-            
-            panel.orthoCamera.left = -padRadius * aspect;
-            panel.orthoCamera.right = padRadius * aspect;
-            panel.orthoCamera.top = padRadius;
-            panel.orthoCamera.bottom = -padRadius;
-            panel.orthoCamera.updateProjectionMatrix();
-            panel.orthoControls.update();
-        } else {
-            panel.controls.target.copy(center);
-            
-            const fov = panel.camera.fov * (Math.PI / 180);
-            let cameraDist = Math.abs(radius / Math.sin(fov / 2)) * 1.25;
-            
-            const dir = new THREE.Vector3().subVectors(panel.camera.position, panel.controls.target).normalize();
-            panel.camera.position.copy(dir).multiplyScalar(cameraDist).add(panel.controls.target);
-            
-            panel.camera.lookAt(center);
-            panel.controls.update();
+        if (autoFitPanelBounds(panel)) {
+            fitted = true;
         }
-        fitted = true;
     });
     
     if (fitted) {

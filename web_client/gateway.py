@@ -145,36 +145,45 @@ async def handle_tcp_incoming_stream(reader, writer, conn_id, peer, direction):
             # Parse and cache metadata to support browser client late-joining
             data = header.get("data") if isinstance(header, dict) else None
             
+            # Extract window_id (Window 1 has ID 0 which is omitted, so default to 0)
+            window_id = 0
+            if isinstance(data, dict):
+                window_id = data.get("window_id", 0)
+            elif isinstance(header, dict):
+                window_id = header.get("window_id", 0)
+            
             def cache_metadata(source_dict):
                 if not isinstance(source_dict, dict):
                     return
                 for key in ["window", "camera", "flags"]:
                     if key in source_dict and source_dict[key]:
-                        connection_metadata.setdefault(conn_id, {})[key] = source_dict[key]
+                        connection_metadata.setdefault(conn_id, {}).setdefault(window_id, {})[key] = source_dict[key]
             
             cache_metadata(header)
             if data:
                 cache_metadata(data)
                 
-            # Parse and cache active visual objects (handles C++'s incremental frames)
+            # Parse and cache active visual objects per window_id (handles C++'s incremental frames)
             deletes_to_clean = []
             if data and "objects" in data and isinstance(data["objects"], list):
                 if conn_id not in connection_objects:
                     connection_objects[conn_id] = {}
+                if window_id not in connection_objects[conn_id]:
+                    connection_objects[conn_id][window_id] = {}
                 for obj in data["objects"]:
                     obj_id = obj.get("id")
                     if obj_id is not None:
                         if obj.get("destroy"):
-                            connection_objects[conn_id][obj_id] = obj
+                            connection_objects[conn_id][window_id][obj_id] = obj
                             deletes_to_clean.append(obj_id)
                         else:
-                            if obj_id in connection_objects[conn_id]:
-                                connection_objects[conn_id][obj_id].update(obj)
+                            if obj_id in connection_objects[conn_id][window_id]:
+                                connection_objects[conn_id][window_id][obj_id].update(obj)
                             else:
-                                connection_objects[conn_id][obj_id] = obj
+                                connection_objects[conn_id][window_id][obj_id] = obj
                 
-            # Merge cached metadata and ALL currently active cached objects into this frame's payload
-            metadata = connection_metadata.get(conn_id, {})
+            # Merge cached metadata and ALL currently active cached objects for this window_id into this frame's payload
+            metadata = connection_metadata.get(conn_id, {}).get(window_id, {})
             if metadata:
                 if isinstance(data, dict):
                     for key, val in metadata.items():
@@ -185,8 +194,8 @@ async def handle_tcp_incoming_stream(reader, writer, conn_id, peer, direction):
                         if key not in header:
                             header[key] = val
                             
-            # Always broadcast the full state list of active objects to the browser
-            active_objs = connection_objects.get(conn_id, {})
+            # Always broadcast the full state list of active objects for this window to the browser
+            active_objs = connection_objects.get(conn_id, {}).get(window_id, {})
             if active_objs:
                 if isinstance(data, dict):
                     data["objects"] = list(active_objs.values())
@@ -222,7 +231,7 @@ async def handle_tcp_incoming_stream(reader, writer, conn_id, peer, direction):
             
             # Post-serialization cleanup: purge explicitly deleted objects from the cache
             for obj_id in deletes_to_clean:
-                connection_objects[conn_id].pop(obj_id, None)
+                connection_objects[conn_id].get(window_id, {}).pop(obj_id, None)
             
             # Fast broadcast
             if ws_clients:
