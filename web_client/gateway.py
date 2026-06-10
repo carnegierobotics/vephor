@@ -25,6 +25,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 active_connections = {}
 connection_metadata = {}
 connection_objects = {}
+connection_payloads = {}
 conn_counter = 1
 ws_clients = set()
 
@@ -147,10 +148,10 @@ async def handle_tcp_incoming_stream(reader, writer, conn_id, peer, direction):
             
             # Extract window_id (Window 1 has ID 0 which is omitted, so default to 0)
             window_id = 0
-            if isinstance(data, dict):
-                window_id = data.get("window_id", 0)
-            elif isinstance(header, dict):
-                window_id = header.get("window_id", 0)
+            if isinstance(header, dict) and "window_id" in header:
+                window_id = header["window_id"]
+            elif isinstance(data, dict) and "window_id" in data:
+                window_id = data["window_id"]
             
             def cache_metadata(source_dict):
                 if not isinstance(source_dict, dict):
@@ -221,6 +222,13 @@ async def handle_tcp_incoming_stream(reader, writer, conn_id, peer, direction):
                 # Truncated or closed stream
                 break
                 
+            # If C++ sent new binary payloads, cache them per window_id
+            if payloads_base64:
+                connection_payloads.setdefault(conn_id, {})[window_id] = payloads_base64
+            else:
+                # If C++ sent no payloads, merge the cached ones so the browser has access to the vertex buffers
+                payloads_base64 = connection_payloads.get(conn_id, {}).get(window_id, [])
+                
             # Broadcast to WebSockets
             ws_msg = json.dumps({
                 "type": "scene",
@@ -251,6 +259,8 @@ async def handle_tcp_incoming_stream(reader, writer, conn_id, peer, direction):
                 del connection_metadata[conn_id]
             if conn_id in connection_objects:
                 del connection_objects[conn_id]
+            if conn_id in connection_payloads:
+                del connection_payloads[conn_id]
         try:
             writer.close()
             await writer.wait_closed()

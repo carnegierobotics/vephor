@@ -7,6 +7,9 @@
  * Implements pure orthographic flat 2D plotting viewports for 2D plot feeds (e.g. test_plot).
  * Features sharp HTML5 canvas overlays for coordinate grids and matplotlib-style dynamic numbered ticks.
  * Supports left-click drag to pan, scroll to zoom, and right-click drag for non-uniform X/Y axis scaling.
+ * Supports fluid HTML5 drag-and-drop to re-order panels and a draggable vertical splitter bar for custom split resizes.
+ * Supports premium CAD/Maya style nested split layouts for 3 panels with dual vertical and horizontal draggable resizing splitters!
+ * Driven by an exceptionally robust state-oriented panel order synchronization pipeline.
  */
 
 // Application State
@@ -16,6 +19,7 @@ const state = {
     // Scoped multi-window panel states:
     // keys: connId (int) -> windowId (int) -> panelObj
     panels: {},
+    panelOrder: {}, // keys: connId (int) -> Array of windowIds (int) in active layout order
     
     // Track active connection telemetry
     activeConnId: null,
@@ -30,6 +34,16 @@ const state = {
     wireframe: false,
     gridEnabled: true,
     axesEnabled: true,
+    
+    // Draggable and Resizable state parameters
+    draggedCard: null,
+    isResizingSplit: false,
+    isResizingSplitH: false,
+    dragSplitIndex: 0,
+    dragStartPos: 0,
+    dragStartSizes: [],
+    pixelsPerFr: 1,
+    gridSizes: {} // keys: connId -> { count, cols: [], rows: [] }
 };
 
 // Initial setup on DOM ready
@@ -54,6 +68,7 @@ function createPanel(connId, windowId, title) {
     const titleTag = document.createElement('div');
     titleTag.className = 'viewport-panel-title-tag';
     titleTag.textContent = title || `Show ${windowId}`;
+    titleTag.setAttribute('title', 'Drag title to re-order panels');
     card.appendChild(titleTag);
     
     container.appendChild(card);
@@ -77,7 +92,24 @@ function createPanel(connId, windowId, title) {
     // Create HUD Camera
     const hudCamera = new THREE.OrthographicCamera(0, 1, 1, 0, -1000, 1000);
     
+    // Create Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.autoClear = false;
+    
+    // Explicitly style WebGL canvas absolutely to guarantee correct compositing layer order under overlayCanvas
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0';
+    renderer.domElement.style.left = '0';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.zIndex = '1';
+    
+    card.appendChild(renderer.domElement);
+    
     // Create sharp 2D overlay canvas for coordinate grids and matplotlib-style tick marks
+    // MUST be appended AFTER renderer.domElement to be rendered on top!
     const overlayCanvas = document.createElement('canvas');
     overlayCanvas.className = 'plot-overlay-canvas';
     overlayCanvas.style.position = 'absolute';
@@ -89,13 +121,6 @@ function createPanel(connId, windowId, title) {
     overlayCanvas.style.zIndex = '4';
     card.appendChild(overlayCanvas);
     
-    // Create Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true;
-    renderer.autoClear = false;
-    card.appendChild(renderer.domElement);
-    
     // Create Controls (Perspective camera)
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -105,7 +130,7 @@ function createPanel(connId, windowId, title) {
     controls.mouseButtons = {
         LEFT: THREE.MOUSE.PAN,
         MIDDLE: THREE.MOUSE.DOLLY,
-        RIGHT: THREE.MOUSE.ROTATE
+        RIGHT: null // Disabled so we can implement exact C++ TrackballCamera parity on right-click drag!
     };
     
     // Create Controls (Orthographic camera for flat 2D plotting)
@@ -183,6 +208,7 @@ function createPanel(connId, windowId, title) {
         axesEnabled: state.axesEnabled,
         is2DPlotMode: false,
         hasAutoFitted: false,
+        orthoHeightUnits: 10,
         
         // Custom Right-Click Drag Scaling parameters
         isRightDragging: false,
@@ -190,10 +216,12 @@ function createPanel(connId, windowId, title) {
         dragStartFrustum: { left: 0, right: 0, top: 0, bottom: 0 }
     };
     
+    // ==========================================
+    // Interaction Handlers (Dragging & Scaling)
+    // ==========================================
+    
     // 1. Pointer down right-click hook (Capture phase to preempt OrbitControls)
     panel.card.addEventListener('pointerdown', (e) => {
-        if (!panel.is2DPlotMode) return;
-        
         if (e.button === 2) { // Right Click
             e.preventDefault();
             e.stopPropagation();
@@ -201,47 +229,98 @@ function createPanel(connId, windowId, title) {
             panel.isRightDragging = true;
             panel.dragStartMouse.set(e.clientX, e.clientY);
             
-            // Record initial frustum states
-            panel.dragStartFrustum.left = panel.orthoCamera.left;
-            panel.dragStartFrustum.right = panel.orthoCamera.right;
-            panel.dragStartFrustum.top = panel.orthoCamera.top;
-            panel.dragStartFrustum.bottom = panel.orthoCamera.bottom;
+            if (panel.is2DPlotMode) {
+                // Record initial frustum states
+                panel.dragStartFrustum.left = panel.orthoCamera.left;
+                panel.dragStartFrustum.right = panel.orthoCamera.right;
+                panel.dragStartFrustum.top = panel.orthoCamera.top;
+                panel.dragStartFrustum.bottom = panel.orthoCamera.bottom;
+                
+                // Disable controls damping temporarily during drag for instant responsiveness
+                panel.orthoControls.enableDamping = false;
+            } else {
+                panel.dragStartCamPos = panel.camera.position.clone();
+                panel.controls.enableDamping = false;
+            }
             
             // Capture pointer globally for this card element (modern Web standard)
             panel.card.setPointerCapture(e.pointerId);
-            
-            // Disable controls damping temporarily during drag for instant responsiveness
-            panel.orthoControls.enableDamping = false;
         }
     }, true);
     
     // 2. Pointer move right-click drag scaling hook
     panel.card.addEventListener('pointermove', (e) => {
-        if (!panel.is2DPlotMode || !panel.isRightDragging) return;
+        if (!panel.isRightDragging) return;
         
         const deltaX = e.clientX - panel.dragStartMouse.x;
         const deltaY = e.clientY - panel.dragStartMouse.y;
         
-        // C++ style exponential stretching
-        // Dragging right/down zooms in (shrinks bounds), left/up zooms out (grows bounds)
-        const factorX = Math.exp(-deltaX / 150);
-        const factorY = Math.exp(deltaY / 150); // Y screen coords are inverted
-        
-        const f = panel.dragStartFrustum;
-        const centerX = (f.left + f.right) / 2;
-        const centerY = (f.bottom + f.top) / 2;
-        
-        const spanX = (f.right - f.left) * factorX;
-        const spanY = (f.top - f.bottom) * factorY;
-        
-        panel.orthoCamera.left = centerX - spanX / 2;
-        panel.orthoCamera.right = centerX + spanX / 2;
-        panel.orthoCamera.top = centerY + spanY / 2;
-        panel.orthoCamera.bottom = centerY - spanY / 2;
-        panel.orthoCamera.updateProjectionMatrix();
-        
-        // Sync OrbitControls coordinates
-        panel.orthoControls.update();
+        if (panel.is2DPlotMode) {
+            // C++ style exponential stretching
+            // Dragging right/down zooms in (shrinks bounds), left/up zooms out (grows bounds)
+            const factorX = Math.exp(-deltaX / 150);
+            const factorY = Math.exp(deltaY / 150); // Y screen coords are inverted
+            
+            const f = panel.dragStartFrustum;
+            const centerX = (f.left + f.right) / 2;
+            const centerY = (f.bottom + f.top) / 2;
+            
+            const spanX = (f.right - f.left) * factorX;
+            const spanY = (f.top - f.bottom) * factorY;
+            
+            panel.orthoCamera.left = centerX - spanX / 2;
+            panel.orthoCamera.right = centerX + spanX / 2;
+            panel.orthoCamera.top = centerY + spanY / 2;
+            panel.orthoCamera.bottom = centerY - spanY / 2;
+            
+            // Track the custom stretched height units so window resizes perfectly maintain the custom scale!
+            panel.orthoHeightUnits = spanY / 2;
+            
+            panel.orthoCamera.updateProjectionMatrix();
+            
+            // Sync OrbitControls coordinates
+            panel.orthoControls.update();
+        } else {
+            // 3D TrackballCamera Parity (Turntable Mode)
+            // Mirrors the exact math of TrackballCamera::update from the C++ library
+            const offset = new THREE.Vector3().subVectors(panel.dragStartCamPos, panel.controls.target);
+            const offsetMag = offset.length();
+            
+            const up = panel.camera.up.clone().normalize();
+            
+            // Replicate C++ findCrossVec to establish a static rotation reference frame
+            const fore = new THREE.Vector3(1, 0, 0);
+            if (Math.abs(up.x) > 0.9) fore.set(0, 1, 0);
+            fore.cross(up).normalize();
+            
+            // trackball_right = trackball_up x trackball_fore
+            const right = new THREE.Vector3().crossVectors(up, fore).normalize();
+            
+            // Calculate absolute initial Euler angles relative to this static frame
+            const rightDot = right.dot(offset);
+            const foreDot = fore.dot(offset);
+            
+            let pitch = -Math.atan2(up.dot(offset), Math.sqrt(rightDot * rightDot + foreDot * foreDot));
+            let yaw = -Math.atan2(rightDot, foreDot);
+            
+            // Apply mouse deltas precisely identical to C++ scaling constants
+            yaw += deltaX / 100.0;
+            pitch -= deltaY / 100.0;
+            
+            // Clamp pitch to strictly prevent gimbal flips over the poles
+            const limit = Math.PI / 2 - 1e-3;
+            if (pitch > limit) pitch = limit;
+            else if (pitch < -limit) pitch = -limit;
+            
+            // Reconstruct offset: Orient3(-up * yaw) * Orient3(pitch * right) * (offsetMag * fore)
+            const newOffset = fore.clone().multiplyScalar(offsetMag);
+            newOffset.applyAxisAngle(right, pitch); // Pitch around static right vector
+            newOffset.applyAxisAngle(up, -yaw);     // Yaw around static up vector (inverted angle per C++ formula)
+            
+            panel.camera.position.copy(panel.controls.target).add(newOffset);
+            panel.camera.lookAt(panel.controls.target);
+            panel.controls.update(); // Synchronize OrbitControls internal state seamlessly!
+        }
     });
     
     // 3. Pointer up right-click release hook
@@ -255,18 +334,80 @@ function createPanel(connId, windowId, title) {
             } catch (err) {}
             
             // Restore smooth damping physics
-            panel.orthoControls.enableDamping = true;
+            if (panel.is2DPlotMode) {
+                panel.orthoControls.enableDamping = true;
+            } else {
+                panel.controls.enableDamping = true;
+            }
         }
     });
     
     // 4. Suppress context menu popup when right clicking on the card (Capture phase to block completely)
     panel.card.addEventListener('contextmenu', (e) => {
-        if (panel.is2DPlotMode) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+        // Block context menu for both 2D and 3D so right-click can be used natively
+        e.preventDefault();
+        e.stopPropagation();
     }, true);
     
+    // ==========================================
+    // HTML5 Drag-and-Drop Re-order Handlers
+    // ==========================================
+    card.setAttribute('draggable', 'true');
+    
+    card.addEventListener('dragstart', (e) => {
+        // Only allow dragging when initiated from the title tag boundary
+        if (e.target.className === 'viewport-panel-title-tag' || e.offsetY < 40) {
+            e.dataTransfer.setData('text/plain', `${connId}-${windowId}`);
+            card.style.opacity = '0.4';
+            state.draggedCard = card;
+        } else {
+            e.preventDefault(); // Block dragging inside WebGL viewport to prevent conflict
+        }
+    });
+    
+    card.addEventListener('dragend', () => {
+        card.style.opacity = '1.0';
+        state.draggedCard = null;
+        document.querySelectorAll('.viewport-panel-card').forEach(c => c.classList.remove('drag-over'));
+    });
+    
+    card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (state.draggedCard && state.draggedCard !== card) {
+            card.classList.add('drag-over');
+        }
+    });
+    
+    card.addEventListener('dragleave', () => {
+        card.classList.remove('drag-over');
+    });
+    
+    card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        card.classList.remove('drag-over');
+        
+        if (state.draggedCard && state.draggedCard !== card) {
+            // Extract winIds from card element IDs (panel-[connId]-[winId])
+            const winId1 = parseInt(state.draggedCard.id.split('-')[2]);
+            const winId2 = parseInt(card.id.split('-')[2]);
+            
+            const order = state.panelOrder[connId];
+            const idx1 = order.indexOf(winId1);
+            const idx2 = order.indexOf(winId2);
+            
+            if (idx1 !== -1 && idx2 !== -1) {
+                // Swap in our logical state-driven list
+                order[idx1] = winId2;
+                order[idx2] = winId1;
+                
+                // Trigger full state-driven DOM redraw
+                updateCanvasGrid();
+                
+                showToast('Panels re-arranged successfully', 'success');
+            }
+        }
+    });
+
     // Apply global defaults on creation
     gridHelper.visible = state.gridEnabled;
     axesHelper.visible = state.axesEnabled;
@@ -290,14 +431,14 @@ function resizePanel(panel) {
     panel.camera.aspect = width / height;
     panel.camera.updateProjectionMatrix();
     
-    // Update orthographic camera boundaries (maintaining 1-to-1 aspect scaling)
+    // Update orthographic camera boundaries (maintaining 1-to-1 aspect scaling and preserving custom auto-fitted height scales!)
     const aspect = width / height;
-    const frustumSize = 20; // Framed height units
+    const heightUnits = panel.orthoHeightUnits || 10;
     
-    panel.orthoCamera.left = -frustumSize * aspect / 2;
-    panel.orthoCamera.right = frustumSize * aspect / 2;
-    panel.orthoCamera.top = frustumSize / 2;
-    panel.orthoCamera.bottom = -frustumSize / 2;
+    panel.orthoCamera.left = -heightUnits * aspect;
+    panel.orthoCamera.right = heightUnits * aspect;
+    panel.orthoCamera.top = heightUnits;
+    panel.orthoCamera.bottom = -heightUnits;
     panel.orthoCamera.updateProjectionMatrix();
     
     // Update HUD Camera
@@ -357,50 +498,122 @@ function updatePanelHUDAnchors(panel, width, height) {
 
 function updateCanvasGrid() {
     const container = document.getElementById('canvas-container');
-    const activeFeedPanels = Object.values(state.panels[state.activeConnId] || {});
+    const order = state.panelOrder[state.activeConnId] || [];
+    
+    // Build active panels list in their exact logical swapped order
+    const activeFeedPanels = order
+        .map(winId => state.panels[state.activeConnId] ? state.panels[state.activeConnId][winId] : null)
+        .filter(p => p !== null && p !== undefined);
+        
     const count = activeFeedPanels.length;
+    
+    // Clear container completely to rebuild DOM grid from scratch
+    container.innerHTML = '';
     
     if (count === 0) {
         container.innerHTML = `<div class="empty-state-canvas"><i class="fa-solid fa-satellite-dish" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 15px;"></i><br>Waiting for visualizer data stream...</div>`;
         return;
     }
     
-    // Clean up empty state if rendering
-    const emptyMsg = container.querySelector('.empty-state-canvas');
-    if (emptyMsg) emptyMsg.remove();
+    const cols = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / cols);
     
-    // Set grid template based on active window count
-    if (count === 1) {
-        container.style.gridTemplateColumns = '1fr';
-        container.style.gridTemplateRows = '1fr';
-    } else if (count === 2) {
-        container.style.gridTemplateColumns = '1fr 1fr';
-        container.style.gridTemplateRows = '1fr';
-    } else {
-        const cols = Math.ceil(Math.sqrt(count));
-        const rows = Math.ceil(count / cols);
-        container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-        container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    if (!state.gridSizes) state.gridSizes = {};
+    if (!state.gridSizes[state.activeConnId] || state.gridSizes[state.activeConnId].count !== count) {
+        state.gridSizes[state.activeConnId] = {
+            count: count,
+            cols: new Array(cols).fill(1),
+            rows: new Array(rows).fill(1)
+        };
+    }
+    const sizes = state.gridSizes[state.activeConnId];
+    
+    // Setup pure CSS grid structure
+    container.style.gridTemplateColumns = sizes.cols.map(c => `${c}fr`).join(' 6px ');
+    container.style.gridTemplateRows = sizes.rows.map(r => `${r}fr`).join(' 6px ');
+    
+    // 1. Append all panel cards at precise grid coordinates
+    activeFeedPanels.forEach((panel, i) => {
+        const r = Math.floor(i / cols);
+        const c = i % cols;
+        
+        panel.card.style.gridRow = `${r * 2 + 1}`;
+        
+        // If this is the last panel, make it span any remaining columns to avoid empty holes
+        if (i === count - 1) {
+            const remainingCols = cols - c;
+            panel.card.style.gridColumn = `${c * 2 + 1} / span ${remainingCols * 2 - 1}`;
+        } else {
+            panel.card.style.gridColumn = `${c * 2 + 1}`;
+        }
+        
+        panel.card.style.display = 'block';
+        container.appendChild(panel.card);
+        
+        // Small timeout to allow DOM layout to calculate before WebGL resize
+        setTimeout(() => resizePanel(panel), 10);
+    });
+    
+    // 2. Inject Draggable Vertical Splitters
+    for (let c = 0; c < cols - 1; c++) {
+        const splitter = document.createElement('div');
+        splitter.className = 'grid-splitter';
+        splitter.style.gridColumn = `${c * 2 + 2}`;
+        splitter.style.gridRow = '1 / -1';
+        
+        splitter.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            state.isResizingSplit = true;
+            state.dragSplitIndex = c;
+            state.dragStartPos = e.clientX;
+            state.dragStartSizes = [...sizes.cols];
+            
+            const totalFr = sizes.cols.reduce((a, b) => a + b, 0);
+            const availablePixels = container.clientWidth - (cols - 1) * 6;
+            state.pixelsPerFr = availablePixels / totalFr;
+            
+            splitter.classList.add('active-dragging');
+            document.body.style.cursor = 'col-resize';
+        });
+        container.appendChild(splitter);
     }
     
-    // Manage visibility and redraws for all connections
+    // 3. Inject Draggable Horizontal Splitters
+    for (let r = 0; r < rows - 1; r++) {
+        const splitterH = document.createElement('div');
+        splitterH.className = 'grid-splitter-h';
+        splitterH.style.gridRow = `${r * 2 + 2}`;
+        splitterH.style.gridColumn = '1 / -1';
+        
+        splitterH.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            state.isResizingSplitH = true;
+            state.dragSplitIndex = r;
+            state.dragStartPos = e.clientY;
+            state.dragStartSizes = [...sizes.rows];
+            
+            const totalFr = sizes.rows.reduce((a, b) => a + b, 0);
+            const availablePixels = container.clientHeight - (rows - 1) * 6;
+            state.pixelsPerFr = availablePixels / totalFr;
+            
+            splitterH.classList.add('active-dragging');
+            document.body.style.cursor = 'row-resize';
+        });
+        container.appendChild(splitterH);
+    }
+    
+    // Hide the manual slider, as we now support infinite multi-panel drag sashes
+    const splitRatioRow = document.getElementById('split-ratio-row');
+    if (splitRatioRow) splitRatioRow.classList.add('hide');
+    
+    // Manage visibility of inactive panels
     Object.keys(state.panels).forEach(cid => {
         const c_id = parseInt(cid);
-        const feedPanels = state.panels[c_id] || {};
-        
-        Object.keys(feedPanels).forEach(winId => {
-            const panel = feedPanels[winId];
-            if (c_id === state.activeConnId) {
-                panel.card.style.display = 'block';
-                // Move element back inside container if detached
-                if (panel.card.parentNode !== container) {
-                    container.appendChild(panel.card);
-                }
-                resizePanel(panel);
-            } else {
+        if (c_id !== state.activeConnId) {
+            Object.values(state.panels[c_id]).forEach(panel => {
                 panel.card.style.display = 'none';
-            }
-        });
+            });
+        }
     });
 }
 
@@ -463,19 +676,6 @@ function drawPlotOverlay(panel) {
     
     if (!panel.is2DPlotMode) return;
     
-    // Diagnostics log to monitor active plotting children periodically (approx every 3 seconds at 60 FPS)
-    if (!panel.lastLogTime || Date.now() - panel.lastLogTime > 3000) {
-        panel.lastLogTime = Date.now();
-        console.log(`[Plot Debug] Active 3D plotting objects:`, panel.feedGroup.children.length);
-        panel.feedGroup.children.forEach(child => {
-            console.log(`  - Node ID: ${child.name}, Type: ${child.type}, Position: (${child.position.x}, ${child.position.y}, ${child.position.z}), Visible: ${child.visible}`);
-        });
-    }
-    
-    const dpr = window.devicePixelRatio || 1;
-    ctx.save();
-    ctx.scale(dpr, dpr);
-    
     const renderCam = panel.orthoCamera;
     
     // Unprojects a pixel coordinate back to 3D world space (perspective-free unprojection for Ortho camera)
@@ -498,6 +698,18 @@ function drawPlotOverlay(panel) {
         return new THREE.Vector2(x, y);
     };
     
+    // Log visible parameters once every 3 seconds
+    if (!panel.lastTickLogTime || Date.now() - panel.lastTickLogTime > 3000) {
+        panel.lastTickLogTime = Date.now();
+        const bottomLeft = pixelToWorld(0, height);
+        const topRight = pixelToWorld(width, 0);
+        console.log(`[Ticks Debug] Panel ${panel.windowId}: is2DPlotMode=${panel.is2DPlotMode}, clientSize=${width}x${height}, canvasSize=${canvas.width}x${canvas.height}, bounds=(${bottomLeft.x.toFixed(2)}, ${bottomLeft.y.toFixed(2)}) to (${topRight.x.toFixed(2)}, ${topRight.y.toFixed(2)})`);
+    }
+    
+    const dpr = window.devicePixelRatio || 1;
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    
     // Calculate world boundaries currently framed by the viewport
     const bottomLeft = pixelToWorld(0, height);
     const topRight = pixelToWorld(width, 0);
@@ -514,21 +726,38 @@ function drawPlotOverlay(panel) {
         return;
     }
     
-    // Calculate adaptive matplotlib-style grid spacing based on visible range width
+    // Calculate adaptive grid spacing for X axis
     const logX = Math.log10(rangeX);
     const powerX = Math.floor(logX);
     const fractionX = rangeX / Math.pow(10, powerX);
     
-    let spacing;
-    if (fractionX < 1.5) spacing = 0.1 * Math.pow(10, powerX);
-    else if (fractionX < 3) spacing = 0.2 * Math.pow(10, powerX);
-    else if (fractionX < 7) spacing = 0.5 * Math.pow(10, powerX);
-    else spacing = 1.0 * Math.pow(10, powerX);
+    let spacingX;
+    if (fractionX < 1.5) spacingX = 0.1 * Math.pow(10, powerX);
+    else if (fractionX < 3) spacingX = 0.2 * Math.pow(10, powerX);
+    else if (fractionX < 7) spacingX = 0.5 * Math.pow(10, powerX);
+    else spacingX = 1.0 * Math.pow(10, powerX);
     
-    const formatTick = (val) => {
+    // Calculate adaptive grid spacing for Y axis
+    const logY = Math.log10(rangeY);
+    const powerY = Math.floor(logY);
+    const fractionY = rangeY / Math.pow(10, powerY);
+    
+    let spacingY;
+    if (fractionY < 1.5) spacingY = 0.1 * Math.pow(10, powerY);
+    else if (fractionY < 3) spacingY = 0.2 * Math.pow(10, powerY);
+    else if (fractionY < 7) spacingY = 0.5 * Math.pow(10, powerY);
+    else spacingY = 1.0 * Math.pow(10, powerY);
+    
+    const formatTickX = (val) => {
         if (Math.abs(val) < 1e-10) return "0";
-        const precision = Math.max(0, -Math.floor(Math.log10(spacing)) + 1);
-        return val.toFixed(precision).replace(/\.?0+$/, ""); // Strip trailing zeros cleanly
+        const precision = Math.max(0, -Math.floor(Math.log10(spacingX)) + 1);
+        return parseFloat(val.toFixed(precision)).toString(); // Strip trailing fractional zeros safely
+    };
+    
+    const formatTickY = (val) => {
+        if (Math.abs(val) < 1e-10) return "0";
+        const precision = Math.max(0, -Math.floor(Math.log10(spacingY)) + 1);
+        return parseFloat(val.toFixed(precision)).toString(); // Strip trailing fractional zeros safely
     };
     
     // Calculate background brightness to adjust grid/label text colors dynamically
@@ -536,15 +765,15 @@ function drawPlotOverlay(panel) {
     const luminance = 0.299 * bg.r + 0.587 * bg.g + 0.114 * bg.b;
     const isDarkBg = luminance < 0.5;
     
-    const gridColor = isDarkBg ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)';
-    const textColor = isDarkBg ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.65)';
-    const axisColor = isDarkBg ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.35)';
+    const gridColor = isDarkBg ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.22)';
+    const textColor = isDarkBg ? 'rgba(255, 255, 255, 0.92)' : 'rgba(0, 0, 0, 0.92)';
+    const axisColor = isDarkBg ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.60)';
     
     ctx.font = '11px "JetBrains Mono", monospace';
     
     // Draw X-axis grid lines and bottom tick marks
-    const startX = Math.ceil(left / spacing) * spacing;
-    for (let x = startX; x <= right; x += spacing) {
+    const startX = Math.ceil(left / spacingX) * spacingX;
+    for (let x = startX; x <= right; x += spacingX) {
         const p = worldToPixel(x, 0);
         
         // Grid Line
@@ -555,23 +784,24 @@ function drawPlotOverlay(panel) {
         ctx.lineWidth = 1;
         ctx.stroke();
         
-        // Tick mark at bottom
+        // Tick mark drawn higher (safely inside the canvas area)
         ctx.beginPath();
-        ctx.moveTo(p.x, height - 12);
-        ctx.lineTo(p.x, height - 6);
+        ctx.moveTo(p.x, height - 35);
+        ctx.lineTo(p.x, height - 25);
         ctx.strokeStyle = axisColor;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
         
-        // Numbered label at bottom
+        // Numbered label drawn higher (safely inside the canvas area)
         ctx.fillStyle = textColor;
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText(formatTick(x), p.x, height - 22);
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(formatTickX(x), p.x, height - 38);
     }
     
     // Draw Y-axis grid lines and left tick marks
-    const startY = Math.ceil(bottom / spacing) * spacing;
-    for (let y = startY; y <= top; y += spacing) {
+    const startY = Math.ceil(bottom / spacingY) * spacingY;
+    for (let y = startY; y <= top; y += spacingY) {
         const p = worldToPixel(0, y);
         
         // Grid Line
@@ -584,16 +814,17 @@ function drawPlotOverlay(panel) {
         
         // Tick mark on left
         ctx.beginPath();
-        ctx.moveTo(6, p.y);
-        ctx.lineTo(12, p.y);
+        ctx.moveTo(20, p.y);
+        ctx.lineTo(28, p.y);
         ctx.strokeStyle = axisColor;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
         
-        // Numbered label on left
+        // Numbered label on left (safely padded)
         ctx.fillStyle = textColor;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText(formatTick(y), 15, p.y);
+        ctx.fillText(formatTickY(y), 32, p.y);
     }
     
     // Draw origin axes lines if visible
@@ -820,6 +1051,7 @@ function updateConnectionListUI(connections) {
                 panel.renderer.dispose();
             });
             delete state.panels[c_id];
+            delete state.panelOrder[c_id];
             delete state.objectCounters[c_id];
             delete state.activeFlags[c_id];
         }
@@ -914,12 +1146,14 @@ function parseScenePayload(connId, header, payloads) {
     if (!data) data = header; // Handle direct root scene message objects
 
     // 1. Extract window ID and details (Window 1 has ID 0 which is omitted, so default to 0)
-    const windowId = (data.window_id !== undefined) ? data.window_id : 0;
+    // Prioritize checking header (root) where C++ writes window_id, then fall back to data.
+    const windowId = (header.window_id !== undefined) ? header.window_id : ((data.window_id !== undefined) ? data.window_id : 0);
     const title = (data.window && data.window.title) || `Show ${windowId + 1}`;
     
     // 2. Retrieve or create scoped panel for this Window ID
     if (!state.panels[connId]) {
         state.panels[connId] = {};
+        state.panelOrder[connId] = [];
         state.objectCounters[connId] = {};
     }
     
@@ -927,6 +1161,7 @@ function parseScenePayload(connId, header, payloads) {
     if (!panel) {
         panel = createPanel(connId, windowId, title);
         state.panels[connId][windowId] = panel;
+        state.panelOrder[connId].push(windowId);
         updateCanvasGrid();
     }
     
@@ -990,6 +1225,28 @@ function parseScenePayload(connId, header, payloads) {
                 
                 // Trigger panel resize to configure correct aspect ratios
                 resizePanel(panel);
+            }
+            
+            // Constantly ensure the 3D up vector is completely respected by OrbitControls for rotations!
+            if (cam.up) {
+                const newUp = new THREE.Vector3(cam.up[0], cam.up[1], cam.up[2]).normalize();
+                
+                // Only overwrite if it actually changed, preventing interference with damping momentum!
+                if (panel.camera.up.distanceToSquared(newUp) > 1e-6) {
+                    panel.camera.up.copy(newUp);
+                    panel.controls.update(); // Force OrbitControls to recalculate spherical axes immediately
+                }
+            }
+            
+            // On startup (before auto-fit locks in), apply initial trackball/3D vector directions
+            if (!panel.hasAutoFitted) {
+                if (cam.to) {
+                    panel.controls.target.set(cam.to[0], cam.to[1], cam.to[2]);
+                }
+                if (cam.from) {
+                    panel.camera.position.set(cam.from[0], cam.from[1], cam.from[2]);
+                }
+                panel.controls.update();
             }
         }
     }
@@ -1190,7 +1447,7 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
                 material = new THREE.LineBasicMaterial({ color: getRGBAColor(colRgba), transparent: colRgba[3] < 1.0, opacity: colRgba[3] });
             }
             
-            if (obj.strip) {
+            if (obj.strip !== false) {
                 object3D = new THREE.Line(geometry, material);
             } else {
                 object3D = new THREE.LineSegments(geometry, material);
@@ -1654,6 +1911,93 @@ function initUI() {
         sidebar.classList.remove('collapsed');
         openBtn.style.display = 'none';
     });
+
+    // Global mousemove/mouseup resizer events
+    window.addEventListener('mousemove', (e) => {
+        if (state.isResizingSplit) {
+            const delta = e.clientX - state.dragStartPos;
+            const deltaFr = delta / state.pixelsPerFr;
+            
+            const sizes = state.gridSizes[state.activeConnId].cols;
+            const idx = state.dragSplitIndex;
+            
+            let newLeft = state.dragStartSizes[idx] + deltaFr;
+            let newRight = state.dragStartSizes[idx + 1] - deltaFr;
+            
+            const minFr = 0.1;
+            if (newLeft < minFr) {
+                newRight -= (minFr - newLeft);
+                newLeft = minFr;
+            } else if (newRight < minFr) {
+                newLeft -= (minFr - newRight);
+                newRight = minFr;
+            }
+            
+            sizes[idx] = newLeft;
+            sizes[idx + 1] = newRight;
+            
+            const container = document.getElementById('canvas-container');
+            container.style.gridTemplateColumns = sizes.map(c => `${c}fr`).join(' 6px ');
+            
+            Object.values(state.panels[state.activeConnId] || {}).forEach(panel => resizePanel(panel));
+        }
+        else if (state.isResizingSplitH) {
+            const delta = e.clientY - state.dragStartPos;
+            const deltaFr = delta / state.pixelsPerFr;
+            
+            const sizes = state.gridSizes[state.activeConnId].rows;
+            const idx = state.dragSplitIndex;
+            
+            let newTop = state.dragStartSizes[idx] + deltaFr;
+            let newBottom = state.dragStartSizes[idx + 1] - deltaFr;
+            
+            const minFr = 0.1;
+            if (newTop < minFr) {
+                newBottom -= (minFr - newTop);
+                newTop = minFr;
+            } else if (newBottom < minFr) {
+                newTop -= (minFr - newBottom);
+                newBottom = minFr;
+            }
+            
+            sizes[idx] = newTop;
+            sizes[idx + 1] = newBottom;
+            
+            const container = document.getElementById('canvas-container');
+            container.style.gridTemplateRows = sizes.map(r => `${r}fr`).join(' 6px ');
+            
+            Object.values(state.panels[state.activeConnId] || {}).forEach(panel => resizePanel(panel));
+        }
+    });
+    
+    window.addEventListener('mouseup', () => {
+        if (state.isResizingSplit) {
+            state.isResizingSplit = false;
+            document.body.style.cursor = 'default';
+            document.querySelectorAll('.grid-splitter').forEach(s => s.classList.remove('active-dragging'));
+        }
+        if (state.isResizingSplitH) {
+            state.isResizingSplitH = false;
+            document.body.style.cursor = 'default';
+            document.querySelectorAll('.grid-splitter-h').forEach(s => s.classList.remove('active-dragging'));
+        }
+    });
+
+    // Bind Panel Split Ratio range slider
+    const splitRatioSlider = document.getElementById('split-ratio-slider');
+    if (splitRatioSlider) {
+        splitRatioSlider.addEventListener('input', (e) => {
+            const container = document.getElementById('canvas-container');
+            const leftPercent = parseInt(e.target.value);
+            
+            container.style.gridTemplateColumns = `${leftPercent}% 6px ${100 - leftPercent}%`;
+            
+            // Reflow all active WebGL viewports
+            Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
+                resizePanel(panel);
+            });
+        });
+    }
 }
 
 function triggerCameraPreset(preset) {
@@ -1682,18 +2026,28 @@ function triggerCameraPreset(preset) {
 
 function autoFitPanelBounds(panel) {
     const box = new THREE.Box3().setFromObject(panel.feedGroup);
-    if (box.isEmpty()) return false;
+    if (box.isEmpty()) {
+        console.log(`[AutoFit Debug] Panel ${panel.windowId} bounding box is empty.`);
+        return false;
+    }
     
     const sphere = box.getBoundingSphere(new THREE.Sphere());
     const radius = sphere.radius;
     const center = sphere.center;
     
+    console.log(`[AutoFit Debug] Panel ${panel.windowId}: is2DPlotMode=${panel.is2DPlotMode}, boxMin=(${box.min.x.toFixed(1)}, ${box.min.y.toFixed(1)}), boxMax=(${box.max.x.toFixed(1)}, ${box.max.y.toFixed(1)}), center=(${center.x.toFixed(1)}, ${center.y.toFixed(1)}), radius=${radius.toFixed(1)}`);
+    
     if (panel.is2DPlotMode) {
+        // Translate both the camera and the target identically to keep the view perfectly flat (no diagonal rotation!)
+        panel.orthoCamera.position.set(center.x, center.y, 15);
         panel.orthoControls.target.copy(center);
         
         // Adjust ortho camera frustum bounds to encase sphere radius
         const aspect = panel.card.clientWidth / panel.card.clientHeight;
         const padRadius = radius * 1.25;
+        
+        // Save the auto-fitted height units so they survive resizes and split adjustments!
+        panel.orthoHeightUnits = padRadius;
         
         panel.orthoCamera.left = -padRadius * aspect;
         panel.orthoCamera.right = padRadius * aspect;
@@ -1702,12 +2056,20 @@ function autoFitPanelBounds(panel) {
         panel.orthoCamera.updateProjectionMatrix();
         panel.orthoControls.update();
     } else {
+        const oldTarget = panel.controls.target.clone();
         panel.controls.target.copy(center);
+        
+        // Move the camera by the same delta so the viewing angle is perfectly preserved!
+        const targetDelta = new THREE.Vector3().subVectors(center, oldTarget);
+        panel.camera.position.add(targetDelta);
         
         const fov = panel.camera.fov * (Math.PI / 180);
         let cameraDist = Math.abs(radius / Math.sin(fov / 2)) * 1.25;
         
-        const dir = new THREE.Vector3().subVectors(panel.camera.position, panel.controls.target).normalize();
+        const dir = new THREE.Vector3().subVectors(panel.camera.position, panel.controls.target);
+        if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+        dir.normalize();
+        
         panel.camera.position.copy(dir).multiplyScalar(cameraDist).add(panel.controls.target);
         
         panel.camera.lookAt(center);
