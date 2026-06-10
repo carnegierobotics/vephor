@@ -1792,10 +1792,18 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
 }
 
 function loadTextureToMaterial(material, texInfo, baseBufIdx, payloads) {
+    const applySampling = (tex) => {
+        if (texInfo.filter_nearest) {
+            tex.magFilter = THREE.NearestFilter;
+            tex.minFilter = THREE.NearestFilter;
+        }
+        return tex;
+    };
+
     if (texInfo.type === 'file') {
         const path = texInfo.path;
         new THREE.TextureLoader().load(path, (loadedTex) => {
-            material.map = loadedTex;
+            material.map = applySampling(loadedTex);
             if (path.toLowerCase().endsWith('.png')) {
                 material.transparent = true;
                 material.alphaTest = 0.05;
@@ -1819,7 +1827,7 @@ function loadTextureToMaterial(material, texInfo, baseBufIdx, payloads) {
             const url = URL.createObjectURL(blob);
             
             new THREE.TextureLoader().load(url, (loadedTex) => {
-                material.map = loadedTex;
+                material.map = applySampling(loadedTex);
                 material.needsUpdate = true;
                 URL.revokeObjectURL(url);
             });
@@ -1838,6 +1846,7 @@ function loadTextureToMaterial(material, texInfo, baseBufIdx, payloads) {
             else if (channels === 4) format = THREE.RGBAFormat;
             
             const rawTex = new THREE.DataTexture(rawBytes, size[0], size[1], format, THREE.FloatType);
+            applySampling(rawTex);
             rawTex.needsUpdate = true;
             material.map = rawTex;
             material.needsUpdate = true;

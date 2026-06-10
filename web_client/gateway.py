@@ -26,6 +26,7 @@ active_connections = {}
 connection_metadata = {}
 connection_objects = {}
 connection_payloads = {}
+hosted_files = {} # Maps dynamically transferred asset filenames -> raw binary bytes
 conn_counter = 1
 ws_clients = set()
 
@@ -35,8 +36,30 @@ conn_lock = threading.Lock()
 class VephorHTTPHandler(SimpleHTTPRequestHandler):
     """
     HTTP handler that serves web client files and proxies
-    asset requests directly to core/assets/ avoiding copy duplication.
+    asset requests directly to core/assets/ avoiding copy duplication,
+    while also serving dynamically transferred C++ textures from memory.
     """
+    def do_GET(self):
+        import urllib.parse
+        path_clean = self.path.split('?')[0]
+        path_decoded = urllib.parse.unquote(path_clean)
+        relative = path_decoded.lstrip('/')
+        
+        # Intercept and serve dynamically streamed files (like generated plot textures) directly from memory
+        if relative in hosted_files:
+            self.send_response(200)
+            if relative.lower().endswith('.png'):
+                self.send_header('Content-type', 'image/png')
+            elif relative.lower().endswith('.jpg') or relative.lower().endswith('.jpeg'):
+                self.send_header('Content-type', 'image/jpeg')
+            else:
+                self.send_header('Content-type', 'application/octet-stream')
+            self.end_headers()
+            self.wfile.write(hosted_files[relative])
+            return
+            
+        super().do_GET()
+
     def translate_path(self, path):
         import urllib.parse
         path_clean = path.split('?')[0]
@@ -205,6 +228,7 @@ async def handle_tcp_incoming_stream(reader, writer, conn_id, peer, direction):
                 
             # 5. Read payloads
             payloads_base64 = []
+            raw_payloads = []
             for _ in range(payload_count):
                 pay_size_buf = await read_exact(reader, 8)
                 if not pay_size_buf:
@@ -214,13 +238,23 @@ async def handle_tcp_incoming_stream(reader, writer, conn_id, peer, direction):
                 pay_data = await read_exact(reader, pay_size)
                 if pay_data is None:
                     break
-                    
+                
+                raw_payloads.append(pay_data)
+                
                 # Encode as Base64 for the Web client
                 payloads_base64.append(base64.b64encode(pay_data).decode('utf-8'))
                 
             if len(payloads_base64) < payload_count:
                 # Truncated or closed stream
                 break
+            
+            # Intercept file transfers from C++ and serve them via the embedded HTTP proxy
+            if header.get("type") == "file" and "name" in header:
+                file_name = header["name"]
+                if raw_payloads:
+                    hosted_files[file_name] = raw_payloads[0]
+                    print(f"[TCP] Cached file in memory: {file_name}")
+                continue # Do not broadcast to websocket as a scene
                 
             # If C++ sent new binary payloads, cache them per window_id
             if payloads_base64:
