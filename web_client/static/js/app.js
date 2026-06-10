@@ -1,0 +1,1735 @@
+/**
+ * Vephor Web Client
+ * Copyright 2026 Carnegie Robotics, LLC / Steve Landers
+ * Complete multi-panel, interactive Three.js-based rendering engine.
+ * Supports dynamic grid viewport splits for connections containing multiple C++ Windows
+ * (e.g. test_show_two_windows), providing independent scenes, cameras, and controls.
+ * Implements pure orthographic flat 2D plotting viewports for 2D plot feeds (e.g. test_plot).
+ * Features sharp HTML5 canvas overlays for coordinate grids and matplotlib-style dynamic numbered ticks.
+ * Supports left-click drag to pan, scroll to zoom, and right-click drag for non-uniform X/Y axis scaling.
+ */
+
+// Application State
+const state = {
+    ws: null,
+    
+    // Scoped multi-window panel states:
+    // keys: connId (int) -> windowId (int) -> panelObj
+    panels: {},
+    
+    // Track active connection telemetry
+    activeConnId: null,
+    objectCounters: {}, // Track total objects per connection
+    fpsHistory: [],
+    lastFrameTime: null,
+    
+    // Active UI flag controls
+    activeFlags: {},
+    
+    // Global render options
+    wireframe: false,
+    gridEnabled: true,
+    axesEnabled: true,
+};
+
+// Initial setup on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+    initUI();
+    connectWebSocket();
+    animate(); // Starts global animation frame
+});
+
+// ==========================================
+// 1. Panel Manager & Grid Layout
+// ==========================================
+function createPanel(connId, windowId, title) {
+    const container = document.getElementById('canvas-container');
+    
+    // Create card element
+    const card = document.createElement('div');
+    card.className = 'viewport-panel-card';
+    card.id = `panel-${connId}-${windowId}`;
+    
+    // Create title tag
+    const titleTag = document.createElement('div');
+    titleTag.className = 'viewport-panel-title-tag';
+    titleTag.textContent = title || `Show ${windowId}`;
+    card.appendChild(titleTag);
+    
+    container.appendChild(card);
+    
+    // Create Scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0d1117);
+    
+    // Create HUD Scene
+    const hudScene = new THREE.Scene();
+    
+    // Create Camera (initial perspective)
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 1000);
+    camera.position.set(5, 5, 5);
+    
+    // Create Orthographic Camera for 2D plot mode (flat Matplotlib feel)
+    const orthoCamera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.05, 1000);
+    orthoCamera.position.set(0, 0, 15);
+    orthoCamera.lookAt(0, 0, 0);
+    
+    // Create HUD Camera
+    const hudCamera = new THREE.OrthographicCamera(0, 1, 1, 0, -1000, 1000);
+    
+    // Create sharp 2D overlay canvas for coordinate grids and matplotlib-style tick marks
+    const overlayCanvas = document.createElement('canvas');
+    overlayCanvas.className = 'plot-overlay-canvas';
+    overlayCanvas.style.position = 'absolute';
+    overlayCanvas.style.top = '0';
+    overlayCanvas.style.left = '0';
+    overlayCanvas.style.width = '100%';
+    overlayCanvas.style.height = '100%';
+    overlayCanvas.style.pointerEvents = 'none'; // Pass clicks through to OrbitControls below
+    overlayCanvas.style.zIndex = '4';
+    card.appendChild(overlayCanvas);
+    
+    // Create Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.autoClear = false;
+    card.appendChild(renderer.domElement);
+    
+    // Create Controls (Perspective camera)
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    
+    // Create Controls (Orthographic camera for flat 2D plotting)
+    const orthoControls = new THREE.OrbitControls(orthoCamera, renderer.domElement);
+    orthoControls.enableDamping = true;
+    orthoControls.dampingFactor = 0.05;
+    orthoControls.enableRotate = false; // Completely lock 3D rotation for a pure flat 2D canvas
+    
+    // Remap OrbitControls mouse buttons so LEFT click drags to PAN the plot!
+    orthoControls.mouseButtons = {
+        LEFT: THREE.MOUSE.PAN,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: null // Disable OrbitControls right click so we can use it for custom stretching
+    };
+    
+    // Lights for main scene
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLight.position.set(10, 15, 10);
+    scene.add(dirLight);
+    const fillLight = new THREE.DirectionalLight(0xaaccff, 0.25);
+    fillLight.position.set(-10, -5, -10);
+    scene.add(fillLight);
+    
+    // Lights for HUD scene
+    hudScene.add(new THREE.AmbientLight(0xffffff, 1.0));
+    
+    // Grid & Axes Helpers
+    const gridHelper = new THREE.GridHelper(50, 50, 0x58a6ff, 0x30363d);
+    gridHelper.rotation.x = Math.PI / 2;
+    scene.add(gridHelper);
+    
+    const axesHelper = new THREE.AxesHelper(5);
+    scene.add(axesHelper);
+    
+    // Pre-create the 9 HUD anchor groups
+    const anchors = [
+        "window_top_left", "window_top", "window_top_right",
+        "window_left", "window_center", "window_right",
+        "window_bottom_left", "window_bottom", "window_bottom_right"
+    ];
+    const feedHUDGroup = new THREE.Group();
+    anchors.forEach(name => {
+        const anchorGroup = new THREE.Group();
+        anchorGroup.name = name;
+        feedHUDGroup.add(anchorGroup);
+    });
+    hudScene.add(feedHUDGroup);
+    
+    const feedGroup = new THREE.Group();
+    scene.add(feedGroup);
+    
+    const panel = {
+        connId,
+        windowId,
+        card,
+        titleTag,
+        scene,
+        hudScene,
+        camera,
+        orthoCamera,
+        hudCamera,
+        overlayCanvas,
+        renderer,
+        controls,
+        orthoControls,
+        gridHelper,
+        axesHelper,
+        feedGroup,
+        feedHUDGroup,
+        feedObjects: {},
+        objectCounters: {},
+        wireframe: state.wireframe,
+        gridEnabled: state.gridEnabled,
+        axesEnabled: state.axesEnabled,
+        is2DPlotMode: false,
+        
+        // Custom Right-Click Drag Scaling parameters
+        isRightDragging: false,
+        dragStartMouse: new THREE.Vector2(),
+        dragStartFrustum: { left: 0, right: 0, top: 0, bottom: 0 }
+    };
+    
+    // 1. Pointer down right-click hook (Capture phase to preempt OrbitControls)
+    panel.card.addEventListener('pointerdown', (e) => {
+        if (!panel.is2DPlotMode) return;
+        
+        if (e.button === 2) { // Right Click
+            e.preventDefault();
+            e.stopPropagation();
+            
+            panel.isRightDragging = true;
+            panel.dragStartMouse.set(e.clientX, e.clientY);
+            
+            // Record initial frustum states
+            panel.dragStartFrustum.left = panel.orthoCamera.left;
+            panel.dragStartFrustum.right = panel.orthoCamera.right;
+            panel.dragStartFrustum.top = panel.orthoCamera.top;
+            panel.dragStartFrustum.bottom = panel.orthoCamera.bottom;
+            
+            // Capture pointer globally for this card element (modern Web standard)
+            panel.card.setPointerCapture(e.pointerId);
+            
+            // Disable controls damping temporarily during drag for instant responsiveness
+            panel.orthoControls.enableDamping = false;
+        }
+    }, true);
+    
+    // 2. Pointer move right-click drag scaling hook
+    panel.card.addEventListener('pointermove', (e) => {
+        if (!panel.is2DPlotMode || !panel.isRightDragging) return;
+        
+        const deltaX = e.clientX - panel.dragStartMouse.x;
+        const deltaY = e.clientY - panel.dragStartMouse.y;
+        
+        // C++ style exponential stretching
+        // Dragging right/down zooms in (shrinks bounds), left/up zooms out (grows bounds)
+        const factorX = Math.exp(-deltaX / 150);
+        const factorY = Math.exp(deltaY / 150); // Y screen coords are inverted
+        
+        const f = panel.dragStartFrustum;
+        const centerX = (f.left + f.right) / 2;
+        const centerY = (f.bottom + f.top) / 2;
+        
+        const spanX = (f.right - f.left) * factorX;
+        const spanY = (f.top - f.bottom) * factorY;
+        
+        panel.orthoCamera.left = centerX - spanX / 2;
+        panel.orthoCamera.right = centerX + spanX / 2;
+        panel.orthoCamera.top = centerY + spanY / 2;
+        panel.orthoCamera.bottom = centerY - spanY / 2;
+        panel.orthoCamera.updateProjectionMatrix();
+        
+        // Sync OrbitControls coordinates
+        panel.orthoControls.update();
+    });
+    
+    // 3. Pointer up right-click release hook
+    panel.card.addEventListener('pointerup', (e) => {
+        if (panel.isRightDragging && e.button === 2) {
+            panel.isRightDragging = false;
+            
+            // Release pointer capture
+            try {
+                panel.card.releasePointerCapture(e.pointerId);
+            } catch (err) {}
+            
+            // Restore smooth damping physics
+            panel.orthoControls.enableDamping = true;
+        }
+    });
+    
+    // 4. Suppress context menu popup when right clicking on the card (Capture phase to block completely)
+    panel.card.addEventListener('contextmenu', (e) => {
+        if (panel.is2DPlotMode) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, true);
+    
+    // Apply global defaults on creation
+    gridHelper.visible = state.gridEnabled;
+    axesHelper.visible = state.axesEnabled;
+    
+    return panel;
+}
+
+function resizePanel(panel) {
+    const width = panel.card.clientWidth;
+    const height = panel.card.clientHeight;
+    if (width === 0 || height === 0) return;
+    
+    // Resize overlay canvas to match device pixels perfectly for ultra-sharp rendering
+    const dpr = window.devicePixelRatio || 1;
+    panel.overlayCanvas.width = width * dpr;
+    panel.overlayCanvas.height = height * dpr;
+    panel.overlayCanvas.style.width = `${width}px`;
+    panel.overlayCanvas.style.height = `${height}px`;
+    
+    // Update perspective camera aspect
+    panel.camera.aspect = width / height;
+    panel.camera.updateProjectionMatrix();
+    
+    // Update orthographic camera boundaries (maintaining 1-to-1 aspect scaling)
+    const aspect = width / height;
+    const frustumSize = 20; // Framed height units
+    
+    panel.orthoCamera.left = -frustumSize * aspect / 2;
+    panel.orthoCamera.right = frustumSize * aspect / 2;
+    panel.orthoCamera.top = frustumSize / 2;
+    panel.orthoCamera.bottom = -frustumSize / 2;
+    panel.orthoCamera.updateProjectionMatrix();
+    
+    // Update HUD Camera
+    panel.hudCamera.left = 0;
+    panel.hudCamera.right = width;
+    panel.hudCamera.top = height;
+    panel.hudCamera.bottom = 0;
+    panel.hudCamera.updateProjectionMatrix();
+    
+    updatePanelHUDAnchors(panel, width, height);
+    
+    // Update scatter points sizes on resize if in Plot Mode
+    if (panel.is2DPlotMode) {
+        panel.scene.traverse(child => {
+            if (child.isPoints && child.material) {
+                const oSize = child.userData.defSize || 0.03;
+                child.material.size = height * oSize;
+                child.material.needsUpdate = true;
+            }
+        });
+    }
+    
+    panel.renderer.setSize(width, height);
+}
+
+function updatePanelHUDAnchors(panel, width, height) {
+    const hudGroup = panel.feedHUDGroup;
+    if (!hudGroup) return;
+    
+    const tl = hudGroup.getObjectByName("window_top_left");
+    if (tl) tl.position.set(0, height, 0);
+    
+    const t = hudGroup.getObjectByName("window_top");
+    if (t) t.position.set(width / 2, height, 0);
+    
+    const tr = hudGroup.getObjectByName("window_top_right");
+    if (tr) tr.position.set(width, height, 0);
+    
+    const l = hudGroup.getObjectByName("window_left");
+    if (l) l.position.set(0, height / 2, 0);
+    
+    const c = hudGroup.getObjectByName("window_center");
+    if (c) c.position.set(width / 2, height / 2, 0);
+    
+    const r = hudGroup.getObjectByName("window_right");
+    if (r) r.position.set(width, height / 2, 0);
+    
+    const bl = hudGroup.getObjectByName("window_bottom_left");
+    if (bl) bl.position.set(0, 0, 0);
+    
+    const b = hudGroup.getObjectByName("window_bottom");
+    if (b) b.position.set(width / 2, 0, 0);
+    
+    const br = hudGroup.getObjectByName("window_bottom_right");
+    if (br) br.position.set(width, 0, 0);
+}
+
+function updateCanvasGrid() {
+    const container = document.getElementById('canvas-container');
+    const activeFeedPanels = Object.values(state.panels[state.activeConnId] || {});
+    const count = activeFeedPanels.length;
+    
+    if (count === 0) {
+        container.innerHTML = `<div class="empty-state-canvas"><i class="fa-solid fa-satellite-dish" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 15px;"></i><br>Waiting for visualizer data stream...</div>`;
+        return;
+    }
+    
+    // Clean up empty state if rendering
+    const emptyMsg = container.querySelector('.empty-state-canvas');
+    if (emptyMsg) emptyMsg.remove();
+    
+    // Set grid template based on active window count
+    if (count === 1) {
+        container.style.gridTemplateColumns = '1fr';
+        container.style.gridTemplateRows = '1fr';
+    } else if (count === 2) {
+        container.style.gridTemplateColumns = '1fr 1fr';
+        container.style.gridTemplateRows = '1fr';
+    } else {
+        const cols = Math.ceil(Math.sqrt(count));
+        const rows = Math.ceil(count / cols);
+        container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    }
+    
+    // Manage visibility and redraws for all connections
+    Object.keys(state.panels).forEach(cid => {
+        const c_id = parseInt(cid);
+        const feedPanels = state.panels[c_id] || {};
+        
+        Object.keys(feedPanels).forEach(winId => {
+            const panel = feedPanels[winId];
+            if (c_id === state.activeConnId) {
+                panel.card.style.display = 'block';
+                // Move element back inside container if detached
+                if (panel.card.parentNode !== container) {
+                    container.appendChild(panel.card);
+                }
+                resizePanel(panel);
+            } else {
+                panel.card.style.display = 'none';
+            }
+        });
+    });
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    
+    // Update and render each active panel of the selected connection feed
+    if (state.activeConnId && state.panels[state.activeConnId]) {
+        const activePanels = Object.values(state.panels[state.activeConnId]);
+        
+        activePanels.forEach(panel => {
+            // Update the correct camera controls based on plot mode
+            if (panel.is2DPlotMode) {
+                panel.orthoControls.update();
+            } else {
+                panel.controls.update();
+            }
+            
+            // Choose correct active camera (Ortho flat projection vs Perspective 3D)
+            const activeCam = panel.is2DPlotMode ? panel.orthoCamera : panel.camera;
+            
+            // 1. Render main scene pass
+            panel.renderer.clear();
+            panel.renderer.render(panel.scene, activeCam);
+            
+            // 2. Clear depth and overlay HUD elements
+            panel.renderer.clearDepth();
+            panel.renderer.render(panel.hudScene, panel.hudCamera);
+            
+            // 3. Draw Plot 2D grid and labeled ticks on the overlay canvas
+            drawPlotOverlay(panel);
+        });
+    }
+    
+    // Telemetry tracking
+    const now = performance.now();
+    if (state.lastFrameTime) {
+        const fps = 1000 / (now - state.lastFrameTime);
+        state.fpsHistory.push(fps);
+        if (state.fpsHistory.length > 30) state.fpsHistory.shift();
+        
+        // Update average FPS in Telemetry panel
+        const avgFps = state.fpsHistory.reduce((a, b) => a + b, 0) / state.fpsHistory.length;
+        document.getElementById('tel-fps').textContent = avgFps.toFixed(1);
+    }
+    state.lastFrameTime = now;
+}
+
+// ==========================================
+// 2. Labeled Ticks & 2D Grid Vector Drawing
+// ==========================================
+function drawPlotOverlay(panel) {
+    const canvas = panel.overlayCanvas;
+    const ctx = canvas.getContext('2d');
+    const width = panel.card.clientWidth;
+    const height = panel.card.clientHeight;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (!panel.is2DPlotMode) return;
+    
+    // Diagnostics log to monitor active plotting children periodically (approx every 3 seconds at 60 FPS)
+    if (!panel.lastLogTime || Date.now() - panel.lastLogTime > 3000) {
+        panel.lastLogTime = Date.now();
+        console.log(`[Plot Debug] Active 3D plotting objects:`, panel.feedGroup.children.length);
+        panel.feedGroup.children.forEach(child => {
+            console.log(`  - Node ID: ${child.name}, Type: ${child.type}, Position: (${child.position.x}, ${child.position.y}, ${child.position.z}), Visible: ${child.visible}`);
+        });
+    }
+    
+    const dpr = window.devicePixelRatio || 1;
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    
+    const renderCam = panel.orthoCamera;
+    
+    // Unprojects a pixel coordinate back to 3D world space (perspective-free unprojection for Ortho camera)
+    const pixelToWorld = (sx, sy) => {
+        const vec = new THREE.Vector3(
+            (sx / width) * 2 - 1,
+            -(sy / height) * 2 + 1,
+            0 // NDC Z=0 sits exactly on the ortho viewing plane
+        );
+        vec.unproject(renderCam);
+        return vec;
+    };
+    
+    // Projects a 3D world coordinate back to 2D canvas pixel coordinate
+    const worldToPixel = (wx, wy) => {
+        const vec = new THREE.Vector3(wx, wy, 0);
+        const proj = vec.project(renderCam);
+        const x = (proj.x * 0.5 + 0.5) * width;
+        const y = (1 - (proj.y * 0.5 + 0.5)) * height;
+        return new THREE.Vector2(x, y);
+    };
+    
+    // Calculate world boundaries currently framed by the viewport
+    const bottomLeft = pixelToWorld(0, height);
+    const topRight = pixelToWorld(width, 0);
+    
+    const left = bottomLeft.x;
+    const right = topRight.x;
+    const bottom = bottomLeft.y;
+    const top = topRight.y;
+    
+    const rangeX = right - left;
+    const rangeY = top - bottom;
+    if (rangeX <= 0 || rangeY <= 0) {
+        ctx.restore();
+        return;
+    }
+    
+    // Calculate adaptive matplotlib-style grid spacing based on visible range width
+    const logX = Math.log10(rangeX);
+    const powerX = Math.floor(logX);
+    const fractionX = rangeX / Math.pow(10, powerX);
+    
+    let spacing;
+    if (fractionX < 1.5) spacing = 0.1 * Math.pow(10, powerX);
+    else if (fractionX < 3) spacing = 0.2 * Math.pow(10, powerX);
+    else if (fractionX < 7) spacing = 0.5 * Math.pow(10, powerX);
+    else spacing = 1.0 * Math.pow(10, powerX);
+    
+    const formatTick = (val) => {
+        if (Math.abs(val) < 1e-10) return "0";
+        const precision = Math.max(0, -Math.floor(Math.log10(spacing)) + 1);
+        return val.toFixed(precision).replace(/\.?0+$/, ""); // Strip trailing zeros cleanly
+    };
+    
+    // Calculate background brightness to adjust grid/label text colors dynamically
+    const bg = panel.scene.background;
+    const luminance = 0.299 * bg.r + 0.587 * bg.g + 0.114 * bg.b;
+    const isDarkBg = luminance < 0.5;
+    
+    const gridColor = isDarkBg ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)';
+    const textColor = isDarkBg ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.65)';
+    const axisColor = isDarkBg ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.35)';
+    
+    ctx.font = '11px "JetBrains Mono", monospace';
+    
+    // Draw X-axis grid lines and bottom tick marks
+    const startX = Math.ceil(left / spacing) * spacing;
+    for (let x = startX; x <= right; x += spacing) {
+        const p = worldToPixel(x, 0);
+        
+        // Grid Line
+        ctx.beginPath();
+        ctx.moveTo(p.x, 0);
+        ctx.lineTo(p.x, height);
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        // Tick mark at bottom
+        ctx.beginPath();
+        ctx.moveTo(p.x, height - 12);
+        ctx.lineTo(p.x, height - 6);
+        ctx.strokeStyle = axisColor;
+        ctx.stroke();
+        
+        // Numbered label at bottom
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(formatTick(x), p.x, height - 22);
+    }
+    
+    // Draw Y-axis grid lines and left tick marks
+    const startY = Math.ceil(bottom / spacing) * spacing;
+    for (let y = startY; y <= top; y += spacing) {
+        const p = worldToPixel(0, y);
+        
+        // Grid Line
+        ctx.beginPath();
+        ctx.moveTo(0, p.y);
+        ctx.lineTo(width, p.y);
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        // Tick mark on left
+        ctx.beginPath();
+        ctx.moveTo(6, p.y);
+        ctx.lineTo(12, p.y);
+        ctx.strokeStyle = axisColor;
+        ctx.stroke();
+        
+        // Numbered label on left
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(formatTick(y), 15, p.y);
+    }
+    
+    // Draw origin axes lines if visible
+    const originPix = worldToPixel(0, 0);
+    if (originPix.x >= 0 && originPix.x <= width) {
+        ctx.beginPath();
+        ctx.moveTo(originPix.x, 0);
+        ctx.lineTo(originPix.x, height);
+        ctx.strokeStyle = isDarkBg ? 'rgba(0, 240, 255, 0.22)' : 'rgba(0, 150, 255, 0.22)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+    if (originPix.y >= 0 && originPix.y <= height) {
+        ctx.beginPath();
+        ctx.moveTo(0, originPix.y);
+        ctx.lineTo(width, originPix.y);
+        ctx.strokeStyle = isDarkBg ? 'rgba(0, 240, 255, 0.22)' : 'rgba(0, 150, 255, 0.22)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+    
+    ctx.restore();
+}
+
+// ==========================================
+// 3. Pose, Translation & Aspect Appliers
+// ==========================================
+function base64ToFloat32Array(base64Str) {
+    const binary = atob(base64Str);
+    const len = binary.length;
+    const buffer = new ArrayBuffer(len);
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < len; i++) {
+        view[i] = binary.charCodeAt(i);
+    }
+    return new Float32Array(buffer);
+}
+
+function applyTransform(object3D, pose) {
+    if (!pose) return;
+    
+    // Translation t
+    if (pose.t) {
+        object3D.position.set(pose.t[0], pose.t[1], pose.t[2]);
+    } else {
+        object3D.position.set(0, 0, 0);
+    }
+    
+    // Rotation vector r (axis angle lie representation)
+    if (pose.r) {
+        const rx = pose.r[0], ry = pose.r[1], rz = pose.r[2];
+        const angle = Math.sqrt(rx*rx + ry*ry + rz*rz);
+        if (angle > 1e-6) {
+            const axis = new THREE.Vector3(rx / angle, ry / angle, rz / angle);
+            object3D.quaternion.setFromAxisAngle(axis, angle);
+        } else {
+            object3D.quaternion.set(0, 0, 0, 1);
+        }
+    } else {
+        object3D.quaternion.set(0, 0, 0, 1);
+    }
+    
+    // Scale
+    const s = pose.scale !== undefined ? pose.scale : 1.0;
+    
+    // If this is a text sprite, apply its aspect-ratio scale factors!
+    if (object3D.userData && object3D.userData.isText) {
+        const wFactor = object3D.userData.textWidthFactor || 1.0;
+        object3D.scale.set(wFactor * s, s, 1);
+    } else {
+        object3D.scale.set(s, s, s);
+    }
+}
+
+// Memory Cleanup Handler
+function disposeObject3D(obj) {
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+        if (Array.isArray(obj.material)) {
+            obj.material.forEach(m => m.dispose());
+        } else {
+            obj.material.dispose();
+        }
+    }
+    if (obj.children) {
+        obj.children.forEach(child => disposeObject3D(child));
+    }
+}
+
+// ==========================================
+// 4. Dynamic Interactive Controls
+// ==========================================
+function renderControlFlags(connId, flagsList) {
+    const container = document.getElementById('flags-container');
+    const flagsSection = document.getElementById('flags-section');
+    
+    if (!flagsList || flagsList.length === 0) {
+        flagsSection.classList.add('hide');
+        return;
+    }
+    
+    flagsSection.classList.remove('hide');
+    container.innerHTML = '';
+    
+    flagsList.forEach(flag => {
+        const row = document.createElement('div');
+        row.className = 'flag-row';
+        
+        const label = document.createElement('span');
+        label.textContent = flag.name;
+        row.appendChild(label);
+        
+        if (flag.toggle) {
+            // Render Switch
+            const switchDiv = document.createElement('div');
+            switchDiv.className = 'switch';
+            
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = flag.state;
+            
+            // Interaction handler
+            input.addEventListener('change', () => {
+                sendFlagUpdate(connId, flag.name, input.checked);
+            });
+            
+            const slider = document.createElement('span');
+            slider.className = 'slider round';
+            
+            switchDiv.appendChild(input);
+            switchDiv.appendChild(slider);
+            row.appendChild(switchDiv);
+        } else {
+            // Render Trigger Button
+            const btn = document.createElement('button');
+            btn.className = 'flag-btn';
+            btn.textContent = 'Trigger';
+            btn.addEventListener('click', () => {
+                sendFlagUpdate(connId, flag.name, true);
+            });
+            row.appendChild(btn);
+        }
+        
+        container.appendChild(row);
+    });
+}
+
+function sendFlagUpdate(connId, name, value) {
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+    
+    const eventMsg = {
+        type: "event",
+        conn_id: connId,
+        header: {
+            type: "flags",
+            flags: {
+                [name]: value
+            }
+        },
+        payloads: []
+    };
+    
+    state.ws.send(JSON.stringify(eventMsg));
+}
+
+// ==========================================
+// 5. WebSocket Client & TCP proxy
+// ==========================================
+function connectWebSocket() {
+    const wsUrl = `ws://${window.location.hostname}:5534`;
+    console.log(`[WS] Connecting to gateway at ${wsUrl}...`);
+    
+    state.ws = new WebSocket(wsUrl);
+    
+    state.ws.onopen = () => {
+        console.log('[WS] Connected to Gateway.');
+        showToast('Gateway Connected', 'success');
+        
+        // Request active TCP list
+        state.ws.send(JSON.stringify({ type: 'get_connections' }));
+    };
+    
+    state.ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'connection_list') {
+                updateConnectionListUI(data.connections);
+            } 
+            else if (data.type === 'scene') {
+                parseScenePayload(data.conn_id, data.header, data.payloads);
+            }
+            else if (data.type === 'notification') {
+                showToast(data.message, data.level || 'info');
+            }
+        } catch (e) {
+            console.error('[WS] Error processing message:', e);
+        }
+    };
+    
+    state.ws.onclose = () => {
+        console.log('[WS] Disconnected. Reconnecting in 3s...');
+        showToast('Gateway Disconnected', 'error');
+        setTimeout(connectWebSocket, 3000);
+    };
+}
+
+function updateConnectionListUI(connections) {
+    const list = document.getElementById('connections-list');
+    
+    // Build set of active connection IDs
+    const activeIds = new Set(connections.map(c => c.id));
+    
+    // Clean up panels of disconnected feeds to prevent memory leaks!
+    Object.keys(state.panels).forEach(cid => {
+        const c_id = parseInt(cid);
+        if (!activeIds.has(c_id)) {
+            const feedPanels = state.panels[c_id] || {};
+            Object.keys(feedPanels).forEach(winId => {
+                const panel = feedPanels[winId];
+                panel.card.remove();
+                disposeObject3D(panel.feedGroup);
+                disposeObject3D(panel.feedHUDGroup);
+                panel.renderer.dispose();
+            });
+            delete state.panels[c_id];
+            delete state.objectCounters[c_id];
+            delete state.activeFlags[c_id];
+        }
+    });
+
+    if (!connections || connections.length === 0) {
+        list.innerHTML = `<div class="empty-state">No active connections. Listening for visualizer sources...</div>`;
+        state.activeConnId = null;
+        renderControlFlags(null, []);
+        updateCanvasGrid();
+        return;
+    }
+    
+    list.innerHTML = '';
+    
+    connections.forEach(conn => {
+        const item = document.createElement('div');
+        item.className = 'conn-item';
+        if (state.activeConnId === conn.id) {
+            item.classList.add('active-feed');
+        }
+        
+        const sourceLabel = state.activeConnId === conn.id ? 'ACTIVE' : 'READY';
+        
+        item.innerHTML = `
+            <div class="conn-info">
+                <span class="conn-host">
+                    <span class="conn-badge ${conn.direction === 'inbound' ? 'badge-in' : 'badge-out'}">
+                        ${conn.direction === 'inbound' ? 'IN' : 'OUT'}
+                    </span>
+                    ${conn.peer}
+                </span>
+                <span class="conn-details">ID: ${conn.id} | Status: ${sourceLabel}</span>
+            </div>
+            <div class="conn-actions">
+                <button class="btn btn-secondary btn-small select-feed-btn" data-id="${conn.id}">View</button>
+                <button class="btn btn-secondary btn-small disconnect-feed-btn" data-id="${conn.id}"><i class="fa-solid fa-times"></i></button>
+            </div>
+        `;
+        
+        list.appendChild(item);
+    });
+    
+    // Auto-select first connection if none active
+    if (!state.activeConnId && connections.length > 0) {
+        selectActiveFeed(connections[0].id);
+    }
+    
+    // Event listeners
+    document.querySelectorAll('.select-feed-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const cid = parseInt(e.target.getAttribute('data-id'));
+            selectActiveFeed(cid);
+        });
+    });
+    
+    document.querySelectorAll('.disconnect-feed-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const cid = parseInt(e.currentTarget.getAttribute('data-id'));
+            state.ws.send(JSON.stringify({ type: 'disconnect_target', conn_id: cid }));
+        });
+    });
+}
+
+function selectActiveFeed(connId) {
+    state.activeConnId = connId;
+    console.log(`[UI] Active feed switched to Connection: ${connId}`);
+    
+    // Recalculate grid splits for this connection's panels
+    updateCanvasGrid();
+    
+    // Sync telemetry labels
+    document.getElementById('tel-source').textContent = `Conn ${connId}`;
+    
+    // Sync active flags
+    if (state.activeFlags[connId]) {
+        renderControlFlags(connId, state.activeFlags[connId]);
+    } else {
+        renderControlFlags(connId, []);
+    }
+    
+    // Request list redraw for active states
+    state.ws.send(JSON.stringify({ type: 'get_connections' }));
+}
+
+// ==========================================
+// 5. Scene Parser & Translators
+// ==========================================
+function parseScenePayload(connId, header, payloads) {
+    // Extract root scene data block first
+    let data = header.data;
+    if (!data) data = header; // Handle direct root scene message objects
+
+    // 1. Extract window ID and details (Window 1 has ID 0 which is omitted, so default to 0)
+    const windowId = (data.window_id !== undefined) ? data.window_id : 0;
+    const title = (data.window && data.window.title) || `Show ${windowId + 1}`;
+    
+    // 2. Retrieve or create scoped panel for this Window ID
+    if (!state.panels[connId]) {
+        state.panels[connId] = {};
+        state.objectCounters[connId] = {};
+    }
+    
+    let panel = state.panels[connId][windowId];
+    if (!panel) {
+        panel = createPanel(connId, windowId, title);
+        state.panels[connId][windowId] = panel;
+        updateCanvasGrid();
+    }
+    
+    // 3. Handle window settings
+    if (data.window) {
+        if (data.window.title) {
+            panel.titleTag.textContent = data.window.title;
+            if (connId === state.activeConnId && windowId === 0) {
+                document.title = `Vephor Web Visualizer - ${data.window.title}`;
+                document.getElementById('tel-source').textContent = data.window.title;
+            }
+        }
+    }
+
+    // Handle camera settings (detect 2D plotting mode vs standard 3D modes)
+    if (data.camera && data.camera.control) {
+        console.log(`[Camera] Received for connection ${connId}, Window ${windowId}:`, data.camera.control);
+        const cam = data.camera.control;
+        
+        // Handle solid background setting if sent by C++
+        if (data.camera.background && data.camera.background.type === "solid") {
+            const bgCol = data.camera.background.color;
+            panel.scene.background.setRGB(bgCol[0], bgCol[1], bgCol[2]);
+        }
+        
+        if (cam.type === "plot") {
+            if (!panel.is2DPlotMode) {
+                panel.is2DPlotMode = true;
+                
+                // Default C++ Plot background is light grey/white if none custom sent
+                if (!data.camera.background) {
+                    panel.scene.background.set('#f0f2f5');
+                    document.getElementById('bg-color').value = '#f0f2f5';
+                }
+                
+                // Align orthographic camera looking straight down at the 2D XY Plane (looking down Z)
+                panel.orthoCamera.position.set(0, 0, 15);
+                panel.orthoCamera.zoom = 1.0; // Reset zoom factor
+                panel.orthoControls.target.set(0, 0, 0);
+                
+                // Update and refresh controls
+                panel.orthoControls.update();
+                
+                // Hide standard 3D helpers that skew 2D plots
+                panel.gridHelper.visible = false;
+                panel.axesHelper.visible = false;
+                
+                // Trigger panel resize to configure correct aspect ratios
+                resizePanel(panel);
+                
+                showToast(`Switched to 2D Plot Mode for ${title}`, 'success');
+            }
+        } else {
+            // Restore standard 3D perspective controls if we switch back
+            if (panel.is2DPlotMode) {
+                panel.is2DPlotMode = false;
+                panel.controls.target.set(0, 0, 0);
+                panel.controls.update();
+                panel.gridHelper.visible = state.gridEnabled;
+                panel.axesHelper.visible = state.axesEnabled;
+                
+                // Trigger panel resize to configure correct aspect ratios
+                resizePanel(panel);
+            }
+        }
+    }
+    
+    // 4. Handle interactive flag updates (metadata messages)
+    if (header.flags && Array.isArray(header.flags)) {
+        state.activeFlags[connId] = header.flags;
+        if (connId === state.activeConnId) {
+            renderControlFlags(connId, header.flags);
+        }
+    }
+    
+    // 5. Parse 3D Visual Objects list
+    if (data && data.objects && Array.isArray(data.objects)) {
+        if (!panel.lastObjLogTime || Date.now() - panel.lastObjLogTime > 3000) {
+            panel.lastObjLogTime = Date.now();
+            console.log(`[Plot Debug] parseScenePayload: windowId=${windowId}, objects.length=${data.objects.length}`);
+        }
+        
+        // Pass 1: Create, Update, or Destroy objects scoped to this panel
+        data.objects.forEach(obj => {
+            const objId = obj.id;
+            
+            // Check if object is marked for deletion
+            if (obj.destroy) {
+                const mesh = panel.feedObjects[objId];
+                if (mesh) {
+                    if (mesh.parent) {
+                        mesh.parent.remove(mesh);
+                    }
+                    disposeObject3D(mesh);
+                    delete panel.feedObjects[objId];
+                    delete panel.objectCounters[objId];
+                    console.log(`  - Object ${objId} deleted.`);
+                }
+                return;
+            }
+            
+            const baseBufIdx = obj.base_buf_index || 0;
+            let mesh = panel.feedObjects[objId];
+            
+            if (!mesh) {
+                mesh = createVisualNode(obj, baseBufIdx, payloads, panel);
+                if (mesh) {
+                    mesh.name = String(objId);
+                    
+                    // Initial parent assignment (will be refined in Pass 2)
+                    if (obj.overlay) {
+                        panel.feedHUDGroup.add(mesh);
+                    } else {
+                        panel.feedGroup.add(mesh);
+                    }
+                    
+                    panel.feedObjects[objId] = mesh;
+                    panel.objectCounters[objId] = true;
+                    console.log(`  - Object ${objId} (${obj.type}) created successfully!`);
+                } else {
+                    console.warn(`  - Object ${objId} (${obj.type}) failed to create (createVisualNode returned null).`);
+                }
+            } else {
+                // Node exists: Update pose dynamically
+                applyTransform(mesh, obj.pose);
+                
+                // Toggle Show / Hide
+                if (obj.show !== undefined) {
+                    mesh.visible = obj.show;
+                }
+            }
+        });
+        
+        // Pass 2: Resolve parent relationships & dynamic HUD anchoring
+        data.objects.forEach(obj => {
+            if (obj.destroy) return;
+            
+            const mesh = panel.feedObjects[obj.id];
+            if (!mesh) return;
+            
+            const parentName = obj.pose_parent;
+            if (parentName) {
+                const anchors = [
+                    "window_top_left", "window_top", "window_top_right",
+                    "window_left", "window_center", "window_right",
+                    "window_bottom_left", "window_bottom", "window_bottom_right"
+                ];
+                
+                if (anchors.includes(parentName)) {
+                    const anchorGroup = panel.feedHUDGroup.getObjectByName(parentName);
+                    if (anchorGroup && mesh.parent !== anchorGroup) {
+                        anchorGroup.add(mesh);
+                    }
+                } else {
+                    // Parent is another object in this panel
+                    const parentNode = panel.feedObjects[parentName];
+                    if (parentNode && mesh.parent !== parentNode) {
+                        parentNode.add(mesh);
+                    }
+                }
+            } else {
+                // No parent: ensure it's parented to the default group (main or HUD)
+                if (obj.overlay) {
+                    let isUnderHUD = (mesh.parent === panel.feedHUDGroup);
+                    if (!isUnderHUD && mesh.parent) {
+                        const anchors = [
+                            "window_top_left", "window_top", "window_top_right",
+                            "window_left", "window_center", "window_right",
+                            "window_bottom_left", "window_bottom", "window_bottom_right"
+                        ];
+                        if (anchors.includes(mesh.parent.name)) {
+                            isUnderHUD = true;
+                        }
+                    }
+                    if (!isUnderHUD) {
+                        panel.feedHUDGroup.add(mesh);
+                    }
+                } else {
+                    if (mesh.parent !== panel.feedGroup) {
+                        panel.feedGroup.add(mesh);
+                    }
+                }
+            }
+        });
+    }
+    
+    // Update active object counts in telemetry (sum across active connection panels)
+    if (connId === state.activeConnId) {
+        let totalObjects = 0;
+        Object.values(state.panels[connId]).forEach(p => {
+            totalObjects += Object.keys(p.objectCounters).length;
+        });
+        document.getElementById('tel-objects').textContent = totalObjects;
+    }
+}
+
+function createVisualNode(obj, baseBufIdx, payloads, panel) {
+    const type = obj.type;
+    const pose = obj.pose;
+    
+    let object3D = null;
+    
+    const getRGBAColor = (rgbaArr) => {
+        if (!rgbaArr) return new THREE.Color(0xffffff);
+        return new THREE.Color(rgbaArr[0], rgbaArr[1], rgbaArr[2]);
+    };
+    
+    switch (type) {
+        case 'null': {
+            object3D = new THREE.Group();
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'lines':
+        case 'thick_lines': {
+            let positions = null;
+            let colors = null;
+            
+            if (obj.verts.type === 'raw') {
+                const bId = obj.verts.buf + baseBufIdx;
+                positions = base64ToFloat32Array(payloads[bId]);
+            } else if (obj.verts.type === 'base64') {
+                positions = base64ToFloat32Array(obj.verts.data);
+            } else if (obj.verts.type === 'list') {
+                positions = new Float32Array(obj.verts.list.flat());
+            }
+            
+            if (obj.colors) {
+                if (obj.colors.type === 'raw') {
+                    const bId = obj.colors.buf + baseBufIdx;
+                    colors = base64ToFloat32Array(payloads[bId]);
+                } else if (obj.colors.type === 'base64') {
+                    colors = base64ToFloat32Array(obj.colors.data);
+                } else if (obj.colors.type === 'list') {
+                    colors = new Float32Array(obj.colors.list.flat());
+                }
+            }
+            
+            if (!positions) return null;
+            
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            
+            let material;
+            if (colors) {
+                const comps = colors.length / (positions.length / 3);
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, comps));
+                material = new THREE.LineBasicMaterial({ vertexColors: true, transparent: comps === 4, opacity: 1.0 });
+            } else {
+                const colRgba = obj.default_color_rgba || [1, 1, 1, 1];
+                material = new THREE.LineBasicMaterial({ color: getRGBAColor(colRgba), transparent: colRgba[3] < 1.0, opacity: colRgba[3] });
+            }
+            
+            if (obj.strip) {
+                object3D = new THREE.Line(geometry, material);
+            } else {
+                object3D = new THREE.LineSegments(geometry, material);
+            }
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'mesh': {
+            const geometry = new THREE.BufferGeometry();
+            
+            if (obj.verts) {
+                const verts = new Float32Array(obj.verts.flat());
+                geometry.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+            }
+            if (obj.norms) {
+                const norms = new Float32Array(obj.norms.flat());
+                geometry.setAttribute('normal', new THREE.BufferAttribute(norms, 3));
+            }
+            if (obj.uvs) {
+                const uvs = new Float32Array(obj.uvs.flat());
+                geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+            }
+            
+            const colorRgba = obj.color_rgba || [1, 1, 1, 1];
+            const material = new THREE.MeshStandardMaterial({
+                color: getRGBAColor(colorRgba),
+                roughness: 0.5,
+                metalness: 0.1,
+                transparent: colorRgba[3] < 1.0,
+                opacity: colorRgba[3],
+                side: obj.cull === false ? THREE.DoubleSide : THREE.FrontSide
+            });
+            
+            if (obj.tex) {
+                loadTextureToMaterial(material, obj.tex, baseBufIdx, payloads);
+            }
+            
+            object3D = new THREE.Mesh(geometry, material);
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'obj_mesh': {
+            object3D = new THREE.Group();
+            applyTransform(object3D, pose);
+            
+            const loader = new THREE.OBJLoader();
+            const objPath = obj.path;
+            
+            loader.load(objPath, (loadedObj) => {
+                loadedObj.traverse(child => {
+                    if (child.isMesh) {
+                        child.material = new THREE.MeshStandardMaterial({
+                            color: 0xcccccc,
+                            roughness: 0.6
+                        });
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                object3D.add(loadedObj);
+            }, undefined, (err) => {
+                console.warn(`[OBJ] Error loading OBJ mesh from path: ${objPath}`, err);
+            });
+            break;
+        }
+        
+        case 'sphere': {
+            const rad = obj.rad || 1.0;
+            const geom = new THREE.SphereGeometry(rad, obj.slices || 16, obj.stacks || 16);
+            const mat = new THREE.MeshStandardMaterial({ color: getRGBAColor(obj.color_rgb || [1, 1, 1]) });
+            object3D = new THREE.Mesh(geom, mat);
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'cylinder': {
+            const rad = obj.rad || 1.0;
+            const h = obj.height || 1.0;
+            const geom = new THREE.CylinderGeometry(rad, rad, h, obj.slices || 16);
+            geom.rotateX(Math.PI / 2);
+            const mat = new THREE.MeshStandardMaterial({ color: getRGBAColor(obj.color_rgb || [1, 1, 1]) });
+            object3D = new THREE.Mesh(geom, mat);
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'cone': {
+            const rad = obj.rad || 1.0;
+            const h = obj.height || 1.0;
+            const geom = new THREE.ConeGeometry(rad, h, obj.slices || 16);
+            geom.rotateX(Math.PI / 2);
+            const mat = new THREE.MeshStandardMaterial({ color: getRGBAColor(obj.color_rgb || [1, 1, 1]) });
+            object3D = new THREE.Mesh(geom, mat);
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'cube': {
+            const r = obj.rad || 1.0;
+            const geom = new THREE.BoxGeometry(r*2, r*2, r*2);
+            const mat = new THREE.MeshStandardMaterial({ color: getRGBAColor(obj.color_rgb || [1, 1, 1]) });
+            object3D = new THREE.Mesh(geom, mat);
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'plane': {
+            const rads = obj.rads || [1, 1];
+            const geom = new THREE.PlaneGeometry(rads[0]*2, rads[1]*2);
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: getRGBAColor(obj.color_rgba || [1, 1, 1, 1]),
+                side: THREE.DoubleSide,
+                transparent: true,
+                alphaTest: 0.05
+            });
+            
+            if (obj.tex) {
+                loadTextureToMaterial(mat, obj.tex, baseBufIdx, payloads);
+            }
+            
+            object3D = new THREE.Mesh(geom, mat);
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'arrow': {
+            object3D = new THREE.Group();
+            
+            const start = new THREE.Vector3(...(obj.start || [0, 0, 0]));
+            const end = new THREE.Vector3(...(obj.end || [0, 0, 1]));
+            const col = getRGBAColor(obj.color_rgba || [1, 1, 1, 1]);
+            const shaftRad = obj.rad || 0.1;
+            
+            const dir = new THREE.Vector3().subVectors(end, start);
+            const len = dir.length();
+            
+            if (len > 1e-4) {
+                dir.normalize();
+                const headLength = Math.min(len * 0.25, shaftRad * 4);
+                const headRad = shaftRad * 2;
+                const arrowHelper = new THREE.ArrowHelper(dir, start, len, col.getHex(), headLength, headRad);
+                object3D.add(arrowHelper);
+            }
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'axes': {
+            const size = obj.size || 1.0;
+            object3D = new THREE.AxesHelper(size);
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'circle': {
+            const rad = obj.rad || 1.0;
+            const geometry = new THREE.RingGeometry(rad - (obj.thickness || 0.05), rad, obj.slices || 32);
+            const material = new THREE.MeshBasicMaterial({ color: getRGBAColor(obj.color_rgb || [1, 1, 1]), side: THREE.DoubleSide });
+            object3D = new THREE.Mesh(geometry, material);
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'grid': {
+            const r = obj.rad || 10.0;
+            const cellSize = obj.cell_size || 1.0;
+            const segments = Math.floor((r * 2) / cellSize);
+            object3D = new THREE.GridHelper(r * 2, segments, getRGBAColor(obj.color_rgb || [1, 1, 1]), 0x444444);
+            object3D.rotation.x = Math.PI / 2;
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'text': {
+            const text = obj.text || '';
+            const col = getRGBAColor(obj.color_rgb || [1, 1, 1]);
+            const textWidthFactor = text.length * 0.5;
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.height = 128;
+            canvas.width = Math.max(128, Math.floor(128 * textWidthFactor));
+            
+            ctx.fillStyle = 'transparent';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.font = 'bold 80px "JetBrains Mono", monospace';
+            ctx.fillStyle = `#${col.getHexString()}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+            
+            const tex = new THREE.CanvasTexture(canvas);
+            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+            const sprite = new THREE.Sprite(mat);
+            
+            sprite.userData = {
+                isText: true,
+                textWidthFactor: textWidthFactor
+            };
+            
+            if (obj.anchor) {
+                sprite.center.set(obj.anchor[0], obj.anchor[1]);
+            }
+            
+            object3D = sprite;
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'particle': {
+            let positions = null;
+            let colors = null;
+            let sizes = null;
+            
+            if (obj.verts.type === 'raw') {
+                const bId = obj.verts.buf + baseBufIdx;
+                positions = base64ToFloat32Array(payloads[bId]);
+            } else if (obj.verts.type === 'base64') {
+                positions = base64ToFloat32Array(obj.verts.data);
+            } else if (obj.verts.type === 'list') {
+                positions = new Float32Array(obj.verts.list.flat());
+            }
+            
+            if (obj.colors) {
+                if (obj.colors.type === 'raw') {
+                    const bId = obj.colors.buf + baseBufIdx;
+                    colors = base64ToFloat32Array(payloads[bId]);
+                } else if (obj.colors.type === 'base64') {
+                    colors = base64ToFloat32Array(obj.colors.data);
+                } else if (obj.colors.type === 'list') {
+                    colors = new Float32Array(obj.colors.list.flat());
+                }
+            }
+            
+            if (obj.sizes) {
+                if (obj.sizes.type === 'raw') {
+                    const bId = obj.sizes.buf + baseBufIdx;
+                    sizes = base64ToFloat32Array(payloads[bId]);
+                } else if (obj.sizes.type === 'base64') {
+                    sizes = base64ToFloat32Array(obj.sizes.data);
+                }
+            }
+            
+            if (!positions) return null;
+            
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            
+            if (colors) {
+                const comps = colors.length / (positions.length / 3);
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, comps));
+            }
+            
+            const defColor = obj.default_color_rgba || [1, 1, 1, 1];
+            const defSize = obj.size || 0.03;
+            
+            const height = panel ? panel.card.clientHeight : 800;
+            const useOrtho = panel ? panel.is2DPlotMode : false;
+            
+            const material = new THREE.PointsMaterial({
+                size: useOrtho ? (height * defSize) : defSize,
+                color: colors ? 0xffffff : getRGBAColor(defColor),
+                vertexColors: colors !== null,
+                transparent: defColor[3] < 1.0,
+                opacity: defColor[3],
+                sizeAttenuation: !useOrtho
+            });
+            
+            if (obj.tex && obj.tex !== "") {
+                const texLoader = new THREE.TextureLoader();
+                texLoader.load(obj.tex, (loadedTex) => {
+                    material.map = loadedTex;
+                    material.transparent = true;
+                    material.needsUpdate = true;
+                });
+            }
+            
+            object3D = new THREE.Points(geometry, material);
+            object3D.userData = {
+                defSize: defSize
+            };
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        case 'sprite': {
+            const diffuse = obj.color_rgb || [1, 1, 1];
+            const mat = new THREE.SpriteMaterial({ color: getRGBAColor(diffuse), transparent: true });
+            
+            if (obj.tex) {
+                loadTextureToMaterial(mat, obj.tex, baseBufIdx, payloads);
+            }
+            
+            object3D = new THREE.Sprite(mat);
+            applyTransform(object3D, pose);
+            break;
+        }
+        
+        default:
+            console.warn(`[Node] Unhandled primitive visual type: ${type}`);
+            return null;
+    }
+    
+    if (object3D && object3D.material) {
+        object3D.material.wireframe = state.wireframe;
+    }
+    
+    return object3D;
+}
+
+function loadTextureToMaterial(material, texInfo, baseBufIdx, payloads) {
+    if (texInfo.type === 'file') {
+        const path = texInfo.path;
+        new THREE.TextureLoader().load(path, (loadedTex) => {
+            material.map = loadedTex;
+            if (path.toLowerCase().endsWith('.png')) {
+                material.transparent = true;
+                material.alphaTest = 0.05;
+                material.depthWrite = true;
+            }
+            material.needsUpdate = true;
+        }, undefined, (err) => {
+            console.warn(`[Texture] Failed to load from file path: ${path}`, err);
+        });
+    } 
+    else if (texInfo.type === 'jpg') {
+        const bId = texInfo.buf + baseBufIdx;
+        const b64 = payloads[bId];
+        if (b64) {
+            const binary = atob(b64);
+            const array = [];
+            for (let i = 0; i < binary.length; i++) {
+                array.push(binary.charCodeAt(i));
+            }
+            const blob = new Blob([new Uint8Array(array)], { type: 'image/jpeg' });
+            const url = URL.createObjectURL(blob);
+            
+            new THREE.TextureLoader().load(url, (loadedTex) => {
+                material.map = loadedTex;
+                material.needsUpdate = true;
+                URL.revokeObjectURL(url);
+            });
+        }
+    }
+    else if (texInfo.type === 'raw') {
+        const bId = texInfo.buf + baseBufIdx;
+        const b64 = payloads[bId];
+        const size = texInfo.size || [1, 1];
+        const channels = texInfo.channels || 3;
+        
+        if (b64) {
+            const rawBytes = base64ToFloat32Array(b64);
+            let format = THREE.RGBFormat;
+            if (channels === 1) format = THREE.LuminanceFormat;
+            else if (channels === 4) format = THREE.RGBAFormat;
+            
+            const rawTex = new THREE.DataTexture(rawBytes, size[0], size[1], format, THREE.FloatType);
+            rawTex.needsUpdate = true;
+            material.map = rawTex;
+            material.needsUpdate = true;
+        }
+    }
+}
+
+// ==========================================
+// 6. UI Controls & Present Managers
+// ==========================================
+function initUI() {
+    // 1. Peer Connection Form
+    const connectBtn = document.getElementById('connect-btn');
+    const targetHost = document.getElementById('target-host');
+    
+    connectBtn.addEventListener('click', () => {
+        const val = targetHost.value.trim();
+        if (!val) return;
+        
+        let host = 'localhost';
+        let port = 5533;
+        
+        if (val.includes(':')) {
+            const parts = val.split(':');
+            host = parts[0];
+            port = parseInt(parts[1]) || 5533;
+        } else {
+            host = val;
+        }
+        
+        if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+            state.ws.send(JSON.stringify({
+                type: 'connect_target',
+                host: host,
+                port: port
+            }));
+            showToast(`Connecting to peer ${host}:${port}...`, 'info');
+        }
+    });
+
+    // 2. Camera presets click triggers
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const preset = e.target.getAttribute('data-view');
+            triggerCameraPreset(preset);
+        });
+    });
+
+    // 3. Auto-Fit Bounds button
+    document.getElementById('fit-bounds-btn').addEventListener('click', () => {
+        autoFitSceneBounds();
+    });
+
+    // 4. Rendering Toggle switches
+    document.getElementById('wireframe-toggle').addEventListener('change', (e) => {
+        state.wireframe = e.target.checked;
+        Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
+            panel.scene.traverse(child => {
+                if (child.isMesh && child.material) {
+                    child.material.wireframe = state.wireframe;
+                }
+            });
+        });
+    });
+
+    document.getElementById('grid-toggle').addEventListener('change', (e) => {
+        state.gridEnabled = e.target.checked;
+        Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
+            panel.gridHelper.visible = state.gridEnabled;
+        });
+    });
+
+    document.getElementById('axes-toggle').addEventListener('change', (e) => {
+        state.axesEnabled = e.target.checked;
+        Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
+            panel.axesHelper.visible = state.axesEnabled;
+        });
+    });
+
+    document.getElementById('bg-color').addEventListener('input', (e) => {
+        const col = e.target.value;
+        Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
+            panel.scene.background.set(col);
+        });
+    });
+
+    // 5. Sidebar Toggle UI sliding
+    const sidebar = document.getElementById('sidebar');
+    const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+    const openBtn = document.createElement('button');
+    openBtn.id = 'open-sidebar-btn';
+    openBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+    document.body.appendChild(openBtn);
+    
+    toggleSidebarBtn.addEventListener('click', () => {
+        sidebar.classList.add('collapsed');
+        setTimeout(() => { openBtn.style.display = 'block'; }, 400);
+    });
+
+    openBtn.addEventListener('click', () => {
+        sidebar.classList.remove('collapsed');
+        openBtn.style.display = 'none';
+    });
+}
+
+function triggerCameraPreset(preset) {
+    Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
+        panel.controls.reset();
+        panel.orthoControls.reset();
+        switch (preset) {
+            case 'isometric':
+                panel.camera.position.set(5, 5, 5);
+                break;
+            case 'top':
+                panel.camera.position.set(0, 0, 10);
+                panel.orthoCamera.position.set(0, 0, 15);
+                break;
+            case 'front':
+                panel.camera.position.set(0, -10, 0);
+                break;
+            case 'side':
+                panel.camera.position.set(10, 0, 0);
+                break;
+        }
+        panel.controls.update();
+        panel.orthoControls.update();
+    });
+}
+
+function autoFitSceneBounds() {
+    let fitted = false;
+    Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
+        const box = new THREE.Box3().setFromObject(panel.feedGroup);
+        if (box.isEmpty()) return;
+        
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        const radius = sphere.radius;
+        const center = sphere.center;
+        
+        if (panel.is2DPlotMode) {
+            panel.orthoControls.target.copy(center);
+            
+            // Adjust ortho camera frustum bounds to encase sphere radius
+            const aspect = panel.card.clientWidth / panel.card.clientHeight;
+            const padRadius = radius * 1.25;
+            
+            panel.orthoCamera.left = -padRadius * aspect;
+            panel.orthoCamera.right = padRadius * aspect;
+            panel.orthoCamera.top = padRadius;
+            panel.orthoCamera.bottom = -padRadius;
+            panel.orthoCamera.updateProjectionMatrix();
+            panel.orthoControls.update();
+        } else {
+            panel.controls.target.copy(center);
+            
+            const fov = panel.camera.fov * (Math.PI / 180);
+            let cameraDist = Math.abs(radius / Math.sin(fov / 2)) * 1.25;
+            
+            const dir = new THREE.Vector3().subVectors(panel.camera.position, panel.controls.target).normalize();
+            panel.camera.position.copy(dir).multiplyScalar(cameraDist).add(panel.controls.target);
+            
+            panel.camera.lookAt(center);
+            panel.controls.update();
+        }
+        fitted = true;
+    });
+    
+    if (fitted) {
+        showToast('Aligned all active panels to their scene bounds', 'success');
+    }
+}
+
+// Notification system helper
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let icon = 'fa-info-circle';
+    if (type === 'success') icon = 'fa-check-circle';
+    if (type === 'error') icon = 'fa-exclamation-triangle';
+    
+    toast.innerHTML = `
+        <span><i class="fa-solid ${icon}" style="margin-right: 8px;"></i> ${message}</span>
+        <button class="toast-close" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; margin-left:15px;"><i class="fa-solid fa-times"></i></button>
+    `;
+    
+    container.appendChild(toast);
+    
+    const timeout = setTimeout(() => {
+        toast.style.animation = 'slideInRight 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+    
+    toast.querySelector('.toast-close').addEventListener('click', () => {
+        clearTimeout(timeout);
+        toast.remove();
+    });
+}

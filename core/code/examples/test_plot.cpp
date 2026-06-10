@@ -9,6 +9,8 @@
 **/
 
 #include "vephor_ext.h"
+#include <unistd.h>
+#include <thread>
 
 using namespace vephor;
 
@@ -38,9 +40,53 @@ vector<float> linspace(const float start, const float end, const int num)
 }
 
 
-int main()
+int main(int argc, char* argv[])
 {
+	string mode = "file";
+	string host = "localhost";
+	int port = VEPHOR_DEFAULT_PORT;
+	bool wait = true;
+	
+	int opt;
+    while((opt = getopt(argc, argv, "dhm:o:p:")) != -1) 
+    {
+		switch(opt)
+		{
+		case 'd':
+			wait = false;
+			break;
+		case 'm': 
+			mode = optarg;
+			break;
+		case 'o': 
+			host = optarg;
+			break;
+		case 'p': 
+			port = std::atoi(optarg);
+			break;
+		default:
+			break;
+		}			
+	}
+	
+	bool use_net = false;
+	bool use_client = false;
+	bool use_server = false;
+
+	use_client = mode == string("client");
+	use_server = mode == string("server");
+	use_net = use_client || use_server;
+
     Plot plt;
+	
+	if (use_client)
+		plt.window().setClientMode(wait, host, port);
+	else if (use_server)
+	{
+		ShowMetadata metadata;
+		metadata.app_name = "test_plot";
+		plt.window().setServerMode(wait, port, false, "", metadata);
+	}
 
     plt.title("Squared");
     plt.xlabel("X");
@@ -147,7 +193,19 @@ int main()
         plt.label("Custom Label", {1.0F, 0.0F, 0.0F}, "square");
     }
 
-    plt.show();
+	if (use_net)
+	{
+		while (true)
+		{
+			if (!plt.show(false))
+				break;
+			std::this_thread::sleep_for(std::chrono::milliseconds(30));
+		}
+	}
+	else
+	{
+		plt.show();
+	}
 
     return 0;
 }

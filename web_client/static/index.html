@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vephor Web Visualizer</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- Google Font for futuristic UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for modern icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Three.js and components -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+</head>
+<body>
+    <!-- 3D Canvas Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- Modern Glassmorphic Dashboard UI -->
+    <div id="sidebar" class="glass-panel">
+        <div class="sidebar-header">
+            <div class="brand">
+                <i class="fa-solid fa-cube logo-icon"></i>
+                <span>VEPHOR <span class="badge badge-accent">WEB</span></span>
+            </div>
+            <button id="toggle-sidebar-btn" class="icon-btn"><i class="fa-solid fa-angle-left"></i></button>
+        </div>
+
+        <div class="sidebar-content">
+            <!-- Connection Manager Section -->
+            <section class="panel-section">
+                <div class="section-title"><i class="fa-solid fa-network-wired"></i> Peer Connections</div>
+                
+                <div class="connect-form">
+                    <input type="text" id="target-host" placeholder="localhost:5533" value="localhost:5533">
+                    <button id="connect-btn" class="btn btn-primary">Connect</button>
+                </div>
+
+                <div id="connections-list" class="connection-list-container">
+                    <div class="empty-state">No active connections. Listening for visualizer sources...</div>
+                </div>
+            </section>
+
+            <!-- Active Feed Statistics Section -->
+            <section class="panel-section">
+                <div class="section-title"><i class="fa-solid fa-chart-simple"></i> Telemetry</div>
+                <div class="telemetry-grid">
+                    <div class="tel-card">
+                        <span class="tel-label">FPS</span>
+                        <span id="tel-fps" class="tel-val">0.0</span>
+                    </div>
+                    <div class="tel-card">
+                        <span class="tel-label">Objects</span>
+                        <span id="tel-objects" class="tel-val">0</span>
+                    </div>
+                    <div class="tel-card">
+                        <span class="tel-label">Latency</span>
+                        <span id="tel-latency" class="tel-val">0ms</span>
+                    </div>
+                    <div class="tel-card">
+                        <span class="tel-label">Source</span>
+                        <span id="tel-source" class="tel-val">-</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Dynamic Control Flags Section -->
+            <section id="flags-section" class="panel-section hide">
+                <div class="section-title"><i class="fa-solid fa-toggle-on"></i> Viz Control Flags</div>
+                <div id="flags-container" class="flags-grid">
+                    <!-- Dynamic interactive checkboxes/switches go here -->
+                </div>
+            </section>
+
+            <!-- Camera View Presets Section -->
+            <section class="panel-section">
+                <div class="section-title"><i class="fa-solid fa-camera"></i> Camera View Presets</div>
+                <div class="camera-presets">
+                    <button class="preset-btn btn-small" data-view="isometric">Isometric</button>
+                    <button class="preset-btn btn-small" data-view="top">Top (XY)</button>
+                    <button class="preset-btn btn-small" data-view="front">Front (XZ)</button>
+                    <button class="preset-btn btn-small" data-view="side">Side (YZ)</button>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button id="fit-bounds-btn" class="btn btn-secondary btn-full"><i class="fa-solid fa-expand"></i> Auto-Fit Scene Bounds</button>
+                </div>
+            </section>
+
+            <!-- Rendering Settings Section -->
+            <section class="panel-section">
+                <div class="section-title"><i class="fa-solid fa-sliders"></i> Visual Settings</div>
+                <div class="control-row">
+                    <label for="wireframe-toggle">Wireframe Mode</label>
+                    <div class="switch">
+                        <input type="checkbox" id="wireframe-toggle">
+                        <span class="slider round"></span>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <label for="grid-toggle">Coordinate Grid</label>
+                    <div class="switch">
+                        <input type="checkbox" id="grid-toggle" checked>
+                        <span class="slider round"></span>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <label for="axes-toggle">World Axes</label>
+                    <div class="switch">
+                        <input type="checkbox" id="axes-toggle" checked>
+                        <span class="slider round"></span>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <label for="bg-color">Background Color</label>
+                    <input type="color" id="bg-color" value="#0d1117">
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Notification Toasts -->
+    <div id="toast-container"></div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
