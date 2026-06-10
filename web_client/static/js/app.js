@@ -969,7 +969,7 @@ function renderControlFlags(connId, flagsList) {
         
         if (flag.toggle) {
             // Render Switch
-            const switchDiv = document.createElement('div');
+            const switchDiv = document.createElement('label');
             switchDiv.className = 'switch';
             
             const input = document.createElement('input');
@@ -1004,7 +1004,15 @@ function renderControlFlags(connId, flagsList) {
 
 function sendFlagUpdate(connId, name, value) {
     if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
-    
+
+    // Optimistic UI update: instantly mutate the local tracked state so incoming echoes don't bounce the slider!
+    if (state.activeFlags[connId]) {
+        const flag = state.activeFlags[connId].find(f => f.name === name);
+        if (flag) {
+            flag.state = value;
+        }
+    }
+
     const eventMsg = {
         type: "event",
         conn_id: connId,
@@ -1016,7 +1024,7 @@ function sendFlagUpdate(connId, name, value) {
         },
         payloads: []
     };
-    
+
     state.ws.send(JSON.stringify(eventMsg));
 }
 
@@ -1287,9 +1295,28 @@ function parseScenePayload(connId, header, payloads) {
     
     // 4. Handle interactive flag updates (metadata messages)
     if (header.flags && Array.isArray(header.flags)) {
-        state.activeFlags[connId] = header.flags;
+        if (!state.activeFlags[connId]) {
+            state.activeFlags[connId] = header.flags;
+        } else {
+            // Safely merge flags. If the user just toggled it ON, ignore C++ echoing 'false' 
+            // since C++ checkAndConsumeFlag instantly resets toggles to false!
+            header.flags.forEach(incomingFlag => {
+                const localFlag = state.activeFlags[connId].find(f => f.name === incomingFlag.name);
+                if (localFlag) {
+                    if (localFlag.toggle && localFlag.state === true && incomingFlag.state === false) {
+                        // User toggled it on, and C++ hasn't yet caught up or is echoing its consumed false state.
+                        // Keep our local optimistic TRUE state!
+                    } else {
+                        localFlag.state = incomingFlag.state;
+                    }
+                } else {
+                    state.activeFlags[connId].push(incomingFlag);
+                }
+            });
+        }
+        
         if (connId === state.activeConnId) {
-            renderControlFlags(connId, header.flags);
+            renderControlFlags(connId, state.activeFlags[connId]);
         }
     }
     
@@ -1517,24 +1544,59 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
             object3D = new THREE.Group();
             applyTransform(object3D, pose);
             
-            const loader = new THREE.OBJLoader();
             const objPath = obj.path;
+            let mtlPath = null;
             
-            loader.load(objPath, (loadedObj) => {
-                loadedObj.traverse(child => {
-                    if (child.isMesh) {
-                        child.material = new THREE.MeshStandardMaterial({
-                            color: 0xcccccc,
-                            roughness: 0.6
-                        });
-                        child.castShadow = true;
-                        child.receiveShadow = true;
-                    }
+            // Assume the MTL file has the same base name as the OBJ file
+            if (objPath.toLowerCase().endsWith('.obj')) {
+                mtlPath = objPath.substring(0, objPath.length - 4) + '.mtl';
+            }
+            
+            const loadOBJ = (materials) => {
+                const loader = new THREE.OBJLoader();
+                if (materials) {
+                    materials.preload();
+                    loader.setMaterials(materials);
+                }
+                
+                loader.load(objPath, (loadedObj) => {
+                    loadedObj.traverse(child => {
+                        if (child.isMesh) {
+                            if (!materials) {
+                                // Fallback if no MTL could be loaded
+                                child.material = new THREE.MeshStandardMaterial({
+                                    color: 0xcccccc,
+                                    roughness: 0.6
+                                });
+                            }
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
+                    object3D.add(loadedObj);
+                }, undefined, (err) => {
+                    console.warn(`[OBJ] Error loading OBJ mesh from path: ${objPath}`, err);
                 });
-                object3D.add(loadedObj);
-            }, undefined, (err) => {
-                console.warn(`[OBJ] Error loading OBJ mesh from path: ${objPath}`, err);
-            });
+            };
+            
+            if (mtlPath) {
+                const mtlLoader = new THREE.MTLLoader();
+                // Extract base path for texture loading relative to the MTL file
+                const lastSlash = mtlPath.lastIndexOf('/');
+                if (lastSlash !== -1) {
+                    mtlLoader.setPath(mtlPath.substring(0, lastSlash + 1));
+                }
+                const mtlFileName = lastSlash !== -1 ? mtlPath.substring(lastSlash + 1) : mtlPath;
+                
+                mtlLoader.load(mtlFileName, (materials) => {
+                    loadOBJ(materials);
+                }, undefined, (err) => {
+                    console.warn(`[MTL] Could not load MTL ${mtlPath}, falling back to default material.`, err);
+                    loadOBJ(null);
+                });
+            } else {
+                loadOBJ(null);
+            }
             break;
         }
         

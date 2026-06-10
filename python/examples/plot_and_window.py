@@ -16,7 +16,6 @@ import time
 import vephor as v4
 
 v4.Window.setServerMode(port=8921)
-#v4.Window.setServerModeBYOC()
 
 plt = v4.Plot()
 

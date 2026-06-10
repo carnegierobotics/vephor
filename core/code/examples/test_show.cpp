@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
 			break;
 		case 'o': 
 			host = optarg;
-			break;
+1-0			break;
 		case 'p': 
 			port = std::atoi(optarg);
 			break;
