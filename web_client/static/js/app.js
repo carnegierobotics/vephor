@@ -32,8 +32,8 @@ const state = {
     
     // Global render options
     wireframe: false,
-    gridEnabled: true,
-    axesEnabled: true,
+    gridEnabled: false,
+    axesEnabled: false,
     
     // Draggable and Resizable state parameters
     draggedCard: null,
@@ -73,9 +73,10 @@ function createPanel(connId, windowId, title) {
     
     container.appendChild(card);
     
-    // Create Scene
+    // Create Scene (Transparent background so the DOM card background shines through!)
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0d1117);
+    const bgColor = new THREE.Color(0x0d1117);
+    card.style.backgroundColor = '#' + bgColor.getHexString();
     
     // Create HUD Scene
     const hudScene = new THREE.Scene();
@@ -92,24 +93,8 @@ function createPanel(connId, windowId, title) {
     // Create HUD Camera
     const hudCamera = new THREE.OrthographicCamera(0, 1, 1, 0, -1000, 1000);
     
-    // Create Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true;
-    renderer.autoClear = false;
-    
-    // Explicitly style WebGL canvas absolutely to guarantee correct compositing layer order under overlayCanvas
-    renderer.domElement.style.position = 'absolute';
-    renderer.domElement.style.top = '0';
-    renderer.domElement.style.left = '0';
-    renderer.domElement.style.width = '100%';
-    renderer.domElement.style.height = '100%';
-    renderer.domElement.style.zIndex = '1';
-    
-    card.appendChild(renderer.domElement);
-    
     // Create sharp 2D overlay canvas for coordinate grids and matplotlib-style tick marks
-    // MUST be appended AFTER renderer.domElement to be rendered on top!
+    // Appended BEFORE WebGL canvas so the coordinate lines render BEHIND the 3D/2D visual plots!
     const overlayCanvas = document.createElement('canvas');
     overlayCanvas.className = 'plot-overlay-canvas';
     overlayCanvas.style.position = 'absolute';
@@ -118,8 +103,24 @@ function createPanel(connId, windowId, title) {
     overlayCanvas.style.width = '100%';
     overlayCanvas.style.height = '100%';
     overlayCanvas.style.pointerEvents = 'none'; // Pass clicks through to OrbitControls below
-    overlayCanvas.style.zIndex = '4';
+    overlayCanvas.style.zIndex = '1';
     card.appendChild(overlayCanvas);
+    
+    // Create Renderer with Alpha enabled for transparency
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.autoClear = false;
+    
+    // Explicitly style WebGL canvas absolutely to guarantee correct compositing layer order OVER overlayCanvas
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0';
+    renderer.domElement.style.left = '0';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.zIndex = '4';
+    
+    card.appendChild(renderer.domElement);
     
     // Create Controls (Perspective camera)
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -195,6 +196,7 @@ function createPanel(connId, windowId, title) {
         windowId,
         card,
         titleTag,
+        bgColor,
         scene,
         hudScene,
         camera,
@@ -217,6 +219,7 @@ function createPanel(connId, windowId, title) {
         is2DPlotMode: false,
         hasAutoFitted: false,
         orthoHeightUnits: 10,
+        plotEqualAspect: false,
         
         // Custom Right-Click Drag Scaling parameters
         isRightDragging: false,
@@ -273,8 +276,15 @@ function createPanel(connId, windowId, title) {
         if (panel.is2DPlotMode) {
             // C++ style exponential stretching
             // Dragging right/down zooms in (shrinks bounds), left/up zooms out (grows bounds)
-            const factorX = Math.exp(-deltaX / 150);
-            const factorY = Math.exp(deltaY / 150); // Y screen coords are inverted
+            let factorX = Math.exp(-deltaX / 150);
+            let factorY = Math.exp(deltaY / 150); // Y screen coords are inverted
+            
+            if (panel.plotEqualAspect) {
+                // If equal aspect ratio is enforced, apply uniform zooming
+                const uniformFactor = factorX * factorY;
+                factorX = uniformFactor;
+                factorY = uniformFactor;
+            }
             
             const f = panel.dragStartFrustum;
             const centerX = (f.left + f.right) / 2;
@@ -288,8 +298,9 @@ function createPanel(connId, windowId, title) {
             panel.orthoCamera.top = centerY + spanY / 2;
             panel.orthoCamera.bottom = centerY - spanY / 2;
             
-            // Track the custom stretched height units so window resizes perfectly maintain the custom scale!
+            // Track the custom stretched height and width units so window resizes perfectly maintain the custom scale!
             panel.orthoHeightUnits = spanY / 2;
+            panel.orthoWidthUnits = spanX / 2;
             
             panel.orthoCamera.updateProjectionMatrix();
             
@@ -450,14 +461,23 @@ function resizePanel(panel) {
     panel.camera.aspect = width / height;
     panel.camera.updateProjectionMatrix();
     
-    // Update orthographic camera boundaries (maintaining 1-to-1 aspect scaling and preserving custom auto-fitted height scales!)
-    const aspect = width / height;
-    const heightUnits = panel.orthoHeightUnits || 10;
-    
-    panel.orthoCamera.left = -heightUnits * aspect;
-    panel.orthoCamera.right = heightUnits * aspect;
-    panel.orthoCamera.top = heightUnits;
-    panel.orthoCamera.bottom = -heightUnits;
+    // Update orthographic camera boundaries
+    if (panel.is2DPlotMode && !panel.plotEqualAspect && panel.orthoWidthUnits !== undefined) {
+        // Non-equal: maintain absolute world coordinate limits, stretching content to fit the new DOM aspect ratio
+        panel.orthoCamera.left = -panel.orthoWidthUnits;
+        panel.orthoCamera.right = panel.orthoWidthUnits;
+        panel.orthoCamera.top = panel.orthoHeightUnits;
+        panel.orthoCamera.bottom = -panel.orthoHeightUnits;
+    } else {
+        // Equal (or 3D defaults): adjust horizontal bounds strictly by aspect ratio to enforce 1:1 scaling
+        const aspect = width / height;
+        const heightUnits = panel.orthoHeightUnits || 10;
+        
+        panel.orthoCamera.left = -heightUnits * aspect;
+        panel.orthoCamera.right = heightUnits * aspect;
+        panel.orthoCamera.top = heightUnits;
+        panel.orthoCamera.bottom = -heightUnits;
+    }
     panel.orthoCamera.updateProjectionMatrix();
     
     // Update HUD Camera
@@ -791,7 +811,7 @@ function drawPlotOverlay(panel) {
     };
     
     // Calculate background brightness to adjust grid/label text colors dynamically
-    const bg = panel.scene.background;
+    const bg = panel.bgColor;
     const luminance = 0.299 * bg.r + 0.587 * bg.g + 0.114 * bg.b;
     const isDarkBg = luminance < 0.5;
     
@@ -924,6 +944,9 @@ function applyTransform(object3D, pose) {
     if (object3D.userData && object3D.userData.isText) {
         const wFactor = object3D.userData.textWidthFactor || 1.0;
         object3D.scale.set(wFactor * s, s, 1);
+    } else if (object3D.userData && object3D.userData.spriteAspect !== undefined) {
+        // Native image sprites keep their true physical aspect ratio based on texture dimensions
+        object3D.scale.set(object3D.userData.spriteAspect * s, s, 1);
     } else {
         object3D.scale.set(s, s, s);
     }
@@ -1226,17 +1249,20 @@ function parseScenePayload(connId, header, payloads) {
         // Handle solid background setting if sent by C++
         if (data.camera.background && data.camera.background.type === "solid") {
             const bgCol = data.camera.background.color;
-            panel.scene.background.setRGB(bgCol[0], bgCol[1], bgCol[2]);
+            panel.bgColor.setRGB(bgCol[0], bgCol[1], bgCol[2]);
+            panel.card.style.backgroundColor = '#' + panel.bgColor.getHexString();
         }
         
         if (cam.type === "plot") {
+            panel.plotEqualAspect = (cam.equal === true);
+            
             if (!panel.is2DPlotMode) {
                 panel.is2DPlotMode = true;
                 
                 // Default C++ Plot background is light grey/white if none custom sent
                 if (!data.camera.background) {
-                    panel.scene.background.set('#f0f2f5');
-                    document.getElementById('bg-color').value = '#f0f2f5';
+                    panel.bgColor.set('#f0f2f5');
+                    panel.card.style.backgroundColor = '#' + panel.bgColor.getHexString();
                 }
                 
                 // Align orthographic camera looking straight down at the 2D XY Plane (looking down Z)
@@ -1848,11 +1874,20 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
             const diffuse = obj.color_rgb || [1, 1, 1];
             const mat = new THREE.SpriteMaterial({ color: getRGBAColor(diffuse), transparent: true });
             
+            object3D = new THREE.Sprite(mat);
+            object3D.userData = object3D.userData || {};
+            
             if (obj.tex) {
-                loadTextureToMaterial(mat, obj.tex, baseBufIdx, payloads);
+                loadTextureToMaterial(mat, obj.tex, baseBufIdx, payloads, (loadedTex) => {
+                    if (loadedTex.image && loadedTex.image.width && loadedTex.image.height) {
+                        const aspect = loadedTex.image.width / loadedTex.image.height;
+                        object3D.userData.spriteAspect = aspect;
+                        // Force a re-apply of the existing transform to snap the scale instantly after network load
+                        applyTransform(object3D, pose);
+                    }
+                });
             }
             
-            object3D = new THREE.Sprite(mat);
             applyTransform(object3D, pose);
             break;
         }
@@ -1869,7 +1904,7 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
     return object3D;
 }
 
-function loadTextureToMaterial(material, texInfo, baseBufIdx, payloads) {
+function loadTextureToMaterial(material, texInfo, baseBufIdx, payloads, onLoadCallback = null) {
     const applySampling = (tex) => {
         if (texInfo.filter_nearest) {
             tex.magFilter = THREE.NearestFilter;
@@ -1888,6 +1923,7 @@ function loadTextureToMaterial(material, texInfo, baseBufIdx, payloads) {
                 material.depthWrite = true;
             }
             material.needsUpdate = true;
+            if (onLoadCallback) onLoadCallback(loadedTex);
         }, undefined, (err) => {
             console.warn(`[Texture] Failed to load from file path: ${path}`, err);
         });
@@ -1907,6 +1943,7 @@ function loadTextureToMaterial(material, texInfo, baseBufIdx, payloads) {
             new THREE.TextureLoader().load(url, (loadedTex) => {
                 material.map = applySampling(loadedTex);
                 material.needsUpdate = true;
+                if (onLoadCallback) onLoadCallback(loadedTex);
                 URL.revokeObjectURL(url);
             });
         }
@@ -1928,6 +1965,13 @@ function loadTextureToMaterial(material, texInfo, baseBufIdx, payloads) {
             rawTex.needsUpdate = true;
             material.map = rawTex;
             material.needsUpdate = true;
+            
+            // For DataTexture, image boundaries are directly assigned to the image property from the size array
+            if (!rawTex.image) rawTex.image = {};
+            rawTex.image.width = size[0];
+            rawTex.image.height = size[1];
+            
+            if (onLoadCallback) onLoadCallback(rawTex);
         }
     }
 }
@@ -2001,13 +2045,6 @@ function initUI() {
         state.axesEnabled = e.target.checked;
         Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
             panel.axesHelper.visible = state.axesEnabled;
-        });
-    });
-
-    document.getElementById('bg-color').addEventListener('input', (e) => {
-        const col = e.target.value;
-        Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
-            panel.scene.background.set(col);
         });
     });
 
@@ -2159,17 +2196,35 @@ function autoFitPanelBounds(panel) {
         panel.orthoCamera.position.set(center.x, center.y, 15);
         panel.orthoControls.target.copy(center);
         
-        // Adjust ortho camera frustum bounds to encase sphere radius
-        const aspect = panel.card.clientWidth / panel.card.clientHeight;
-        const padRadius = radius * 1.25;
+        if (panel.plotEqualAspect) {
+            // Adjust ortho camera frustum bounds to encase sphere radius uniformly
+            const aspect = panel.card.clientWidth / panel.card.clientHeight;
+            const padRadius = radius * 1.25;
+            
+            panel.orthoHeightUnits = padRadius;
+            panel.orthoWidthUnits = padRadius * aspect;
+            
+            panel.orthoCamera.left = -panel.orthoWidthUnits;
+            panel.orthoCamera.right = panel.orthoWidthUnits;
+            panel.orthoCamera.top = panel.orthoHeightUnits;
+            panel.orthoCamera.bottom = -panel.orthoHeightUnits;
+        } else {
+            // For non-equal plots, fit X and Y independently based tightly on true box limits
+            const size = box.getSize(new THREE.Vector3());
+            
+            // Provide a minimum size fallback if dataset is perfectly flat
+            const spanX = Math.max(size.x, 1e-5) * 1.25 / 2;
+            const spanY = Math.max(size.y, 1e-5) * 1.25 / 2;
+            
+            panel.orthoHeightUnits = spanY;
+            panel.orthoWidthUnits = spanX;
+            
+            panel.orthoCamera.left = -spanX;
+            panel.orthoCamera.right = spanX;
+            panel.orthoCamera.top = spanY;
+            panel.orthoCamera.bottom = -spanY;
+        }
         
-        // Save the auto-fitted height units so they survive resizes and split adjustments!
-        panel.orthoHeightUnits = padRadius;
-        
-        panel.orthoCamera.left = -padRadius * aspect;
-        panel.orthoCamera.right = padRadius * aspect;
-        panel.orthoCamera.top = padRadius;
-        panel.orthoCamera.bottom = -padRadius;
         panel.orthoCamera.updateProjectionMatrix();
         panel.orthoControls.update();
     } else {
