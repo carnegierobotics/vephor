@@ -82,11 +82,11 @@ function createPanel(connId, windowId, title) {
     const hudScene = new THREE.Scene();
     
     // Create Camera (initial perspective)
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 1000);
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 1000000);
     camera.position.set(5, 5, 5);
     
     // Create Orthographic Camera for 2D plot mode (flat Matplotlib feel)
-    const orthoCamera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.05, 1000);
+    const orthoCamera = new THREE.OrthographicCamera(-10, 10, 10, -10, -1000000, 1000000);
     orthoCamera.position.set(0, 0, 15);
     orthoCamera.lookAt(0, 0, 0);
     
@@ -2065,6 +2065,73 @@ function initUI() {
         });
     });
 
+    // GLFW Key Mapping for C++ backend parity
+    const glfwKeyMap = {
+        'Space': 32, 'Quote': 39, 'Comma': 44, 'Minus': 45, 'Period': 46, 'Slash': 47,
+        'Digit0': 48, 'Digit1': 49, 'Digit2': 50, 'Digit3': 51, 'Digit4': 52, 'Digit5': 53, 'Digit6': 54, 'Digit7': 55, 'Digit8': 56, 'Digit9': 57,
+        'Semicolon': 59, 'Equal': 61,
+        'KeyA': 65, 'KeyB': 66, 'KeyC': 67, 'KeyD': 68, 'KeyE': 69, 'KeyF': 70, 'KeyG': 71, 'KeyH': 72, 'KeyI': 73, 'KeyJ': 74, 'KeyK': 75, 'KeyL': 76, 'KeyM': 77, 'KeyN': 78, 'KeyO': 79, 'KeyP': 80, 'KeyQ': 81, 'KeyR': 82, 'KeyS': 83, 'KeyT': 84, 'KeyU': 85, 'KeyV': 86, 'KeyW': 87, 'KeyX': 88, 'KeyY': 89, 'KeyZ': 90,
+        'BracketLeft': 91, 'Backslash': 92, 'BracketRight': 93, 'Backquote': 96,
+        'Escape': 256, 'Enter': 257, 'Tab': 258, 'Backspace': 259, 'Insert': 260, 'Delete': 261,
+        'ArrowRight': 262, 'ArrowLeft': 263, 'ArrowDown': 264, 'ArrowUp': 265,
+        'PageUp': 266, 'PageDown': 267, 'Home': 268, 'End': 269,
+        'CapsLock': 280, 'ScrollLock': 281, 'NumLock': 282, 'PrintScreen': 283, 'Pause': 284,
+        'F1': 290, 'F2': 291, 'F3': 292, 'F4': 293, 'F5': 294, 'F6': 295, 'F7': 296, 'F8': 297, 'F9': 298, 'F10': 299, 'F11': 300, 'F12': 301,
+        'ShiftLeft': 340, 'ControlLeft': 341, 'AltLeft': 342, 'MetaLeft': 343,
+        'ShiftRight': 344, 'ControlRight': 345, 'AltRight': 346, 'MetaRight': 347
+    };
+
+    const activeKeys = new Set();
+
+    // 1. Send `key_press` on initial physical depression (ignoring OS auto-repeats)
+    window.addEventListener('keydown', (e) => {
+        if (e.repeat) return; // Completely ignore OS-level rapid-fire auto-repeats
+        if (!state.activeConnId || !state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        const glfwCode = glfwKeyMap[e.code];
+        if (glfwCode !== undefined) {
+            activeKeys.add(e.code);
+            Object.keys(state.panels[state.activeConnId] || {}).forEach(windowId => {
+                const eventMsg = {
+                    type: "event",
+                    conn_id: state.activeConnId,
+                    header: {
+                        type: "key_press",
+                        window: parseInt(windowId),
+                        key: glfwCode
+                    },
+                    payloads: []
+                };
+                state.ws.send(JSON.stringify(eventMsg));
+            });
+        }
+    });
+
+    // 2. Send `key_release` on physical key lift (to complete C++ event callbacks)
+    window.addEventListener('keyup', (e) => {
+        if (!state.activeConnId || !state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        const glfwCode = glfwKeyMap[e.code];
+        if (glfwCode !== undefined && activeKeys.has(e.code)) {
+            activeKeys.delete(e.code);
+            Object.keys(state.panels[state.activeConnId] || {}).forEach(windowId => {
+                const eventMsg = {
+                    type: "event",
+                    conn_id: state.activeConnId,
+                    header: {
+                        type: "key_release",
+                        window: parseInt(windowId),
+                        key: glfwCode
+                    },
+                    payloads: []
+                };
+                state.ws.send(JSON.stringify(eventMsg));
+            });
+        }
+    });
+
     // 5. Sidebar Toggle UI sliding
     const sidebar = document.getElementById('sidebar');
     const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
@@ -2253,7 +2320,12 @@ function autoFitPanelBounds(panel) {
         panel.camera.position.add(targetDelta);
         
         const fov = panel.camera.fov * (Math.PI / 180);
-        let cameraDist = Math.abs(radius / Math.sin(fov / 2)) * 1.25;
+        let cameraDist = Math.max(Math.abs(radius / Math.sin(fov / 2)) * 1.25, 0.1);
+        
+        // Dynamically update clipping planes to perfectly enclose the data while maximizing depth buffer precision
+        panel.camera.near = Math.max(cameraDist / 1000, 0.001);
+        panel.camera.far = Math.max(cameraDist * 100, 10000);
+        panel.camera.updateProjectionMatrix();
         
         const dir = new THREE.Vector3().subVectors(panel.camera.position, panel.controls.target);
         if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
