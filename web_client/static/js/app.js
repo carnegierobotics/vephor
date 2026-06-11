@@ -93,18 +93,17 @@ function createPanel(connId, windowId, title) {
     // Create HUD Camera
     const hudCamera = new THREE.OrthographicCamera(0, 1, 1, 0, -1000, 1000);
     
-    // Create sharp 2D overlay canvas for coordinate grids and matplotlib-style tick marks
-    // Appended BEFORE WebGL canvas so the coordinate lines render BEHIND the 3D/2D visual plots!
-    const overlayCanvas = document.createElement('canvas');
-    overlayCanvas.className = 'plot-overlay-canvas';
-    overlayCanvas.style.position = 'absolute';
-    overlayCanvas.style.top = '0';
-    overlayCanvas.style.left = '0';
-    overlayCanvas.style.width = '100%';
-    overlayCanvas.style.height = '100%';
-    overlayCanvas.style.pointerEvents = 'none'; // Pass clicks through to OrbitControls below
-    overlayCanvas.style.zIndex = '1';
-    card.appendChild(overlayCanvas);
+    // Create Background Canvas for dynamic 2D grid lines
+    const gridCanvas = document.createElement('canvas');
+    gridCanvas.className = 'plot-grid-canvas';
+    gridCanvas.style.position = 'absolute';
+    gridCanvas.style.top = '0';
+    gridCanvas.style.left = '0';
+    gridCanvas.style.width = '100%';
+    gridCanvas.style.height = '100%';
+    gridCanvas.style.pointerEvents = 'none'; // Pass clicks through to OrbitControls below
+    gridCanvas.style.zIndex = '1'; // Behind WebGL
+    card.appendChild(gridCanvas);
     
     // Create Renderer with Alpha enabled for transparency
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -112,15 +111,27 @@ function createPanel(connId, windowId, title) {
     renderer.shadowMap.enabled = true;
     renderer.autoClear = false;
     
-    // Explicitly style WebGL canvas absolutely to guarantee correct compositing layer order OVER overlayCanvas
+    // Explicitly style WebGL canvas absolutely to guarantee correct compositing layer order OVER gridCanvas
     renderer.domElement.style.position = 'absolute';
     renderer.domElement.style.top = '0';
     renderer.domElement.style.left = '0';
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
-    renderer.domElement.style.zIndex = '4';
+    renderer.domElement.style.zIndex = '4'; // Over Grid, Under Ticks
     
     card.appendChild(renderer.domElement);
+    
+    // Create Foreground Canvas for tick marks and axis labels
+    const tickCanvas = document.createElement('canvas');
+    tickCanvas.className = 'plot-tick-canvas';
+    tickCanvas.style.position = 'absolute';
+    tickCanvas.style.top = '0';
+    tickCanvas.style.left = '0';
+    tickCanvas.style.width = '100%';
+    tickCanvas.style.height = '100%';
+    tickCanvas.style.pointerEvents = 'none'; // Pass clicks through to OrbitControls below
+    tickCanvas.style.zIndex = '5'; // On top of WebGL
+    card.appendChild(tickCanvas);
     
     // Create Controls (Perspective camera)
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -202,7 +213,8 @@ function createPanel(connId, windowId, title) {
         camera,
         orthoCamera,
         hudCamera,
-        overlayCanvas,
+        gridCanvas,
+        tickCanvas,
         renderer,
         controls,
         orthoControls,
@@ -450,12 +462,17 @@ function resizePanel(panel) {
     const height = panel.card.clientHeight;
     if (width === 0 || height === 0) return;
     
-    // Resize overlay canvas to match device pixels perfectly for ultra-sharp rendering
+    // Resize overlay canvases to match device pixels perfectly for ultra-sharp rendering
     const dpr = window.devicePixelRatio || 1;
-    panel.overlayCanvas.width = width * dpr;
-    panel.overlayCanvas.height = height * dpr;
-    panel.overlayCanvas.style.width = `${width}px`;
-    panel.overlayCanvas.style.height = `${height}px`;
+    panel.gridCanvas.width = width * dpr;
+    panel.gridCanvas.height = height * dpr;
+    panel.gridCanvas.style.width = `${width}px`;
+    panel.gridCanvas.style.height = `${height}px`;
+    
+    panel.tickCanvas.width = width * dpr;
+    panel.tickCanvas.height = height * dpr;
+    panel.tickCanvas.style.width = `${width}px`;
+    panel.tickCanvas.style.height = `${height}px`;
     
     // Update perspective camera aspect
     panel.camera.aspect = width / height;
@@ -716,13 +733,17 @@ function animate() {
 // 2. Labeled Ticks & 2D Grid Vector Drawing
 // ==========================================
 function drawPlotOverlay(panel) {
-    const canvas = panel.overlayCanvas;
-    const ctx = canvas.getContext('2d');
+    const gridCanvas = panel.gridCanvas;
+    const gridCtx = gridCanvas.getContext('2d');
+    const tickCanvas = panel.tickCanvas;
+    const tickCtx = tickCanvas.getContext('2d');
+    
     const width = panel.card.clientWidth;
     const height = panel.card.clientHeight;
     
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Clear canvases
+    gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+    tickCtx.clearRect(0, 0, tickCanvas.width, tickCanvas.height);
     
     if (!panel.is2DPlotMode) return;
     
@@ -748,17 +769,11 @@ function drawPlotOverlay(panel) {
         return new THREE.Vector2(x, y);
     };
     
-    // Log visible parameters once every 3 seconds
-    if (!panel.lastTickLogTime || Date.now() - panel.lastTickLogTime > 3000) {
-        panel.lastTickLogTime = Date.now();
-        const bottomLeft = pixelToWorld(0, height);
-        const topRight = pixelToWorld(width, 0);
-        console.log(`[Ticks Debug] Panel ${panel.windowId}: is2DPlotMode=${panel.is2DPlotMode}, clientSize=${width}x${height}, canvasSize=${canvas.width}x${canvas.height}, bounds=(${bottomLeft.x.toFixed(2)}, ${bottomLeft.y.toFixed(2)}) to (${topRight.x.toFixed(2)}, ${topRight.y.toFixed(2)})`);
-    }
-    
     const dpr = window.devicePixelRatio || 1;
-    ctx.save();
-    ctx.scale(dpr, dpr);
+    gridCtx.save();
+    gridCtx.scale(dpr, dpr);
+    tickCtx.save();
+    tickCtx.scale(dpr, dpr);
     
     // Calculate world boundaries currently framed by the viewport
     const bottomLeft = pixelToWorld(0, height);
@@ -772,7 +787,8 @@ function drawPlotOverlay(panel) {
     const rangeX = right - left;
     const rangeY = top - bottom;
     if (rangeX <= 0 || rangeY <= 0) {
-        ctx.restore();
+        gridCtx.restore();
+        tickCtx.restore();
         return;
     }
     
@@ -819,34 +835,34 @@ function drawPlotOverlay(panel) {
     const textColor = isDarkBg ? 'rgba(255, 255, 255, 0.92)' : 'rgba(0, 0, 0, 0.92)';
     const axisColor = isDarkBg ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.60)';
     
-    ctx.font = '11px "JetBrains Mono", monospace';
+    tickCtx.font = '11px "JetBrains Mono", monospace';
     
     // Draw X-axis grid lines and bottom tick marks
     const startX = Math.ceil(left / spacingX) * spacingX;
     for (let x = startX; x <= right; x += spacingX) {
         const p = worldToPixel(x, 0);
         
-        // Grid Line
-        ctx.beginPath();
-        ctx.moveTo(p.x, 0);
-        ctx.lineTo(p.x, height);
-        ctx.strokeStyle = gridColor;
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        // Grid Line (Background Canvas)
+        gridCtx.beginPath();
+        gridCtx.moveTo(p.x, 0);
+        gridCtx.lineTo(p.x, height);
+        gridCtx.strokeStyle = gridColor;
+        gridCtx.lineWidth = 1;
+        gridCtx.stroke();
         
-        // Tick mark drawn higher (safely inside the canvas area)
-        ctx.beginPath();
-        ctx.moveTo(p.x, height - 35);
-        ctx.lineTo(p.x, height - 25);
-        ctx.strokeStyle = axisColor;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+        // Tick mark drawn higher (safely inside the canvas area) (Foreground Canvas)
+        tickCtx.beginPath();
+        tickCtx.moveTo(p.x, height - 35);
+        tickCtx.lineTo(p.x, height - 25);
+        tickCtx.strokeStyle = axisColor;
+        tickCtx.lineWidth = 1.5;
+        tickCtx.stroke();
         
-        // Numbered label drawn higher (safely inside the canvas area)
-        ctx.fillStyle = textColor;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(formatTickX(x), p.x, height - 38);
+        // Numbered label drawn higher (safely inside the canvas area) (Foreground Canvas)
+        tickCtx.fillStyle = textColor;
+        tickCtx.textAlign = 'center';
+        tickCtx.textBaseline = 'bottom';
+        tickCtx.fillText(formatTickX(x), p.x, height - 38);
     }
     
     // Draw Y-axis grid lines and left tick marks
@@ -854,49 +870,50 @@ function drawPlotOverlay(panel) {
     for (let y = startY; y <= top; y += spacingY) {
         const p = worldToPixel(0, y);
         
-        // Grid Line
-        ctx.beginPath();
-        ctx.moveTo(0, p.y);
-        ctx.lineTo(width, p.y);
-        ctx.strokeStyle = gridColor;
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        // Grid Line (Background Canvas)
+        gridCtx.beginPath();
+        gridCtx.moveTo(0, p.y);
+        gridCtx.lineTo(width, p.y);
+        gridCtx.strokeStyle = gridColor;
+        gridCtx.lineWidth = 1;
+        gridCtx.stroke();
         
-        // Tick mark on left
-        ctx.beginPath();
-        ctx.moveTo(20, p.y);
-        ctx.lineTo(28, p.y);
-        ctx.strokeStyle = axisColor;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+        // Tick mark on left (Foreground Canvas)
+        tickCtx.beginPath();
+        tickCtx.moveTo(20, p.y);
+        tickCtx.lineTo(28, p.y);
+        tickCtx.strokeStyle = axisColor;
+        tickCtx.lineWidth = 1.5;
+        tickCtx.stroke();
         
-        // Numbered label on left (safely padded)
-        ctx.fillStyle = textColor;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(formatTickY(y), 32, p.y);
+        // Numbered label on left (safely padded) (Foreground Canvas)
+        tickCtx.fillStyle = textColor;
+        tickCtx.textAlign = 'left';
+        tickCtx.textBaseline = 'middle';
+        tickCtx.fillText(formatTickY(y), 32, p.y);
     }
     
     // Draw origin axes lines if visible
     const originPix = worldToPixel(0, 0);
     if (originPix.x >= 0 && originPix.x <= width) {
-        ctx.beginPath();
-        ctx.moveTo(originPix.x, 0);
-        ctx.lineTo(originPix.x, height);
-        ctx.strokeStyle = isDarkBg ? 'rgba(0, 240, 255, 0.22)' : 'rgba(0, 150, 255, 0.22)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+        tickCtx.beginPath();
+        tickCtx.moveTo(originPix.x, 0);
+        tickCtx.lineTo(originPix.x, height);
+        tickCtx.strokeStyle = isDarkBg ? 'rgba(0, 240, 255, 0.22)' : 'rgba(0, 150, 255, 0.22)';
+        tickCtx.lineWidth = 1.5;
+        tickCtx.stroke();
     }
     if (originPix.y >= 0 && originPix.y <= height) {
-        ctx.beginPath();
-        ctx.moveTo(0, originPix.y);
-        ctx.lineTo(width, originPix.y);
-        ctx.strokeStyle = isDarkBg ? 'rgba(0, 240, 255, 0.22)' : 'rgba(0, 150, 255, 0.22)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+        tickCtx.beginPath();
+        tickCtx.moveTo(0, originPix.y);
+        tickCtx.lineTo(width, originPix.y);
+        tickCtx.strokeStyle = isDarkBg ? 'rgba(0, 240, 255, 0.22)' : 'rgba(0, 150, 255, 0.22)';
+        tickCtx.lineWidth = 1.5;
+        tickCtx.stroke();
     }
     
-    ctx.restore();
+    gridCtx.restore();
+    tickCtx.restore();
 }
 
 // ==========================================
