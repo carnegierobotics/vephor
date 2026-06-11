@@ -1701,8 +1701,32 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
             const r = obj.rad || 10.0;
             const cellSize = obj.cell_size || 1.0;
             const segments = Math.floor((r * 2) / cellSize);
-            object3D = new THREE.GridHelper(r * 2, segments, getRGBAColor(obj.color_rgb || [1, 1, 1]), 0x444444);
-            object3D.rotation.x = Math.PI / 2;
+            const gridHelper = new THREE.GridHelper(r * 2, segments, getRGBAColor(obj.color_rgb || [1, 1, 1]), 0x444444);
+            
+            const normal = obj.normal ? new THREE.Vector3(obj.normal[0], obj.normal[1], obj.normal[2]).normalize() : new THREE.Vector3(0, 0, 1);
+            const right = obj.right ? new THREE.Vector3(obj.right[0], obj.right[1], obj.right[2]).normalize() : new THREE.Vector3(1, 0, 0);
+            
+            let forward = new THREE.Vector3().crossVectors(right, normal);
+            if (forward.lengthSq() < 1e-6) {
+                // Safely fallback if right and normal are parallel, preventing NaN matrix corruption!
+                forward.crossVectors(new THREE.Vector3(0, 1, 0), normal);
+                if (forward.lengthSq() < 1e-6) forward.crossVectors(new THREE.Vector3(1, 0, 0), normal);
+            }
+            forward.normalize();
+            
+            const newRight = new THREE.Vector3().crossVectors(normal, forward).normalize();
+            
+            const matrix = new THREE.Matrix4();
+            // THREE.GridHelper sits on the XZ plane natively, meaning its normal is Y.
+            // We map local X -> newRight, local Y -> normal, local Z -> forward.
+            matrix.makeBasis(newRight, normal, forward);
+            
+            gridHelper.quaternion.setFromRotationMatrix(matrix);
+            
+            // Wrap in a group so applyTransform doesn't overwrite our calculated orientation basis!
+            object3D = new THREE.Group();
+            object3D.add(gridHelper);
+            
             applyTransform(object3D, pose);
             break;
         }
