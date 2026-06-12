@@ -232,6 +232,7 @@ function createPanel(connId, windowId, title) {
         hasAutoFitted: false,
         orthoHeightUnits: 10,
         plotEqualAspect: false,
+        frameQueue: Promise.resolve(),
         
         // Custom Right-Click Drag Scaling parameters
         isRightDragging: false,
@@ -1365,123 +1366,119 @@ function parseScenePayload(connId, header, payloads) {
     
     // 5. Parse 3D Visual Objects list
     if (data && data.objects && Array.isArray(data.objects)) {
-        if (!panel.lastObjLogTime || Date.now() - panel.lastObjLogTime > 3000) {
-            panel.lastObjLogTime = Date.now();
-            console.log(`[Plot Debug] parseScenePayload: windowId=${windowId}, objects.length=${data.objects.length}`);
-        }
-        
-        // Pass 1: Create, Update, or Destroy objects scoped to this panel
-        data.objects.forEach(obj => {
-            const objId = obj.id;
-            
-            // Check if object is marked for deletion
-            if (obj.destroy) {
-                const mesh = panel.feedObjects[objId];
-                if (mesh) {
-                    if (mesh.parent) {
-                        mesh.parent.remove(mesh);
-                    }
-                    disposeObject3D(mesh);
-                    delete panel.feedObjects[objId];
-                    delete panel.objectCounters[objId];
-                    console.log(`  - Object ${objId} deleted.`);
-                }
-                return;
+        panel.frameQueue = (panel.frameQueue || Promise.resolve()).then(async () => {
+            if (!panel.lastObjLogTime || Date.now() - panel.lastObjLogTime > 3000) {
+                panel.lastObjLogTime = Date.now();
+                console.log(`[Plot Debug] parseScenePayload: windowId=${windowId}, objects.length=${data.objects.length}`);
             }
             
-            const baseBufIdx = obj.base_buf_index || 0;
-            let mesh = panel.feedObjects[objId];
+            const createdMeshes = new Map();
+            const createPromises = [];
             
-            if (!mesh) {
-                mesh = createVisualNode(obj, baseBufIdx, payloads, panel);
-                if (mesh) {
-                    mesh.name = String(objId);
+            // Pass 1.1: Async Creation (Build objects and wait for all textures/OBJs to load completely)
+            data.objects.forEach(obj => {
+                if (!obj.destroy && !panel.feedObjects[obj.id]) {
+                    const p = createVisualNode(obj, obj.base_buf_index || 0, payloads, panel).then(mesh => {
+                        if (mesh) createdMeshes.set(obj.id, mesh);
+                    });
+                    createPromises.push(p);
+                }
+            });
+            
+            // Wait for all new objects in this frame to be fully constructed and their async resources downloaded
+            await Promise.all(createPromises);
+            
+            // Pass 1.2: Synchronous Application (Safely destroy old, add new, and update existing objects)
+            data.objects.forEach(obj => {
+                const objId = obj.id;
+                
+                if (obj.destroy) {
+                    const mesh = panel.feedObjects[objId];
+                    if (mesh) {
+                        if (mesh.parent) mesh.parent.remove(mesh);
+                        disposeObject3D(mesh);
+                        delete panel.feedObjects[objId];
+                        delete panel.objectCounters[objId];
+                        console.log(`  - Object ${objId} deleted.`);
+                    }
+                } else {
+                    let mesh = panel.feedObjects[objId];
+                    if (!mesh) {
+                        mesh = createdMeshes.get(objId);
+                        if (mesh) {
+                            mesh.name = String(objId);
+                            if (obj.overlay) panel.feedHUDGroup.add(mesh);
+                            else panel.feedGroup.add(mesh);
+                            
+                            panel.feedObjects[objId] = mesh;
+                            panel.objectCounters[objId] = true;
+                            console.log(`  - Object ${objId} (${obj.type}) created successfully!`);
+                        } else {
+                            console.warn(`  - Object ${objId} (${obj.type}) failed to create.`);
+                        }
+                    }
                     
-                    // Initial parent assignment (will be refined in Pass 2)
+                    if (mesh) {
+                        applyTransform(mesh, obj.pose);
+                        if (obj.show !== undefined) mesh.visible = obj.show;
+                    }
+                }
+            });
+            
+            // Pass 2: Resolve parent relationships & dynamic HUD anchoring
+            data.objects.forEach(obj => {
+                if (obj.destroy) return;
+                
+                const mesh = panel.feedObjects[obj.id];
+                if (!mesh) return;
+                
+                if (obj.pose_parent !== undefined && obj.pose_parent !== null) {
+                    const parentName = String(obj.pose_parent);
+                    const anchors = [
+                        "window_top_left", "window_top", "window_top_right",
+                        "window_left", "window_center", "window_right",
+                        "window_bottom_left", "window_bottom", "window_bottom_right"
+                    ];
+                    
+                    if (anchors.includes(parentName)) {
+                        const anchorGroup = panel.feedHUDGroup.getObjectByName(parentName);
+                        if (anchorGroup && mesh.parent !== anchorGroup) {
+                            anchorGroup.add(mesh);
+                        }
+                    } else {
+                        const parentNode = panel.feedObjects[parentName];
+                        if (parentNode && mesh.parent !== parentNode) {
+                            parentNode.add(mesh);
+                        }
+                    }
+                } else if (!mesh.parent) {
                     if (obj.overlay) {
                         panel.feedHUDGroup.add(mesh);
                     } else {
                         panel.feedGroup.add(mesh);
                     }
-                    
-                    panel.feedObjects[objId] = mesh;
-                    panel.objectCounters[objId] = true;
-                    console.log(`  - Object ${objId} (${obj.type}) created successfully!`);
-                } else {
-                    console.warn(`  - Object ${objId} (${obj.type}) failed to create (createVisualNode returned null).`);
                 }
-            } else {
-                // Node exists: Update pose dynamically
-                applyTransform(mesh, obj.pose);
-                
-                // Toggle Show / Hide
-                if (obj.show !== undefined) {
-                    mesh.visible = obj.show;
-                }
-            }
-        });
-        
-        // Pass 2: Resolve parent relationships & dynamic HUD anchoring
-        data.objects.forEach(obj => {
-            if (obj.destroy) return;
+            });
             
-            const mesh = panel.feedObjects[obj.id];
-            if (!mesh) return;
-            
-            if (obj.pose_parent !== undefined && obj.pose_parent !== null) {
-                // Explicitly cast to string because C++ sends integer IDs but JS dict keys are strings!
-                const parentName = String(obj.pose_parent);
-                
-                const anchors = [
-                    "window_top_left", "window_top", "window_top_right",
-                    "window_left", "window_center", "window_right",
-                    "window_bottom_left", "window_bottom", "window_bottom_right"
-                ];
-                
-                if (anchors.includes(parentName)) {
-                    const anchorGroup = panel.feedHUDGroup.getObjectByName(parentName);
-                    if (anchorGroup && mesh.parent !== anchorGroup) {
-                        anchorGroup.add(mesh);
-                    }
-                } else {
-                    // Parent is another object in this panel
-                    const parentNode = panel.feedObjects[parentName];
-                    if (parentNode && mesh.parent !== parentNode) {
-                        parentNode.add(mesh);
-                    }
-                }
-            } else if (!mesh.parent) {
-                // If C++ omitted pose_parent (because it hasn't changed), DO NOT unparent it!
-                // Only if the mesh currently has NO parent (e.g. freshly created) do we apply root fallbacks.
-                if (obj.overlay) {
-                    panel.feedHUDGroup.add(mesh);
-                } else {
-                    panel.feedGroup.add(mesh);
-                }
-            }
-        });
-        
-        // Auto-fit bounds on startup (once we have received the first set of visual objects for this panel!)
-        if (!panel.hasAutoFitted && Object.keys(panel.objectCounters).length > 0) {
-            panel.hasAutoFitted = true;
-            // Small delay to ensure WebGL contexts, DOM, and buffers are fully loaded for perfect framing
-            setTimeout(() => {
+            // Auto-fit bounds on startup
+            if (!panel.hasAutoFitted && Object.keys(panel.objectCounters).length > 0) {
+                panel.hasAutoFitted = true;
                 autoFitPanelBounds(panel);
-            }, 100);
-        }
-    }
-    
-    // Update active object counts in telemetry (sum across active connection panels)
-    if (connId === state.activeConnId) {
-        let totalObjects = 0;
-        Object.values(state.panels[connId]).forEach(p => {
-            totalObjects += Object.keys(p.objectCounters).length;
+            }
+            
+            // Update active object counts in telemetry
+            if (connId === state.activeConnId) {
+                let totalObjects = 0;
+                Object.values(state.panels[connId]).forEach(p => {
+                    totalObjects += Object.keys(p.objectCounters).length;
+                });
+                document.getElementById('tel-objects').textContent = totalObjects;
+            }
         });
-        document.getElementById('tel-objects').textContent = totalObjects;
     }
 }
 
-function createVisualNode(obj, baseBufIdx, payloads, panel) {
+async function createVisualNode(obj, baseBufIdx, payloads, panel) {
     const type = obj.type;
     const pose = obj.pose;
     
@@ -1575,7 +1572,7 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
             });
             
             if (obj.tex) {
-                loadTextureToMaterial(material, obj.tex, baseBufIdx, payloads);
+                await loadTextureToMaterial(material, obj.tex, baseBufIdx, payloads);
             }
             
             object3D = new THREE.Mesh(geometry, material);
@@ -1595,51 +1592,55 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
                 mtlPath = objPath.substring(0, objPath.length - 4) + '.mtl';
             }
             
-            const loadOBJ = (materials) => {
-                const loader = new THREE.OBJLoader();
-                if (materials) {
-                    materials.preload();
-                    loader.setMaterials(materials);
-                }
-                
-                loader.load(objPath, (loadedObj) => {
-                    loadedObj.traverse(child => {
-                        if (child.isMesh) {
-                            if (!materials) {
-                                // Fallback if no MTL could be loaded
-                                child.material = new THREE.MeshStandardMaterial({
-                                    color: 0xcccccc,
-                                    roughness: 0.6
-                                });
+            await new Promise((resolve) => {
+                const loadOBJ = (materials) => {
+                    const loader = new THREE.OBJLoader();
+                    if (materials) {
+                        materials.preload();
+                        loader.setMaterials(materials);
+                    }
+                    
+                    loader.load(objPath, (loadedObj) => {
+                        loadedObj.traverse(child => {
+                            if (child.isMesh) {
+                                if (!materials) {
+                                    // Fallback if no MTL could be loaded
+                                    child.material = new THREE.MeshStandardMaterial({
+                                        color: 0xcccccc,
+                                        roughness: 0.6
+                                    });
+                                }
+                                child.castShadow = true;
+                                child.receiveShadow = true;
                             }
-                            child.castShadow = true;
-                            child.receiveShadow = true;
-                        }
+                        });
+                        object3D.add(loadedObj);
+                        resolve();
+                    }, undefined, (err) => {
+                        console.warn(`[OBJ] Error loading OBJ mesh from path: ${objPath}`, err);
+                        resolve();
                     });
-                    object3D.add(loadedObj);
-                }, undefined, (err) => {
-                    console.warn(`[OBJ] Error loading OBJ mesh from path: ${objPath}`, err);
-                });
-            };
-            
-            if (mtlPath) {
-                const mtlLoader = new THREE.MTLLoader();
-                // Extract base path for texture loading relative to the MTL file
-                const lastSlash = mtlPath.lastIndexOf('/');
-                if (lastSlash !== -1) {
-                    mtlLoader.setPath(mtlPath.substring(0, lastSlash + 1));
-                }
-                const mtlFileName = lastSlash !== -1 ? mtlPath.substring(lastSlash + 1) : mtlPath;
+                };
                 
-                mtlLoader.load(mtlFileName, (materials) => {
-                    loadOBJ(materials);
-                }, undefined, (err) => {
-                    console.warn(`[MTL] Could not load MTL ${mtlPath}, falling back to default material.`, err);
+                if (mtlPath) {
+                    const mtlLoader = new THREE.MTLLoader();
+                    // Extract base path for texture loading relative to the MTL file
+                    const lastSlash = mtlPath.lastIndexOf('/');
+                    if (lastSlash !== -1) {
+                        mtlLoader.setPath(mtlPath.substring(0, lastSlash + 1));
+                    }
+                    const mtlFileName = lastSlash !== -1 ? mtlPath.substring(lastSlash + 1) : mtlPath;
+                    
+                    mtlLoader.load(mtlFileName, (materials) => {
+                        loadOBJ(materials);
+                    }, undefined, (err) => {
+                        console.warn(`[MTL] Could not load MTL ${mtlPath}, falling back to default material.`, err);
+                        loadOBJ(null);
+                    });
+                } else {
                     loadOBJ(null);
-                });
-            } else {
-                loadOBJ(null);
-            }
+                }
+            });
             break;
         }
         
@@ -1694,7 +1695,7 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
             });
             
             if (obj.tex) {
-                loadTextureToMaterial(mat, obj.tex, baseBufIdx, payloads);
+                await loadTextureToMaterial(mat, obj.tex, baseBufIdx, payloads);
             }
             
             object3D = new THREE.Mesh(geom, mat);
@@ -1872,10 +1873,13 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
             
             if (obj.tex && obj.tex !== "") {
                 const texLoader = new THREE.TextureLoader();
-                texLoader.load(obj.tex, (loadedTex) => {
-                    material.map = loadedTex;
-                    material.transparent = true;
-                    material.needsUpdate = true;
+                await new Promise((resolve) => {
+                    texLoader.load(obj.tex, (loadedTex) => {
+                        material.map = loadedTex;
+                        material.transparent = true;
+                        material.needsUpdate = true;
+                        resolve();
+                    }, undefined, () => resolve());
                 });
             }
             
@@ -1895,12 +1899,10 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
             object3D.userData = object3D.userData || {};
             
             if (obj.tex) {
-                loadTextureToMaterial(mat, obj.tex, baseBufIdx, payloads, (loadedTex) => {
+                await loadTextureToMaterial(mat, obj.tex, baseBufIdx, payloads, (loadedTex) => {
                     if (loadedTex.image && loadedTex.image.width && loadedTex.image.height) {
                         const aspect = loadedTex.image.width / loadedTex.image.height;
                         object3D.userData.spriteAspect = aspect;
-                        // Force a re-apply of the existing transform to snap the scale instantly after network load
-                        applyTransform(object3D, pose);
                     }
                 });
             }
@@ -1922,75 +1924,88 @@ function createVisualNode(obj, baseBufIdx, payloads, panel) {
 }
 
 function loadTextureToMaterial(material, texInfo, baseBufIdx, payloads, onLoadCallback = null) {
-    const applySampling = (tex) => {
-        if (texInfo.filter_nearest) {
-            tex.magFilter = THREE.NearestFilter;
-            tex.minFilter = THREE.NearestFilter;
-        }
-        return tex;
-    };
+    return new Promise((resolve) => {
+        const applySampling = (tex) => {
+            if (texInfo.filter_nearest) {
+                tex.magFilter = THREE.NearestFilter;
+                tex.minFilter = THREE.NearestFilter;
+            }
+            return tex;
+        };
 
-    if (texInfo.type === 'file') {
-        const path = texInfo.path;
-        new THREE.TextureLoader().load(path, (loadedTex) => {
-            material.map = applySampling(loadedTex);
-            if (path.toLowerCase().endsWith('.png')) {
-                material.transparent = true;
-                material.alphaTest = 0.05;
-                material.depthWrite = true;
-            }
-            material.needsUpdate = true;
-            if (onLoadCallback) onLoadCallback(loadedTex);
-        }, undefined, (err) => {
-            console.warn(`[Texture] Failed to load from file path: ${path}`, err);
-        });
-    } 
-    else if (texInfo.type === 'jpg') {
-        const bId = texInfo.buf + baseBufIdx;
-        const b64 = payloads[bId];
-        if (b64) {
-            const binary = atob(b64);
-            const array = [];
-            for (let i = 0; i < binary.length; i++) {
-                array.push(binary.charCodeAt(i));
-            }
-            const blob = new Blob([new Uint8Array(array)], { type: 'image/jpeg' });
-            const url = URL.createObjectURL(blob);
-            
-            new THREE.TextureLoader().load(url, (loadedTex) => {
+        if (texInfo.type === 'file') {
+            const path = texInfo.path;
+            new THREE.TextureLoader().load(path, (loadedTex) => {
                 material.map = applySampling(loadedTex);
+                if (path.toLowerCase().endsWith('.png')) {
+                    material.transparent = true;
+                    material.alphaTest = 0.05;
+                    material.depthWrite = true;
+                }
                 material.needsUpdate = true;
                 if (onLoadCallback) onLoadCallback(loadedTex);
-                URL.revokeObjectURL(url);
+                resolve();
+            }, undefined, (err) => {
+                console.warn(`[Texture] Failed to load from file path: ${path}`, err);
+                resolve();
             });
+        } 
+        else if (texInfo.type === 'jpg') {
+            const bId = texInfo.buf + baseBufIdx;
+            const b64 = payloads[bId];
+            if (b64) {
+                const binary = atob(b64);
+                const array = [];
+                for (let i = 0; i < binary.length; i++) {
+                    array.push(binary.charCodeAt(i));
+                }
+                const blob = new Blob([new Uint8Array(array)], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(blob);
+                
+                new THREE.TextureLoader().load(url, (loadedTex) => {
+                    material.map = applySampling(loadedTex);
+                    material.needsUpdate = true;
+                    if (onLoadCallback) onLoadCallback(loadedTex);
+                    URL.revokeObjectURL(url);
+                    resolve();
+                }, undefined, (err) => {
+                    URL.revokeObjectURL(url);
+                    resolve();
+                });
+            } else {
+                resolve();
+            }
         }
-    }
-    else if (texInfo.type === 'raw') {
-        const bId = texInfo.buf + baseBufIdx;
-        const b64 = payloads[bId];
-        const size = texInfo.size || [1, 1];
-        const channels = texInfo.channels || 3;
-        
-        if (b64) {
-            const rawBytes = base64ToFloat32Array(b64);
-            let format = THREE.RGBFormat;
-            if (channels === 1) format = THREE.LuminanceFormat;
-            else if (channels === 4) format = THREE.RGBAFormat;
+        else if (texInfo.type === 'raw') {
+            const bId = texInfo.buf + baseBufIdx;
+            const b64 = payloads[bId];
+            const size = texInfo.size || [1, 1];
+            const channels = texInfo.channels || 3;
             
-            const rawTex = new THREE.DataTexture(rawBytes, size[0], size[1], format, THREE.FloatType);
-            applySampling(rawTex);
-            rawTex.needsUpdate = true;
-            material.map = rawTex;
-            material.needsUpdate = true;
-            
-            // For DataTexture, image boundaries are directly assigned to the image property from the size array
-            if (!rawTex.image) rawTex.image = {};
-            rawTex.image.width = size[0];
-            rawTex.image.height = size[1];
-            
-            if (onLoadCallback) onLoadCallback(rawTex);
+            if (b64) {
+                const rawBytes = base64ToFloat32Array(b64);
+                let format = THREE.RGBFormat;
+                if (channels === 1) format = THREE.LuminanceFormat;
+                else if (channels === 4) format = THREE.RGBAFormat;
+                
+                const rawTex = new THREE.DataTexture(rawBytes, size[0], size[1], format, THREE.FloatType);
+                applySampling(rawTex);
+                rawTex.needsUpdate = true;
+                material.map = rawTex;
+                material.needsUpdate = true;
+                
+                // For DataTexture, image boundaries are directly assigned to the image property from the size array
+                if (!rawTex.image) rawTex.image = {};
+                rawTex.image.width = size[0];
+                rawTex.image.height = size[1];
+                
+                if (onLoadCallback) onLoadCallback(rawTex);
+            }
+            resolve();
+        } else {
+            resolve();
         }
-    }
+    });
 }
 
 // ==========================================
