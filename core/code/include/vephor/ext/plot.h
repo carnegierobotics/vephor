@@ -924,15 +924,40 @@ public:
         label(text, color, marker.value());
     }
 
-    void text(const string &raw_text, float size, const Vec2 &offset, const Color &color)
+    void text(const string &raw_text, float size, const Vec2 &offset, const Color &color, const string &anchor = "center")
     {
 		auto text = make_shared<Text>(raw_text);
-		text->setAnchorCentered();
+		
+        bool is_y_flip = false;
+        if (inner_window.getCameraControlInfo().contains("y_flip")) {
+            is_y_flip = inner_window.getCameraControlInfo()["y_flip"];
+        }
+
+        string actual_anchor = anchor;
+        if (is_y_flip) {
+            if (actual_anchor == "bottom_left") actual_anchor = "top_left";
+            else if (actual_anchor == "top_left") actual_anchor = "bottom_left";
+            else if (actual_anchor == "bottom") actual_anchor = "top";
+            else if (actual_anchor == "top") actual_anchor = "bottom";
+            else if (actual_anchor == "bottom_right") actual_anchor = "top_right";
+            else if (actual_anchor == "top_right") actual_anchor = "bottom_right";
+        }
+
+        if (actual_anchor == "bottom_left") text->setAnchorBottomLeft();
+        else if (actual_anchor == "left") text->setAnchorLeft();
+        else if (actual_anchor == "top_left") text->setAnchorTopLeft();
+        else if (actual_anchor == "bottom") text->setAnchorBottom();
+        else if (actual_anchor == "top") text->setAnchorTop();
+        else if (actual_anchor == "bottom_right") text->setAnchorBottomRight();
+        else if (actual_anchor == "right") text->setAnchorRight();
+        else if (actual_anchor == "top_right") text->setAnchorTopRight();
+        else text->setAnchorCentered(); // Default is center
+        
 		text->setColor(color);
         if (inner_window.getCameraControlInfo().contains("x_flip"))
 		    text->setXFlip(inner_window.getCameraControlInfo()["x_flip"]);
-        if (inner_window.getCameraControlInfo().contains("y_flip"))
-		    text->setYFlip(inner_window.getCameraControlInfo()["y_flip"]);
+        if (is_y_flip)
+		    text->setYFlip(is_y_flip);
         if (inner_window.getCameraControlInfo().contains("xy_swap"))
             text->setXYSwap(inner_window.getCameraControlInfo()["xy_swap"]);
 

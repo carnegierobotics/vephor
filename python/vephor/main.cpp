@@ -1136,9 +1136,10 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color")=Vec3(-1,-1,-1),
 			py::arg("marker")="circle",
 			py::arg("label") = "")
-		.def("text", [](Plot& p, const string& text, float size, const Vec2& offset, const Vec3& color){
-			p.text(text, size, offset, color);
-		})
+		.def("text", [](Plot& p, const string& text, float size, const Vec2& offset, py::object color, const string& anchor){
+			auto color_v4 = standardizeNumpyColor(color);
+			p.text(text, size, offset, color_v4, anchor);
+		}, py::arg("text"), py::arg("size"), py::arg("offset"), py::arg("color"), py::arg("anchor")="center")
 		.def("polygon", [](Plot& p,
 				const MatX& verts,
 				const Vec3& color,
