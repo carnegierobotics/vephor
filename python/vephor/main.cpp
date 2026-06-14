@@ -25,44 +25,40 @@
 namespace py = pybind11;
 using namespace vephor;
 
-Color standardizeNumpyColor(py::buffer color)
+Color standardizeNumpyColor(py::object color)
 {
-	py::buffer_info info = color.request();
+	py::array_t<double, py::array::c_style | py::array::forcecast> arr(color);
+	if (!arr)
+		throw std::runtime_error("Color must be convertible to a numeric array.");
+		
+	py::buffer_info info = arr.request();
 	if (info.size != 3 && info.size != 4)
 		throw std::runtime_error("Color must be either 3 or 4 elements in size.");
-	if (info.format == py::format_descriptor<uint8_t>::format())
-	{
-		const uint8_t* ptr = reinterpret_cast<const uint8_t*>(info.ptr);
 		
-		if (info.size == 3)
-		{
-			Vec3 rgb(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f);
-			return Color(rgb);
-		}
-		else
-		{
-			Vec4 rgba(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f, ptr[3] / 255.0f);
-			return Color(rgba);
+	const double* ptr = static_cast<const double*>(info.ptr);
+	
+	// Check if we should treat it as 0-255 or 0.0-1.0
+	// If any value is > 1.0, we assume it's in 0-255 range.
+	bool is_255 = false;
+	for (int i = 0; i < info.size; i++) {
+		if (ptr[i] > 1.0) {
+			is_255 = true;
+			break;
 		}
 	}
-	else if (info.format == py::format_descriptor<double>::format())
+	
+	double scale = is_255 ? 1.0 / 255.0 : 1.0;
+	
+	if (info.size == 3)
 	{
-		const double* ptr = reinterpret_cast<const double*>(info.ptr);
-		
-		if (info.size == 3)
-		{
-			Vec3 rgb(ptr[0], ptr[1], ptr[2]);
-			return Color(rgb);
-		}
-		else
-		{
-			Vec4 rgba(ptr[0], ptr[1], ptr[2], ptr[3]);
-			return Color(rgba);
-		}
+		Vec3 rgb(ptr[0] * scale, ptr[1] * scale, ptr[2] * scale);
+		return Color(rgb);
 	}
-
-	throw std::runtime_error("Did not understand numpy color format.");
-	return Color();
+	else
+	{
+		Vec4 rgba(ptr[0] * scale, ptr[1] * scale, ptr[2] * scale, ptr[3] * scale);
+		return Color(rgba);
+	}
 }
 
 Image<uint8_t> numpyToImageU8(py::array buf)
@@ -538,11 +534,13 @@ PYBIND11_MODULE(_core, m) {
 	m.def("createSolidFromTris", &createSolidFromTris);
 
 	m.def("calcSurfaces", [](
-			py::buffer occupancy,
+			py::array occupancy,
 			float thresh, 
 			float cell_size
 		){
-			py::buffer_info info = occupancy.request();
+			py::array arr = py::array::ensure(occupancy, py::array::c_style);
+			if (!arr) throw std::runtime_error("Occupancy input could not be converted to a contiguous array");
+			py::buffer_info info = arr.request();
 
 			if (info.format != py::format_descriptor<double>::format())
 				throw std::runtime_error("Only double occupancy data supported.");
@@ -611,18 +609,18 @@ PYBIND11_MODULE(_core, m) {
 			);
 		});
 		
-	m.def("generateSimpleImage", [](const Vec2i& size, py::buffer color){
+	m.def("generateSimpleImage", [](const Vec2i& size, py::object color){
 		Vec4 rgba = standardizeNumpyColor(color).getRGBA();
 		return generateSimpleImage(size, rgba);
 	}, py::arg("size"), py::arg("color"));
 
-	m.def("generateCheckerboardImage", [](const Vec2i& size, const Vec2i& n_cells, py::buffer color_1, py::buffer color_2){
+	m.def("generateCheckerboardImage", [](const Vec2i& size, const Vec2i& n_cells, py::object color_1, py::object color_2){
 		Vec4 rgba_1 = standardizeNumpyColor(color_1).getRGBA();
 		Vec4 rgba_2 = standardizeNumpyColor(color_2).getRGBA();
 		return generateCheckerboardImage(size, n_cells, rgba_1, rgba_2);
 	}, py::arg("size"), py::arg("n_cells"), py::arg("color_1"), py::arg("color_2"));
 
-	m.def("generateGradientImage", [](const Vec2i& size, const py::buffer color_1, py::buffer color_2){
+	m.def("generateGradientImage", [](const Vec2i& size, py::object color_1, py::object color_2){
 		Vec4 rgba_1 = standardizeNumpyColor(color_1).getRGBA();
 		Vec4 rgba_2 = standardizeNumpyColor(color_2).getRGBA();
 		return generateGradientImage(size, rgba_1, rgba_2);
@@ -1175,7 +1173,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color"),
 			py::arg("thickness")=0
 		)
-		.def("circle", [](Plot& p, const Vec2& center, float rad, py::buffer color, float thickness, int slices){
+		.def("circle", [](Plot& p, const Vec2& center, float rad, py::object color, float thickness, int slices){
 				auto color_v4 = standardizeNumpyColor(color);
 				p.circle(center, rad, color_v4, thickness, slices);
 			},
@@ -1185,7 +1183,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("thickness")=0,
 			py::arg("slices")=16
 		)
-		.def("arrow", [](Plot& p, const Vec2& start, const Vec2& end, py::buffer color, float radius){
+		.def("arrow", [](Plot& p, const Vec2& start, const Vec2& end, py::object color, float radius){
 				auto color_v4 = standardizeNumpyColor(color);
 				p.arrow(start, end, color_v4, radius);
 			},
@@ -1194,7 +1192,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color"),
 			py::arg("radius")=1.0
 		)
-		.def("arrowhead", [](Plot& p, const Vec2& center, float heading, py::buffer color, float radius){
+		.def("arrowhead", [](Plot& p, const Vec2& center, float heading, py::object color, float radius){
 				auto color_v4 = standardizeNumpyColor(color);
 				p.arrowhead(center, heading, color_v4, radius);
 			},
@@ -1203,7 +1201,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color"),
 			py::arg("radius")=1.0
 		)
-		.def("rect", [](Plot& p, const Vec2& center, const Vec2& size, py::buffer color, float thickness){
+		.def("rect", [](Plot& p, const Vec2& center, const Vec2& size, py::object color, float thickness){
 				auto color_v4 = standardizeNumpyColor(color);
 				p.rect(center, size[0], size[1], color_v4, thickness);
 			},
@@ -1212,7 +1210,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color"),
 			py::arg("thickness")=0
 		)
-		.def("rect_min_max", [](Plot& p, const Vec2& min, const Vec2& max, py::buffer color, float thickness){
+		.def("rect_min_max", [](Plot& p, const Vec2& min, const Vec2& max, py::object color, float thickness){
 				auto color_v4 = standardizeNumpyColor(color);
 				p.rectMinMax(min, max, color_v4, thickness);
 			},
@@ -1221,7 +1219,7 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("color"),
 			py::arg("thickness")=0
 		)
-		.def("line", [](Plot& p, const Vec2& start, const Vec2& end, py::buffer color, float thickness){
+		.def("line", [](Plot& p, const Vec2& start, const Vec2& end, py::object color, float thickness){
 				auto color_v4 = standardizeNumpyColor(color);
 				p.line(start, end, color_v4, thickness);
 			},
@@ -1232,7 +1230,7 @@ PYBIND11_MODULE(_core, m) {
 		)
 		.def("line", [](Plot& p,
 				const MatX& verts,
-				py::buffer color,
+				py::object color,
 				float thickness
 			){
 				if (verts.cols() != 2)

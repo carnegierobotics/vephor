@@ -1,9 +1,9 @@
 TODO (20260613):
-	- Automatically copy images sent to imshow to prevent layout issues from causing color images to have the "3x3 grid" issue
+	x Automatically copy images sent to imshow to prevent layout issues from causing color images to have the "3x3 grid" issue
 	- Implement text anchoring for plt.text
 	- Prevent vephor_show processes from hanging around after the fact
 	- Text should take string and color in ctor
-	- Ensure all desired ways of passing color in to the plot work in python
+	x Ensure all desired ways of passing color in to the plot work in python
 
 TODO:
 	- Look into deallocating textures as we do objects
