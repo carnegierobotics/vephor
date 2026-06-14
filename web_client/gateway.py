@@ -415,7 +415,7 @@ async def handle_websocket_message(ws, msg_str):
     except Exception as e:
         print(f"[WS] Error processing message: {e}")
 
-async def ws_handler(ws):
+async def ws_handler(ws, *args):
     """Manages raw WebSocket connection lifecycle."""
     global ws_clients
     ws_clients.add(ws)
