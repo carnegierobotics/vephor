@@ -18,8 +18,8 @@ namespace vephor
 class Text
 {
 public:
-    Text(const string& p_text)
-	: text(p_text)
+    Text(const string& p_text, const Color& p_color = Vec3(1.0,1.0,1.0))
+	: text(p_text), color(p_color.getRGB())
 	{
 	}
 	void setColor(const Color& p_color){color = p_color.getRGB();}

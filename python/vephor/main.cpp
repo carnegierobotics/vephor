@@ -745,7 +745,13 @@ PYBIND11_MODULE(_core, m) {
         .def(py::init<string>());
 
 	py::class_<Text, shared_ptr<Text>>(m, "Text")
-		.def(py::init<string>())
+		.def(py::init([](const string& text, py::object color) {
+			Color c = Color(Vec3(1.0, 1.0, 1.0));
+			if (!color.is_none()) {
+				c = standardizeNumpyColor(color);
+			}
+			return make_shared<Text>(text, c);
+		}), py::arg("text"), py::arg("color") = py::none())
 		.def("setColor",[](Text& t, 
 			const Color& c){
 				t.setColor(c);
