@@ -87,6 +87,14 @@ public:
 	{
 		subprocess_terminate(&proc);
 	}
+	~Process()
+	{
+		if (isAlive())
+		{
+			terminate();
+		}
+		subprocess_destroy(&proc);
+	}
 private:
 	subprocess_s proc;
 	FILE* proc_stdout;

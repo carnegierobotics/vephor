@@ -1,6 +1,6 @@
 TODO (20260613):
 	x Automatically copy images sent to imshow to prevent layout issues from causing color images to have the "3x3 grid" issue
-	- Implement text anchoring for plt.text
+	x Implement text anchoring for plt.text
 	- Prevent vephor_show processes from hanging around after the fact
 	x Text should take string and color in ctor
 	x Ensure all desired ways of passing color in to the plot work in python
@@ -57,13 +57,13 @@ TODO:
 		x Legend
 		x Grid
 	- Pose/Camera primitive
-	- Skybox
+	x Skybox
 	- Tooltips
 	- Content aware legend
 	- Allow changes to object appearance over ext
 	- Lights in ext
-	- Shadows
-	- Mirrors
+	x Shadows
+	x Mirrors
 	- Sprite font tool
 	- Reject invalid point cloud points
 	- Close show windows whose connections have died?
