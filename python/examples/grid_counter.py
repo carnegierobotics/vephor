@@ -17,9 +17,9 @@ import time
 v4.Window.setServerModeBYOC()
 
 plt = v4.Plot()
-plt.back_color((0,0,0))
-plt.fore_color((0.5,0.5,0.5))
-plt.grid_color((0,0,0))
+plt.backColor((0,0,0))
+plt.foreColor((0.5,0.5,0.5))
+plt.gridColor((0,0,0))
 
 N_CELLS = 20
 

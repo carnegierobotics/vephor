@@ -17,6 +17,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
+#include <pybind11/numpy.h>
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -64,24 +65,12 @@ Color standardizeNumpyColor(py::buffer color)
 	return Color();
 }
 
-Image<uint8_t> numpyToImageU8(py::buffer buf)
+Image<uint8_t> numpyToImageU8(py::array buf)
 {
-	py::buffer_info info = buf.request();
-
-	bool is_contiguous = true;
-	ssize_t expected_stride = info.itemsize;
-	for (ssize_t i = info.ndim - 1; i >= 0; --i) {
-		if (info.strides[i] != expected_stride) {
-			is_contiguous = false;
-			break;
-		}
-		expected_stride *= info.shape[i];
-	}
-
-	if (!is_contiguous)
-	{
-		throw std::runtime_error("Sprite only supports contiguous arrays.");
-	}
+	py::array arr = py::array::ensure(buf, py::array::c_style);
+	if (!arr) throw std::runtime_error("Input could not be converted to a contiguous array");
+	
+	py::buffer_info info = arr.request();
 
 	int channels = 1;
 	if (info.shape.size() > 2)
@@ -365,7 +354,7 @@ void init_ogl(py::module_ &m)
 		.def("setScrollCallback", &ogl::Window::setScrollCallback)
 		.def("loadTexture", &ogl::Window::loadTexture)
 		.def("getTextureFromImage", &ogl::Window::getTextureFromImage, py::arg("img"), py::arg("nearest")=false)
-		.def("getTextureFromImage", [](ogl::Window& w, py::buffer buf, bool nearest){
+		.def("getTextureFromImage", [](ogl::Window& w, py::array buf, bool nearest){
 				auto image = numpyToImageU8(buf);
 				return w.getTextureFromImage(image, nearest);
 		}, py::arg("buf"), py::arg("nearest")=false)
@@ -833,7 +822,7 @@ PYBIND11_MODULE(_core, m) {
 
 	py::class_<Sprite, shared_ptr<Sprite>>(m, "Sprite")
 		.def(py::init<string,bool>(), py::arg("path"), py::arg("nearest")=false)
-		.def(py::init([](py::buffer buf, bool nearest){
+		.def(py::init([](py::array buf, bool nearest){
 				auto image = numpyToImageU8(buf);
 				return make_shared<Sprite>(image, nearest);
 		}), py::arg("buf"), py::arg("nearest")=false);
@@ -853,35 +842,8 @@ PYBIND11_MODULE(_core, m) {
 		.def("setTexture",[](Plane& p, const std::string& path, bool nearest){
 				p.setTexture(path, nearest);
 			}, py::arg("path"), py::arg("nearest")=false)
-		.def("setTexture",[](Plane& p, py::buffer buf, bool nearest){
-				py::buffer_info info = buf.request();
-
-				int channels = 1;
-				if (info.shape.size() > 2)
-					channels = info.shape[2];
-				
-				Image<uint8_t> image(info.shape[1], info.shape[0], channels);
-				
-				if (info.format == py::format_descriptor<uint8_t>::format())
-					image.copyFromBuffer(reinterpret_cast<const char*>(info.ptr), info.size);
-				else if (info.format == py::format_descriptor<double>::format())
-				{
-					const double* ptr = reinterpret_cast<const double*>(info.ptr);
-					
-					for (int i = 0; i < info.shape[0]; i++)
-					{
-						for (int j = 0; j < info.shape[1]; j++)
-						{
-							const double* vec_ptr = ptr + i * info.shape[1] * info.shape[2] + j * info.shape[2];
-							image(j,i) = Vec3u(vec_ptr[0]*255, vec_ptr[1]*255, vec_ptr[2]*255);
-						}
-					}
-				}
-				else
-				{
-					throw std::runtime_error("Plane::setTexture only supports uint8 or double typed arrays.");
-				}
-
+		.def("setTexture",[](Plane& p, py::array buf, bool nearest){
+				auto image = numpyToImageU8(buf);
 				p.setTexture(image, nearest);
 			}, py::arg("buf"), py::arg("nearest")=false);
 
@@ -1291,12 +1253,15 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("thickness")=0
 		)
 		.def("imshow", [](Plot& p,
-			py::buffer buf,
+			py::array buf,
 			bool nearest,
 			const Vec2& offset,
 			float scale,
 			bool no_flip){
-				py::buffer_info info = buf.request();
+				py::array arr = py::array::ensure(buf, py::array::c_style);
+				if (!arr) throw std::runtime_error("Input could not be converted to a contiguous array");
+				
+				py::buffer_info info = arr.request();
 				
 				int n_channels = 1;
 				if (info.shape.size() > 2)
