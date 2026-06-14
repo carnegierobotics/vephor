@@ -10,12 +10,14 @@
 # found in the LICENSE file in the root directory of this source tree.
 #
 
+# The point of this test is to see that the client process is no longer running after this exits
+
 import os
 import numpy as np
 import vephor as v4
 import time
 
-v4.Window.setServerModeBYOC()
+v4.Window.setServerMode(wait=True)
 
 plt = v4.Plot()
 

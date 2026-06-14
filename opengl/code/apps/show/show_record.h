@@ -793,7 +793,7 @@ struct ShowRecord
 			else
 			if (client_mode && had_connection)
 			{
-				if (1)
+				if (daemon)
 				{
 					v4print "Client is reconnecting because all connections closed.";
 					objects_by_id.clear();
