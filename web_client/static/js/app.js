@@ -849,9 +849,10 @@ function drawPlotOverlay(panel) {
     const luminance = 0.299 * bg.r + 0.587 * bg.g + 0.114 * bg.b;
     const isDarkBg = luminance < 0.5;
     
-    const gridColor = isDarkBg ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.22)';
-    const textColor = isDarkBg ? 'rgba(255, 255, 255, 0.92)' : 'rgba(0, 0, 0, 0.92)';
-    const axisColor = isDarkBg ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.60)';
+    // If the plot specified exact colors via C++, use them. Otherwise, intelligently fallback.
+    const gridColor = panel.plotConfig ? panel.plotConfig.gridColor : (isDarkBg ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.22)');
+    const textColor = panel.plotConfig ? panel.plotConfig.fgColor : (isDarkBg ? 'rgba(255, 255, 255, 0.92)' : 'rgba(0, 0, 0, 0.92)');
+    const axisColor = panel.plotConfig ? panel.plotConfig.fgColor : (isDarkBg ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.60)');
     
     tickCtx.font = '11px "JetBrains Mono", monospace';
     
@@ -1291,6 +1292,21 @@ function parseScenePayload(connId, header, payloads) {
         if (cam.type === "plot") {
             panel.plotEqualAspect = (cam.equal === true);
             
+            // Extract Plot Color Configuration
+            const bgColorRGB = cam.back_color || [0.941, 0.949, 0.960]; // default #f0f2f5
+            const fgColorRGB = cam.fore_color || [0.2, 0.2, 0.2];       // default dark text
+            const gridColorRGB = cam.grid_color || [0.85, 0.85, 0.85];  // default light grid
+            
+            // Store for drawPlotOverlay to use
+            panel.plotConfig = {
+                bgColor: `rgb(${Math.round(bgColorRGB[0]*255)}, ${Math.round(bgColorRGB[1]*255)}, ${Math.round(bgColorRGB[2]*255)})`,
+                fgColor: `rgb(${Math.round(fgColorRGB[0]*255)}, ${Math.round(fgColorRGB[1]*255)}, ${Math.round(fgColorRGB[2]*255)})`,
+                gridColor: `rgb(${Math.round(gridColorRGB[0]*255)}, ${Math.round(gridColorRGB[1]*255)}, ${Math.round(gridColorRGB[2]*255)})`
+            };
+            
+            panel.bgColor.setRGB(bgColorRGB[0], bgColorRGB[1], bgColorRGB[2]);
+            panel.card.style.backgroundColor = '#' + panel.bgColor.getHexString();
+            
             // Rebuild legend DOM if labels exist
             if (cam.labels && cam.labels.length > 0) {
                 panel.legendContainer.style.display = 'block';
@@ -1377,12 +1393,6 @@ function parseScenePayload(connId, header, payloads) {
             
             if (!panel.is2DPlotMode) {
                 panel.is2DPlotMode = true;
-                
-                // Default C++ Plot background is light grey/white if none custom sent
-                if (!data.camera.background) {
-                    panel.bgColor.set('#f0f2f5');
-                    panel.card.style.backgroundColor = '#' + panel.bgColor.getHexString();
-                }
                 
                 // Align orthographic camera looking straight down at the 2D XY Plane (looking down Z)
                 panel.orthoCamera.position.set(0, 0, 15);
