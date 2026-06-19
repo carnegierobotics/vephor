@@ -86,8 +86,8 @@ function createPanel(connId, windowId, title) {
     camera.position.set(5, 5, 5);
     
     // Create Orthographic Camera for 2D plot mode (flat Matplotlib feel)
-    const orthoCamera = new THREE.OrthographicCamera(-10, 10, 10, -10, -1000000, 1000000);
-    orthoCamera.position.set(0, 0, 15);
+    const orthoCamera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.05, 10000);
+    orthoCamera.position.set(0, 0, 1000);
     orthoCamera.lookAt(0, 0, 0);
     
     // Create HUD Camera
@@ -1411,7 +1411,7 @@ function parseScenePayload(connId, header, payloads) {
                 panel.is2DPlotMode = true;
                 
                 // Align orthographic camera looking straight down at the 2D XY Plane (looking down Z)
-                panel.orthoCamera.position.set(0, 0, 15);
+                panel.orthoCamera.position.set(0, 0, 1000);
                 panel.orthoCamera.zoom = 1.0; // Reset zoom factor
                 panel.orthoControls.target.set(0, 0, 0);
                 
@@ -2049,7 +2049,25 @@ async function createVisualNode(obj, baseBufIdx, payloads, panel) {
     }
     
     if (object3D && object3D.material) {
-        object3D.material.wireframe = state.wireframe;
+        // Handle array of materials (e.g., for OBJ files) or single material
+        const materials = Array.isArray(object3D.material) ? object3D.material : [object3D.material];
+        
+        materials.forEach(m => {
+            m.wireframe = state.wireframe;
+            
+            // Force depth writing for transparent materials so higher Z values properly occlude lower Z values.
+            // By default, Three.js sets depthWrite = false for transparent materials, relying purely on painter's algorithm
+            // which breaks down when items perfectly intersect or sit on flat 2D plotting planes.
+            if (m.transparent) {
+                m.depthTest = true;
+                m.depthWrite = true;
+                
+                // Use a standard alpha test to discard perfectly clear pixels from depth buffer
+                if (m.alphaTest === undefined || m.alphaTest === 0) {
+                    m.alphaTest = 0.05;
+                }
+            }
+        });
     }
     
     return object3D;
@@ -2395,7 +2413,7 @@ function triggerCameraPreset(preset) {
                 break;
             case 'top':
                 panel.camera.position.set(0, 0, 10);
-                panel.orthoCamera.position.set(0, 0, 15);
+                panel.orthoCamera.position.set(0, 0, 1000);
                 break;
             case 'front':
                 panel.camera.position.set(0, -10, 0);
@@ -2424,7 +2442,7 @@ function autoFitPanelBounds(panel) {
     
     if (panel.is2DPlotMode) {
         // Translate both the camera and the target identically to keep the view perfectly flat (no diagonal rotation!)
-        panel.orthoCamera.position.set(center.x, center.y, 15);
+        panel.orthoCamera.position.set(center.x, center.y, 1000);
         panel.orthoControls.target.copy(center);
         
         if (panel.plotEqualAspect) {
