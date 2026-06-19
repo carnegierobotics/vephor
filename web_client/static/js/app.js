@@ -264,6 +264,9 @@ function createPanel(connId, windowId, title) {
     
     // 1. Pointer down right-click hook (Capture phase to preempt OrbitControls)
     panel.card.addEventListener('pointerdown', (e) => {
+        // DO NOT intercept pointerdown if the user is trying to click the title tag for dragging
+        if (e.target.classList && e.target.classList.contains('viewport-panel-title-tag')) return;
+
         if (e.button === 2) { // Right Click
             e.preventDefault();
             e.stopPropagation();
@@ -414,16 +417,15 @@ function createPanel(connId, windowId, title) {
     // ==========================================
     // HTML5 Drag-and-Drop Re-order Handlers
     // ==========================================
-    card.setAttribute('draggable', 'true');
+    titleTag.setAttribute('draggable', 'true');
     
-    card.addEventListener('dragstart', (e) => {
-        // Only allow dragging when initiated from the title tag boundary
-        if (e.target.className === 'viewport-panel-title-tag') {
-            e.dataTransfer.setData('text/plain', `${connId}-${windowId}`);
-            card.style.opacity = '0.4';
-            state.draggedCard = card;
-        } else {
-            e.preventDefault(); // Block dragging inside WebGL viewport to prevent conflict
+    titleTag.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', `${connId}-${windowId}`);
+        card.style.opacity = '0.4';
+        state.draggedCard = card;
+        // Set drag image to the whole card if possible, otherwise it just drags the small title
+        if (e.dataTransfer.setDragImage) {
+            e.dataTransfer.setDragImage(card, 0, 0);
         }
     });
     
