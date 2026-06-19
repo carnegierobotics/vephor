@@ -202,6 +202,22 @@ function createPanel(connId, windowId, title) {
     orbitPointSphere.visible = false;
     scene.add(orbitPointSphere);
     
+    // Create Legend Container (Hidden by default)
+    const legendContainer = document.createElement('div');
+    legendContainer.className = 'plot-legend-container';
+    legendContainer.style.position = 'absolute';
+    legendContainer.style.display = 'none';
+    legendContainer.style.zIndex = '6'; // On top of ticks
+    legendContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.85)';
+    legendContainer.style.border = '1px solid rgba(0,0,0,0.1)';
+    legendContainer.style.borderRadius = '4px';
+    legendContainer.style.padding = '8px 12px';
+    legendContainer.style.fontFamily = '"JetBrains Mono", monospace';
+    legendContainer.style.fontSize = '11px';
+    legendContainer.style.color = '#333';
+    legendContainer.style.pointerEvents = 'none'; // Don't block dragging
+    card.appendChild(legendContainer);
+    
     const panel = {
         connId,
         windowId,
@@ -215,6 +231,7 @@ function createPanel(connId, windowId, title) {
         hudCamera,
         gridCanvas,
         tickCanvas,
+        legendContainer,
         renderer,
         controls,
         orthoControls,
@@ -399,7 +416,7 @@ function createPanel(connId, windowId, title) {
     
     card.addEventListener('dragstart', (e) => {
         // Only allow dragging when initiated from the title tag boundary
-        if (e.target.className === 'viewport-panel-title-tag' || e.offsetY < 40) {
+        if (e.target.className === 'viewport-panel-title-tag') {
             e.dataTransfer.setData('text/plain', `${connId}-${windowId}`);
             card.style.opacity = '0.4';
             state.draggedCard = card;
@@ -1273,6 +1290,90 @@ function parseScenePayload(connId, header, payloads) {
         
         if (cam.type === "plot") {
             panel.plotEqualAspect = (cam.equal === true);
+            
+            // Rebuild legend DOM if labels exist
+            if (cam.labels && cam.labels.length > 0) {
+                panel.legendContainer.style.display = 'block';
+                panel.legendContainer.innerHTML = ''; // clear
+                
+                // Position logic
+                if (cam.legend_top !== false) {
+                    panel.legendContainer.style.top = '10px';
+                    panel.legendContainer.style.bottom = 'auto';
+                } else {
+                    panel.legendContainer.style.bottom = '35px'; // Above ticks
+                    panel.legendContainer.style.top = 'auto';
+                }
+                
+                if (cam.legend_right !== false) {
+                    panel.legendContainer.style.right = '10px';
+                    panel.legendContainer.style.left = 'auto';
+                } else {
+                    panel.legendContainer.style.left = '35px'; // Next to ticks
+                    panel.legendContainer.style.right = 'auto';
+                }
+                
+                // Dark mode adjustment
+                const luminance = 0.299 * panel.bgColor.r + 0.587 * panel.bgColor.g + 0.114 * panel.bgColor.b;
+                if (luminance < 0.5) {
+                    panel.legendContainer.style.backgroundColor = 'rgba(30, 30, 30, 0.85)';
+                    panel.legendContainer.style.color = '#eee';
+                    panel.legendContainer.style.border = '1px solid rgba(255,255,255,0.1)';
+                } else {
+                    panel.legendContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.85)';
+                    panel.legendContainer.style.color = '#333';
+                    panel.legendContainer.style.border = '1px solid rgba(0,0,0,0.1)';
+                }
+                
+                cam.labels.forEach(label => {
+                    const row = document.createElement('div');
+                    row.style.display = 'flex';
+                    row.style.alignItems = 'center';
+                    row.style.marginBottom = '4px';
+                    
+                    const icon = document.createElement('span');
+                    icon.style.display = 'inline-block';
+                    icon.style.width = '12px';
+                    icon.style.height = '12px';
+                    icon.style.marginRight = '8px';
+                    
+                    if (label.color) {
+                        const r = Math.round(label.color[0] * 255);
+                        const g = Math.round(label.color[1] * 255);
+                        const b = Math.round(label.color[2] * 255);
+                        icon.style.backgroundColor = `rgb(${r},${g},${b})`;
+                    } else {
+                        icon.style.backgroundColor = '#ccc';
+                    }
+                    
+                    if (label.type === 'circle') icon.style.borderRadius = '50%';
+                    else if (label.type === 'line') {
+                        icon.style.height = '3px';
+                        icon.style.width = '16px';
+                        icon.style.marginRight = '4px';
+                    }
+                    else if (label.type === 'diamond') {
+                        icon.style.transform = 'rotate(45deg)';
+                        icon.style.width = '10px';
+                        icon.style.height = '10px';
+                        icon.style.margin = '1px 9px 1px 1px';
+                    }
+                    
+                    const text = document.createElement('span');
+                    text.textContent = label.text;
+                    
+                    row.appendChild(icon);
+                    row.appendChild(text);
+                    panel.legendContainer.appendChild(row);
+                });
+                
+                // Remove margin from last row
+                if (panel.legendContainer.lastChild) {
+                    panel.legendContainer.lastChild.style.marginBottom = '0';
+                }
+            } else {
+                panel.legendContainer.style.display = 'none';
+            }
             
             if (!panel.is2DPlotMode) {
                 panel.is2DPlotMode = true;
