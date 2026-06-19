@@ -866,6 +866,10 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("width")=-1,
 			py::arg("height")=-1,
 			py::arg("name")="show")
+		.def(py::init<std::string,int,int>(),
+			py::arg("name"),
+			py::arg("width")=-1,
+			py::arg("height")=-1)
 		.def("clear", &Window::clear)
 		.def("getNumObjects", &Window::getNumObjects)
 		.def("getNumActiveObjects", &Window::getNumActiveObjects)

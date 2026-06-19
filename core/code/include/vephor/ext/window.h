@@ -547,6 +547,16 @@ public:
 		canary = std::make_shared<bool>(true);
 	}
 
+    Window(const string &p_title, float p_width, float p_height)
+            : Window(/* p_width */ p_width,
+                     /* p_height */ p_height,
+                     /* p_x_position */ -1,
+                     /* p_y_position */ -1,
+                     /* p_title */ p_title)
+    {
+		canary = std::make_shared<bool>(true);
+	}
+
     Window(float p_width,
            float p_height,
            float p_x_position,

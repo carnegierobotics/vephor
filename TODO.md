@@ -4,6 +4,7 @@ TODO (20260613):
 	x Prevent vephor_show processes from hanging around after the fact
 	x Text should take string and color in ctor
 	x Ensure all desired ways of passing color in to the plot work in python
+	- GUI elements for buttons, sliders, check boxes (or add a slider element to the control panel)
 
 TODO:
 	- Look into deallocating textures as we do objects
