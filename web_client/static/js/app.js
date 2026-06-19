@@ -1924,21 +1924,54 @@ async function createVisualNode(obj, baseBufIdx, payloads, panel) {
             ctx.fillText(text, canvas.width / 2, canvas.height / 2);
             
             const tex = new THREE.CanvasTexture(canvas);
-            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-            const sprite = new THREE.Sprite(mat);
             
-            sprite.userData = {
-                isText: true,
-                textWidthFactor: textWidthFactor,
-                xFlip: obj.x_flip === true,
-                yFlip: obj.y_flip === true
-            };
+            const isBillboard = obj.billboard !== false; // Defaults to true
             
-            if (obj.anchor) {
-                sprite.center.set(obj.anchor[0], obj.anchor[1]);
+            if (isBillboard) {
+                const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+                const sprite = new THREE.Sprite(mat);
+                
+                sprite.userData = {
+                    isText: true,
+                    textWidthFactor: textWidthFactor,
+                    xFlip: obj.x_flip === true,
+                    yFlip: obj.y_flip === true
+                };
+                
+                if (obj.anchor) {
+                    sprite.center.set(obj.anchor[0], obj.anchor[1]);
+                }
+                object3D = sprite;
+            } else {
+                // If not billboarding, render as a flat 3D plane so it fully respects 3D rotation
+                const mat = new THREE.MeshBasicMaterial({ 
+                    map: tex, 
+                    transparent: true, 
+                    side: THREE.DoubleSide,
+                    depthWrite: false
+                });
+                
+                const geom = new THREE.PlaneGeometry(textWidthFactor, 1.0);
+                const mesh = new THREE.Mesh(geom, mat);
+                
+                // Align plane to mimic standard Sprite coordinate orientation
+                // By default, planes face +Z, we need to map anchors correctly
+                if (obj.anchor) {
+                    // anchor coordinates are [0.0 to 1.0] from bottom-left
+                    // Translation is applied to geometry so rotation pivots around the anchor
+                    const transX = (0.5 - obj.anchor[0]) * textWidthFactor;
+                    const transY = (0.5 - obj.anchor[1]) * 1.0;
+                    geom.translate(transX, transY, 0);
+                }
+                
+                mesh.userData = {
+                    xFlip: obj.x_flip === true,
+                    yFlip: obj.y_flip === true
+                };
+                
+                object3D = mesh;
             }
-            
-            object3D = sprite;
+
             applyTransform(object3D, pose);
             break;
         }
