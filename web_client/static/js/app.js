@@ -320,17 +320,19 @@ function createPanel(connId, windowId, title) {
             const centerX = (f.left + f.right) / 2;
             const centerY = (f.bottom + f.top) / 2;
             
-            const spanX = (f.right - f.left) * factorX;
-            const spanY = (f.top - f.bottom) * factorY;
+            const spanX = Math.abs(f.right - f.left) * factorX;
+            const spanY = Math.abs(f.top - f.bottom) * factorY;
             
-            panel.orthoCamera.left = centerX - spanX / 2;
-            panel.orthoCamera.right = centerX + spanX / 2;
-            panel.orthoCamera.top = centerY + spanY / 2;
-            panel.orthoCamera.bottom = centerY - spanY / 2;
-            
-            // Track the custom stretched height and width units so window resizes perfectly maintain the custom scale!
-            panel.orthoHeightUnits = spanY / 2;
             panel.orthoWidthUnits = spanX / 2;
+            panel.orthoHeightUnits = spanY / 2;
+            
+            panel.orthoCamera.left = centerX - panel.orthoWidthUnits;
+            panel.orthoCamera.right = centerX + panel.orthoWidthUnits;
+            panel.orthoCamera.top = centerY + panel.orthoHeightUnits;
+            panel.orthoCamera.bottom = centerY - panel.orthoHeightUnits;
+
+            panel.orthoCamera.scale.x = panel.xFlip ? -1 : 1;
+            panel.orthoCamera.scale.y = panel.yFlip ? -1 : 1;
             
             panel.orthoCamera.updateProjectionMatrix();
             
@@ -513,6 +515,9 @@ function resizePanel(panel) {
         panel.orthoCamera.top = heightUnits;
         panel.orthoCamera.bottom = -heightUnits;
     }
+
+    panel.orthoCamera.scale.x = panel.xFlip ? -1 : 1;
+    panel.orthoCamera.scale.y = panel.yFlip ? -1 : 1;
     panel.orthoCamera.updateProjectionMatrix();
     
     // Update HUD Camera
@@ -797,13 +802,13 @@ function drawPlotOverlay(panel) {
     const bottomLeft = pixelToWorld(0, height);
     const topRight = pixelToWorld(width, 0);
     
-    const left = bottomLeft.x;
-    const right = topRight.x;
-    const bottom = bottomLeft.y;
-    const top = topRight.y;
+    const minX = Math.min(bottomLeft.x, topRight.x);
+    const maxX = Math.max(bottomLeft.x, topRight.x);
+    const minY = Math.min(bottomLeft.y, topRight.y);
+    const maxY = Math.max(bottomLeft.y, topRight.y);
     
-    const rangeX = right - left;
-    const rangeY = top - bottom;
+    const rangeX = maxX - minX;
+    const rangeY = maxY - minY;
     if (rangeX <= 0 || rangeY <= 0) {
         gridCtx.restore();
         tickCtx.restore();
@@ -857,8 +862,8 @@ function drawPlotOverlay(panel) {
     tickCtx.font = '11px "JetBrains Mono", monospace';
     
     // Draw X-axis grid lines and bottom tick marks
-    const startX = Math.ceil(left / spacingX) * spacingX;
-    for (let x = startX; x <= right; x += spacingX) {
+    const startX = Math.ceil(minX / spacingX) * spacingX;
+    for (let x = startX; x <= maxX; x += spacingX) {
         const p = worldToPixel(x, 0);
         
         // Grid Line (Background Canvas)
@@ -885,8 +890,8 @@ function drawPlotOverlay(panel) {
     }
     
     // Draw Y-axis grid lines and left tick marks
-    const startY = Math.ceil(bottom / spacingY) * spacingY;
-    for (let y = startY; y <= top; y += spacingY) {
+    const startY = Math.ceil(minY / spacingY) * spacingY;
+    for (let y = startY; y <= maxY; y += spacingY) {
         const p = worldToPixel(0, y);
         
         // Grid Line (Background Canvas)
@@ -975,18 +980,22 @@ function applyTransform(object3D, pose) {
     
     // Scale
     const s = pose.scale !== undefined ? pose.scale : 1.0;
-    
+
+    // Extract individual flipping modifiers
+    const xMod = (object3D.userData && object3D.userData.xFlip) ? -1 : 1;
+    const yMod = (object3D.userData && object3D.userData.yFlip) ? -1 : 1;
+
     // If this is a text sprite, apply its aspect-ratio scale factors!
     if (object3D.userData && object3D.userData.isText) {
         const wFactor = object3D.userData.textWidthFactor || 1.0;
-        object3D.scale.set(wFactor * s, s, 1);
+        object3D.scale.set(wFactor * s * xMod, s * yMod, 1);
     } else if (object3D.userData && object3D.userData.spriteAspect !== undefined) {
         // Native image sprites keep their true physical aspect ratio based on texture dimensions
-        object3D.scale.set(object3D.userData.spriteAspect * s, s, 1);
+        object3D.scale.set(object3D.userData.spriteAspect * s * xMod, s * yMod, 1);
     } else {
-        object3D.scale.set(s, s, s);
+        object3D.scale.set(s * xMod, s * yMod, s);
     }
-}
+    }
 
 // Memory Cleanup Handler
 function disposeObject3D(obj) {
@@ -1291,6 +1300,8 @@ function parseScenePayload(connId, header, payloads) {
         
         if (cam.type === "plot") {
             panel.plotEqualAspect = (cam.equal === true);
+            panel.xFlip = (cam.x_flip === true);
+            panel.yFlip = (cam.y_flip === true);
             
             // Extract Plot Color Configuration
             const bgColorRGB = cam.back_color || [0.941, 0.949, 0.960]; // default #f0f2f5
@@ -1312,8 +1323,13 @@ function parseScenePayload(connId, header, payloads) {
                 panel.legendContainer.style.display = 'block';
                 panel.legendContainer.innerHTML = ''; // clear
                 
-                // Position logic
-                if (cam.legend_top !== false) {
+                // Position logic (respecting dynamic y_flip!)
+                let isTop = cam.legend_top !== false;
+                if (panel.yFlip) {
+                    isTop = !isTop;
+                }
+
+                if (isTop) {
                     panel.legendContainer.style.top = '10px';
                     panel.legendContainer.style.bottom = 'auto';
                 } else {
@@ -1911,7 +1927,9 @@ async function createVisualNode(obj, baseBufIdx, payloads, panel) {
             
             sprite.userData = {
                 isText: true,
-                textWidthFactor: textWidthFactor
+                textWidthFactor: textWidthFactor,
+                xFlip: obj.x_flip === true,
+                yFlip: obj.y_flip === true
             };
             
             if (obj.anchor) {
@@ -2007,7 +2025,10 @@ async function createVisualNode(obj, baseBufIdx, payloads, panel) {
             const mat = new THREE.SpriteMaterial({ color: getRGBAColor(diffuse), transparent: true });
             
             object3D = new THREE.Sprite(mat);
-            object3D.userData = object3D.userData || {};
+            object3D.userData = {
+                xFlip: obj.x_flip === true,
+                yFlip: obj.y_flip === true
+            };
             
             if (obj.tex) {
                 await loadTextureToMaterial(mat, obj.tex, baseBufIdx, payloads, (loadedTex) => {
@@ -2434,6 +2455,9 @@ function autoFitPanelBounds(panel) {
             panel.orthoCamera.top = spanY;
             panel.orthoCamera.bottom = -spanY;
         }
+
+        panel.orthoCamera.scale.x = panel.xFlip ? -1 : 1;
+        panel.orthoCamera.scale.y = panel.yFlip ? -1 : 1;
         
         panel.orthoCamera.updateProjectionMatrix();
         panel.orthoControls.update();
