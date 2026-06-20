@@ -43,15 +43,110 @@ const state = {
     dragStartPos: 0,
     dragStartSizes: [],
     pixelsPerFr: 1,
-    gridSizes: {} // keys: connId -> { count, cols: [], rows: [] }
+    gridSizes: {}, // keys: connId -> { count, cols: [], rows: [] }
+    
+    // Recent connections history
+    recentConnections: [],
+    
+    // List of current active connections from gateway
+    activeConnections: []
 };
 
 // Initial setup on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
+    loadRecentConnections();
     initUI();
+    renderRecentConnections();
     connectWebSocket();
     animate(); // Starts global animation frame
 });
+
+// ==========================================
+// 0. Recent Connections Manager
+// ==========================================
+function loadRecentConnections() {
+    try {
+        const saved = localStorage.getItem('vephor_recent_connections');
+        if (saved) {
+            state.recentConnections = JSON.parse(saved);
+        }
+    } catch (e) {
+        console.warn("Failed to load recent connections from local storage:", e);
+    }
+}
+
+function saveRecentConnections() {
+    try {
+        localStorage.setItem('vephor_recent_connections', JSON.stringify(state.recentConnections));
+    } catch (e) {
+        console.warn("Failed to save recent connections to local storage:", e);
+    }
+}
+
+function addOrUpdateRecentConnection(peer, status) {
+    // Remove if exists to bring to top
+    state.recentConnections = state.recentConnections.filter(c => c.peer !== peer);
+    
+    // Add to top
+    state.recentConnections.unshift({
+        peer: peer,
+        status: status,
+        timestamp: Date.now()
+    });
+    
+    // Limit to 5
+    if (state.recentConnections.length > 5) {
+        state.recentConnections = state.recentConnections.slice(0, 5);
+    }
+    
+    saveRecentConnections();
+    renderRecentConnections();
+}
+
+function renderRecentConnections() {
+    const list = document.getElementById('recent-connections-list');
+    if (!list) return;
+    
+    if (state.recentConnections.length === 0) {
+        list.innerHTML = `<div class="empty-state">No recent connections.</div>`;
+        return;
+    }
+    
+    list.innerHTML = '';
+    state.recentConnections.forEach(conn => {
+        const item = document.createElement('div');
+        item.className = 'conn-item';
+        
+        // Status indicator color
+        let statusColor = 'var(--text-muted)';
+        if (conn.status === 'success') statusColor = 'var(--success-color)';
+        if (conn.status === 'failed') statusColor = 'var(--danger-color)';
+        if (conn.status === 'attempting') statusColor = 'var(--accent-color)';
+        
+        item.innerHTML = `
+            <div class="conn-info">
+                <span class="conn-host">
+                    <i class="fa-solid fa-circle" style="color: ${statusColor}; font-size: 8px; margin-right: 6px; vertical-align: middle;"></i>
+                    ${conn.peer}
+                </span>
+                <span class="conn-details">Last: ${conn.status}</span>
+            </div>
+            <div class="conn-actions">
+                <button class="btn btn-secondary btn-small retry-conn-btn" data-peer="${conn.peer}" title="Connect"><i class="fa-solid fa-play"></i></button>
+            </div>
+        `;
+        
+        list.appendChild(item);
+    });
+    
+    document.querySelectorAll('.retry-conn-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const peer = e.currentTarget.getAttribute('data-peer');
+            document.getElementById('target-host').value = peer;
+            document.getElementById('connect-btn').click();
+        });
+    });
+}
 
 // ==========================================
 // 1. Panel Manager & Grid Layout
@@ -1127,6 +1222,14 @@ function connectWebSocket() {
             }
             else if (data.type === 'notification') {
                 showToast(data.message, data.level || 'info');
+                
+                // Parse failures from Gateway: "Connection failed to host:port: error..."
+                if (data.level === 'error' && data.message.startsWith('Connection failed to ')) {
+                    const match = data.message.match(/Connection failed to ([^:]+:\d+)/);
+                    if (match && match[1]) {
+                        addOrUpdateRecentConnection(match[1], 'failed');
+                    }
+                }
             }
         } catch (e) {
             console.error('[WS] Error processing message:', e);
@@ -1141,6 +1244,7 @@ function connectWebSocket() {
 }
 
 function updateConnectionListUI(connections) {
+    state.activeConnections = connections || [];
     const list = document.getElementById('connections-list');
     
     // Build set of active connection IDs
@@ -1176,6 +1280,10 @@ function updateConnectionListUI(connections) {
     list.innerHTML = '';
     
     connections.forEach(conn => {
+        if (conn.direction === 'outbound') {
+            addOrUpdateRecentConnection(conn.peer, 'success');
+        }
+        
         const item = document.createElement('div');
         item.className = 'conn-item';
         if (state.activeConnId === conn.id) {
@@ -2216,13 +2324,23 @@ function initUI() {
             host = val;
         }
         
+        const targetPeer = `${host}:${port}`;
+        
+        // Prevent duplicate connections
+        const isAlreadyConnected = state.activeConnections.some(conn => conn.peer === targetPeer);
+        if (isAlreadyConnected) {
+            showToast(`Already connected to ${targetPeer}`, 'info');
+            return;
+        }
+        
         if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+            addOrUpdateRecentConnection(targetPeer, 'attempting');
             state.ws.send(JSON.stringify({
                 type: 'connect_target',
                 host: host,
                 port: port
             }));
-            showToast(`Connecting to peer ${host}:${port}...`, 'info');
+            showToast(`Connecting to peer ${targetPeer}...`, 'info');
         }
     });
 
