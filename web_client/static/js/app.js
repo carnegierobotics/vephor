@@ -1098,10 +1098,21 @@ function applyTransform(object3D, pose) {
 function disposeObject3D(obj) {
     if (obj.geometry) obj.geometry.dispose();
     if (obj.material) {
+        const disposeMaterial = (m) => {
+            // Traverse material properties to find and dispose of attached textures
+            for (const key in m) {
+                const value = m[key];
+                if (value && typeof value === 'object' && 'minFilter' in value) {
+                    value.dispose();
+                }
+            }
+            m.dispose();
+        };
+
         if (Array.isArray(obj.material)) {
-            obj.material.forEach(m => m.dispose());
+            obj.material.forEach(m => disposeMaterial(m));
         } else {
-            obj.material.dispose();
+            disposeMaterial(obj.material);
         }
     }
     if (obj.children) {
