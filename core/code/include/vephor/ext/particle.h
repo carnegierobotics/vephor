@@ -81,19 +81,21 @@ public:
         {
             colors = MatXMap(reinterpret_cast<const float*>(p_colors.data()), 4, p_colors.size());
         }
+
+        checkData();
     }
 
     void checkData()
     {
-        if (verts.rows() != colors.rows() && colors.rows() > 0)
+        if (verts.cols() != colors.cols() && colors.cols() > 0)
         {
             v4print "Verts:", verts.rows(), verts.cols();
             v4print "Colors:", colors.rows(), colors.cols();
-            throw std::runtime_error("Verts and colors must have the same number of rows.");
+            throw std::runtime_error("Verts and colors must have the same number of cols.");
         }
-        if (verts.rows() != sizes.cols() && sizes.cols() > 1)
+        if (verts.cols() != sizes.cols() && sizes.cols() > 0)
         {
-            v4print "Verts:", verts.rows(), verts.cols();
+            v4print "Verts:", verts.cols(), verts.cols();
             v4print "Sizes:", sizes.cols();
             throw std::runtime_error("Verts and sizes must have the same number of cols.");
         }

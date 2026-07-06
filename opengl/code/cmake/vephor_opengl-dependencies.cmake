@@ -18,6 +18,12 @@ else ()
     find_package(vephor CONFIG REQUIRED)
 endif ()
 
+# Conda environments often wipe system library paths.
+# Append standard Linux library paths so we can find system OpenGL.
+if(DEFINED ENV{CONDA_PREFIX})
+    list(APPEND CMAKE_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu" "/usr/lib/aarch64-linux-gnu" "/usr/lib")
+endif()
+
 find_package(OpenGL REQUIRED)
 
 find_package(GLEW REQUIRED)
