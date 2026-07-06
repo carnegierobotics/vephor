@@ -21,6 +21,7 @@ public:
     Particle(const MatXRef& p_verts, const MatXRef& p_colors = MatX(), const VecXRef& p_sizes = VecX()) :
         verts(p_verts.transpose()), colors(p_colors.transpose()), sizes(p_sizes.transpose())
     {
+        checkData();
     }
 
     Particle(const MatXRef& p_verts, const Color& p_color, const VecXRef& p_sizes = VecX()) :
@@ -32,6 +33,7 @@ public:
     Particle(const MatXRef& p_verts, const MatXRef& p_colors, const float p_size) :
         verts(p_verts.transpose()), colors(p_colors.transpose()), size(p_size)
     {
+        checkData();
     }
 
     Particle(const MatXRef& p_verts, const Color& p_color, const float p_size) :
@@ -53,6 +55,8 @@ public:
         {
             sizes = RVecXMap(sizes.data(), sizes.size());
         }
+
+        checkData();
     }
 
     Particle(const vector<Vec3>& p_verts, const Color& p_color, const vector<float>& p_sizes = {})
@@ -65,6 +69,8 @@ public:
         }
 
         setColor(p_color);
+
+        checkData();
     }
 
     Particle(const vector<Vec3>& p_verts, const vector<Vec4>& p_colors, const float p_size) : size(p_size)
@@ -75,6 +81,14 @@ public:
         {
             colors = MatXMap(reinterpret_cast<const float*>(p_colors.data()), 4, p_colors.size());
         }
+    }
+
+    void checkData()
+    {
+        if (verts.rows() != colors.rows() && colors.rows() > 0)
+            throw std::runtime_error("Verts and colors must have the same number of rows.");
+        if (verts.rows() != sizes.rows() && sizes.rows() > 0)
+            throw std::runtime_error("Verts and sizes must have the same number of rows.");
     }
 
     void setSize(const float p_size)
