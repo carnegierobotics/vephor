@@ -811,7 +811,7 @@ PYBIND11_MODULE(_core, m) {
 				MatX colors_mat = colors_obj.cast<MatX>();
 				// If it casts successfully and looks like a per-vertex color matrix:
 				// It should be empty, and should not have singular dimensions.
-				if (colors_mat.size() == 0 || (colors_mat.rows() > 1 && colors_mat.rows() > 1)) {
+				if (colors_mat.size() == 0 || (colors_mat.rows() > 1 && colors_mat.cols() > 1)) {
 					return make_shared<Particle>(verts, colors_mat, sizes);
 				}
 			} catch (const py::cast_error&) {
