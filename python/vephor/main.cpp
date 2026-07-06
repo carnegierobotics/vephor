@@ -801,9 +801,27 @@ PYBIND11_MODULE(_core, m) {
 		.def("setLineStrip",&Lines::setLineStrip,py::arg("strip")=true);
 
 	py::class_<Particle, shared_ptr<Particle>>(m, "Particle")
-		.def(py::init([](const MatX& verts, const MatX& colors, const VecX& sizes){
-			return make_shared<Particle>(verts, colors, sizes);
-		}), py::arg("verts"), py::arg("colors")=MatX(), py::arg("sizes")=VecX())
+		.def(py::init([](const MatX& verts, py::object colors_obj, const VecX& sizes){
+			if (colors_obj.is_none()) {
+				return make_shared<Particle>(verts, MatX(), sizes);
+			}
+			
+			// Try casting to a matrix first
+			try {
+				MatX colors_mat = colors_obj.cast<MatX>();
+				// If it casts successfully and looks like a per-vertex color matrix:
+				// It should be empty, or have the same number of rows as vertices.
+				if (colors_mat.size() == 0 || colors_mat.rows() > 1 || (colors_mat.rows() == 1 && verts.rows() == 1)) {
+					return make_shared<Particle>(verts, colors_mat, sizes);
+				}
+			} catch (const py::cast_error&) {
+				// Failed to cast to matrix, continue to single color
+			}
+
+			// If it's not a matrix (e.g. a tuple) or is a 1D array, parse it as a single generic color
+			Color c = standardizeNumpyColor(colors_obj);
+			return make_shared<Particle>(verts, c, sizes);
+		}), py::arg("verts"), py::arg("colors")=py::none(), py::arg("sizes")=VecX())
 		.def("setColor",[](Particle& p, 
 			const Color& c){
 				p.setColor(c);

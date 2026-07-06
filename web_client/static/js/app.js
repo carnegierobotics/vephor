@@ -1208,7 +1208,7 @@ function sendFlagUpdate(connId, name, value) {
 // 5. WebSocket Client & TCP proxy
 // ==========================================
 function connectWebSocket() {
-    const wsUrl = `ws://${window.location.hostname}:5534`;
+    const wsUrl = `ws://${window.location.hostname}:5634`;
     console.log(`[WS] Connecting to gateway at ${wsUrl}...`);
     
     state.ws = new WebSocket(wsUrl);

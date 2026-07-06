@@ -23,9 +23,21 @@ public:
     {
     }
 
+    Particle(const MatXRef& p_verts, const Color& p_color, const VecXRef& p_sizes = VecX()) :
+        verts(p_verts.transpose()), sizes(p_sizes.transpose())
+    {
+        setColor(p_color);
+    }
+
     Particle(const MatXRef& p_verts, const MatXRef& p_colors, const float p_size) :
         verts(p_verts.transpose()), colors(p_colors.transpose()), size(p_size)
     {
+    }
+
+    Particle(const MatXRef& p_verts, const Color& p_color, const float p_size) :
+        verts(p_verts.transpose()), size(p_size)
+    {
+        setColor(p_color);
     }
 
     Particle(const vector<Vec3>& p_verts, const vector<Vec4>& p_colors = {}, const vector<float>& p_sizes = {})
@@ -41,6 +53,18 @@ public:
         {
             sizes = RVecXMap(sizes.data(), sizes.size());
         }
+    }
+
+    Particle(const vector<Vec3>& p_verts, const Color& p_color, const vector<float>& p_sizes = {})
+    {
+        verts = MatXMap(reinterpret_cast<const float*>(p_verts.data()), 3, p_verts.size());
+
+        if (!p_sizes.empty())
+        {
+            sizes = RVecXMap(sizes.data(), sizes.size());
+        }
+
+        setColor(p_color);
     }
 
     Particle(const vector<Vec3>& p_verts, const vector<Vec4>& p_colors, const float p_size) : size(p_size)

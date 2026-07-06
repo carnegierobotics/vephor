@@ -515,8 +515,8 @@ async def main_async(ws_port, tcp_port):
 def main():
     parser = argparse.ArgumentParser(description="Vephor Web Gateway")
     parser.add_argument('--http-port', type=int, default=8080, help="Web UI HTTP server port")
-    parser.add_argument('--ws-port', type=int, default=5534, help="Internal WebSocket server port")
-    parser.add_argument('--tcp-port', type=int, default=5533, help="Vephor TCP server listening port")
+    parser.add_argument('--ws-port', type=int, default=5634, help="Internal WebSocket server port")
+    parser.add_argument('--tcp-port', type=int, default=5633, help="Vephor TCP server listening port")
     args = parser.parse_args()
     
     # 1. Start HTTP Server in a background thread
