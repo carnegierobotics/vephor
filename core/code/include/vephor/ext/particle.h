@@ -91,11 +91,11 @@ public:
             v4print "Colors:", colors.rows(), colors.cols();
             throw std::runtime_error("Verts and colors must have the same number of rows.");
         }
-        if (verts.rows() != sizes.rows() && sizes.rows() > 0)
+        if (verts.rows() != sizes.cols() && sizes.cols() > 1)
         {
             v4print "Verts:", verts.rows(), verts.cols();
-            v4print "Sizes:", sizes.rows();
-            throw std::runtime_error("Verts and sizes must have the same number of rows.");
+            v4print "Sizes:", sizes.cols();
+            throw std::runtime_error("Verts and sizes must have the same number of cols.");
         }
     }
 
