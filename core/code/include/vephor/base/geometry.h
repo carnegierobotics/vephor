@@ -283,10 +283,15 @@ inline MeshData formLine(const vector<Vec2>& orig_verts, float rad)
 // Do not repeat the first vert for this method
 inline MeshData formLineLoop(vector<Vec2> verts, float rad)
 {
+	MeshData data;
+
 	verts = cleanOrderedVerts(verts, DEFAULT_ORDERED_VERTS_DIST_MIN, true);
 
-	MeshData data;
-	
+	if (verts.size() < 2)
+	{
+		return data;
+	}
+
 	data.verts.resize((verts.size()*2)*3,3);
 	data.norms.resize((verts.size()*2)*3,3);
 	data.uvs.resize((verts.size()*2)*3,2);
@@ -424,6 +429,11 @@ inline MeshData formPolygon(vector<Vec2> verts)
 	MeshData data;
 
 	verts = cleanOrderedVerts(verts, DEFAULT_ORDERED_VERTS_DIST_MIN, true);
+
+	if (verts.size() < 3)
+	{
+		return data;
+	}
 	
 	if (!isPolyCCW(verts))
 	{
@@ -499,6 +509,11 @@ inline MeshData formPolygonPrism(vector<Vec2> verts, float height, bool invert=f
 	MeshData data;
 
 	verts = cleanOrderedVerts(verts, DEFAULT_ORDERED_VERTS_DIST_MIN, true);
+
+	if (verts.size() < 3)
+	{
+		return data;
+	}
 	
 	if (!isPolyCCW(verts))
 	{
