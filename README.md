@@ -360,6 +360,74 @@ Once this server is running, connect to it using:
 vephor_show -m client
 ```
 
+### Web viewer
+
+Vephor includes a browser-based viewer and gateway in `web_client`. The gateway serves the web application, converts
+between WebSockets and the Vephor TCP protocol, and caches the latest visualization state so that browsers opened
+later can immediately display the current scene.
+
+Install the Python WebSocket dependency and start the gateway from the Vephor source directory:
+
+```bash
+python3 -m pip install websockets
+python3 web_client/gateway.py
+```
+
+Then open `http://localhost:8080`. By default, the viewer lets the user enter the address of a Vephor visualization
+server, such as `localhost:5533`, in the Peer Connections panel.
+
+The gateway uses the following ports by default:
+
+| Port | Purpose |
+|------|---------|
+| 8080 | Web viewer HTTP server |
+| 5634 | Browser-to-gateway WebSocket server |
+| 5633 | Listener for inbound Vephor connections |
+
+The gateway listeners can be changed with `--http-port`, `--ws-port`, and `--tcp-port`, respectively. The bundled
+browser client expects the WebSocket listener on port 5634, so changing that port also requires adjusting the client
+or an equivalent proxy configuration. Run `python3 web_client/gateway.py --help` for the complete command-line
+reference.
+
+#### Bridge mode
+
+Bridge mode is intended for deployments where a visualization producer and the web viewer are packaged together, or
+where users should be able to open a URL without selecting a Vephor server themselves. In this mode, the gateway
+maintains an outbound connection to one fixed visualization producer:
+
+```bash
+python3 web_client/gateway.py --bridge-target visualization-host:5533
+```
+
+The connection is established even when no browser is open. If the producer is unavailable or disconnects, the
+gateway retries indefinitely. The default retry delay is three seconds and can be changed as follows:
+
+```bash
+python3 web_client/gateway.py \
+    --bridge-target visualization-host:5533 \
+    --bridge-retry-seconds 5
+```
+
+If the port is omitted from `--bridge-target`, it defaults to 5533. Hostnames, IPv4 addresses, and bracketed IPv6
+addresses such as `[::1]:5533` are accepted.
+
+For a systemd deployment, add the bridge arguments to the service's `ExecStart` command:
+
+```ini
+ExecStart=/usr/bin/python3 /path/to/vephor/web_client/gateway.py --bridge-target visualization-host:5533
+```
+
+After changing a service unit, reload it and restart the gateway:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart vephor-gateway.service
+```
+
+In a container deployment, use the same command-line option and use the visualization producer's container or
+Compose service name as the host, for example `--bridge-target visualization:5533`. Publish the HTTP and WebSocket
+ports needed by browser clients (8080 and 5634 by default).
+
 ### Viz by server (bring your own client)
 
 "Bring your own client" mode allows you to create interactive visualizations without needing to separately call vephor_show.  It will create a server and also create a client process to talk to that server.

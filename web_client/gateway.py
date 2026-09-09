@@ -491,7 +491,67 @@ async def start_tcp_listener(port):
     except Exception as e:
         print(f"[TCP] Error starting TCP listener on port {port}: {e}")
 
-async def main_async(ws_port, tcp_port):
+async def maintain_bridge_connection(host, port, retry_seconds):
+    """Keep one outbound connection to a fixed Vephor producer alive."""
+    global conn_counter, active_connections
+
+    peer = f"{host}:{port}"
+    while True:
+        try:
+            print(f"[Bridge] Connecting to Vephor producer at {peer}...")
+            reader, writer = await asyncio.open_connection(host, port)
+
+            with conn_lock:
+                conn_id = conn_counter
+                conn_counter += 1
+                active_connections[conn_id] = {
+                    "reader": reader,
+                    "writer": writer,
+                    "peer": peer,
+                    "direction": "outbound",
+                    "bridge": True
+                }
+
+            print(f"[Bridge] Connected to {peer} as connection {conn_id}.")
+            await handle_tcp_incoming_stream(reader, writer, conn_id, peer, "outbound")
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            print(f"[Bridge] Connection to {peer} failed: {e}")
+
+        print(f"[Bridge] Retrying {peer} in {retry_seconds:g} seconds...")
+        await asyncio.sleep(retry_seconds)
+
+def parse_bridge_target(value):
+    """Parse HOST[:PORT], including bracketed IPv6 addresses."""
+    default_port = 5533
+
+    if value.startswith('['):
+        closing_bracket = value.find(']')
+        if closing_bracket == -1:
+            raise argparse.ArgumentTypeError("bridge target has an unmatched '['")
+        host = value[1:closing_bracket]
+        suffix = value[closing_bracket + 1:]
+        if suffix and not suffix.startswith(':'):
+            raise argparse.ArgumentTypeError("expected [HOST]:PORT")
+        port_text = suffix[1:] if suffix else str(default_port)
+    elif value.count(':') == 1:
+        host, port_text = value.rsplit(':', 1)
+    else:
+        host, port_text = value, str(default_port)
+
+    if not host:
+        raise argparse.ArgumentTypeError("bridge target host cannot be empty")
+    try:
+        port = int(port_text)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError("bridge target port must be an integer") from e
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError("bridge target port must be between 1 and 65535")
+
+    return host, port
+
+async def main_async(ws_port, tcp_port, bridge_target=None, bridge_retry_seconds=3.0):
     """Orchestrates async servers."""
     import websockets
     
@@ -505,19 +565,38 @@ async def main_async(ws_port, tcp_port):
 
     # Start TCP server
     tcp_task = asyncio.create_task(start_tcp_listener(tcp_port))
-    
-    # Wait both
-    await asyncio.gather(
-        ws_server.wait_closed(),
-        tcp_task
-    )
+    tasks = [ws_server.wait_closed(), tcp_task]
+
+    if bridge_target:
+        bridge_host, bridge_port = bridge_target
+        tasks.append(asyncio.create_task(
+            maintain_bridge_connection(bridge_host, bridge_port, bridge_retry_seconds)
+        ))
+
+    await asyncio.gather(*tasks)
 
 def main():
     parser = argparse.ArgumentParser(description="Vephor Web Gateway")
     parser.add_argument('--http-port', type=int, default=8080, help="Web UI HTTP server port")
     parser.add_argument('--ws-port', type=int, default=5634, help="Internal WebSocket server port")
     parser.add_argument('--tcp-port', type=int, default=5633, help="Vephor TCP server listening port")
+    parser.add_argument(
+        '--bridge-target',
+        type=parse_bridge_target,
+        metavar='HOST[:PORT]',
+        help="Always connect to this Vephor producer (default port: 5533)"
+    )
+    parser.add_argument(
+        '--bridge-retry-seconds',
+        type=float,
+        default=3.0,
+        metavar='SECONDS',
+        help="Delay between bridge reconnection attempts (default: 3)"
+    )
     args = parser.parse_args()
+
+    if args.bridge_retry_seconds <= 0:
+        parser.error('--bridge-retry-seconds must be greater than zero')
     
     # 1. Start HTTP Server in a background thread
     http_thread = threading.Thread(target=run_http_server, args=(args.http_port,), daemon=True)
@@ -525,7 +604,12 @@ def main():
     
     # 2. Start Async Loop for WebSockets and TCP Server
     try:
-        asyncio.run(main_async(args.ws_port, args.tcp_port))
+        asyncio.run(main_async(
+            args.ws_port,
+            args.tcp_port,
+            args.bridge_target,
+            args.bridge_retry_seconds
+        ))
     except KeyboardInterrupt:
         print("\nGateway shutting down cleanly. Goodbye!")
 
