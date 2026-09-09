@@ -2026,21 +2026,34 @@ async function createVisualNode(obj, baseBufIdx, payloads, panel) {
         case 'text': {
             const text = obj.text || '';
             const col = getRGBAColor(obj.color_rgb || [1, 1, 1]);
-            const textWidthFactor = text.length * 0.5;
+            const anchor = obj.anchor || [0, 0];
+            const canvasHeight = 128;
+            const font = 'bold 80px "JetBrains Mono", monospace';
             
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.height = 128;
-            canvas.width = Math.max(128, Math.floor(128 * textWidthFactor));
+            canvas.height = canvasHeight;
+            ctx.font = font;
+
+            // Size the quad from the font that will actually render the text. Using
+            // a fixed width per character distorted the texture and made horizontal
+            // anchor offsets disagree with the visible text bounds.
+            const metrics = ctx.measureText(text);
+            const leftExtent = metrics.actualBoundingBoxLeft || 0;
+            const rightExtent = metrics.actualBoundingBoxRight || metrics.width;
+            const measuredWidth = leftExtent + rightExtent;
+            canvas.width = Math.max(1, Math.ceil(measuredWidth));
+            const textWidthFactor = canvas.width / canvasHeight;
             
             ctx.fillStyle = 'transparent';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            ctx.font = 'bold 80px "JetBrains Mono", monospace';
+            // Resizing a canvas resets its drawing state.
+            ctx.font = font;
             ctx.fillStyle = `#${col.getHexString()}`;
-            ctx.textAlign = 'center';
+            ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+            ctx.fillText(text, leftExtent, canvas.height / 2);
             
             const tex = new THREE.CanvasTexture(canvas);
             
@@ -2057,9 +2070,7 @@ async function createVisualNode(obj, baseBufIdx, payloads, panel) {
                     yFlip: obj.y_flip === true
                 };
                 
-                if (obj.anchor) {
-                    sprite.center.set(obj.anchor[0], obj.anchor[1]);
-                }
+                sprite.center.set(anchor[0], anchor[1]);
                 object3D = sprite;
             } else {
                 // If not billboarding, render as a flat 3D plane so it fully respects 3D rotation
@@ -2075,13 +2086,12 @@ async function createVisualNode(obj, baseBufIdx, payloads, panel) {
                 
                 // Align plane to mimic standard Sprite coordinate orientation
                 // By default, planes face +Z, we need to map anchors correctly
-                if (obj.anchor) {
-                    // anchor coordinates are [0.0 to 1.0] from bottom-left
-                    // Translation is applied to geometry so rotation pivots around the anchor
-                    const transX = (0.5 - obj.anchor[0]) * textWidthFactor;
-                    const transY = (0.5 - obj.anchor[1]) * 1.0;
-                    geom.translate(transX, transY, 0);
-                }
+                // Anchor coordinates are [0.0 to 1.0] from bottom-left. Vephor's
+                // serialized default is omitted and means bottom-left, not the
+                // centered default used by Three.js geometry and sprites.
+                const transX = (0.5 - anchor[0]) * textWidthFactor;
+                const transY = (0.5 - anchor[1]) * 1.0;
+                geom.translate(transX, transY, 0);
                 
                 mesh.userData = {
                     xFlip: obj.x_flip === true,
