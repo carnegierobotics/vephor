@@ -730,28 +730,46 @@ function updateCanvasGrid() {
         setTimeout(() => resizePanel(panel), 10);
     });
     
-    // 2. Inject Draggable Vertical Splitters
+    // 2. Inject draggable vertical splitters only where two panels actually
+    // meet. In an incomplete final row, the last panel spans the empty cells;
+    // a full-height splitter would otherwise overlay that spanning panel.
+    const panelAtCell = (r, c) => {
+        const index = r * cols + c;
+        if (index < count) return index;
+
+        const lastIndex = count - 1;
+        const lastRow = Math.floor(lastIndex / cols);
+        const lastCol = lastIndex % cols;
+        return r === lastRow && c >= lastCol ? lastIndex : null;
+    };
+
     for (let c = 0; c < cols - 1; c++) {
-        const splitter = document.createElement('div');
-        splitter.className = 'grid-splitter';
-        splitter.style.gridColumn = `${c * 2 + 2}`;
-        splitter.style.gridRow = '1 / -1';
-        
-        splitter.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            state.isResizingSplit = true;
-            state.dragSplitIndex = c;
-            state.dragStartPos = e.clientX;
-            state.dragStartSizes = [...sizes.cols];
-            
-            const totalFr = sizes.cols.reduce((a, b) => a + b, 0);
-            const availablePixels = container.clientWidth - (cols - 1) * 6;
-            state.pixelsPerFr = availablePixels / totalFr;
-            
-            splitter.classList.add('active-dragging');
-            document.body.style.cursor = 'col-resize';
-        });
-        container.appendChild(splitter);
+        for (let r = 0; r < rows; r++) {
+            const leftPanel = panelAtCell(r, c);
+            const rightPanel = panelAtCell(r, c + 1);
+            if (leftPanel === null || rightPanel === null || leftPanel === rightPanel) continue;
+
+            const splitter = document.createElement('div');
+            splitter.className = 'grid-splitter';
+            splitter.style.gridColumn = `${c * 2 + 2}`;
+            splitter.style.gridRow = `${r * 2 + 1}`;
+
+            splitter.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                state.isResizingSplit = true;
+                state.dragSplitIndex = c;
+                state.dragStartPos = e.clientX;
+                state.dragStartSizes = [...sizes.cols];
+
+                const totalFr = sizes.cols.reduce((a, b) => a + b, 0);
+                const availablePixels = container.clientWidth - (cols - 1) * 6;
+                state.pixelsPerFr = availablePixels / totalFr;
+
+                splitter.classList.add('active-dragging');
+                document.body.style.cursor = 'col-resize';
+            });
+            container.appendChild(splitter);
+        }
     }
     
     // 3. Inject Draggable Horizontal Splitters
