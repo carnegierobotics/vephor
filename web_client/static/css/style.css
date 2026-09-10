@@ -356,6 +356,19 @@ input[type="text"]:focus {
     gap: 8px;
 }
 
+.panel-layout-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+}
+
+.panel-layout-btn.active {
+    color: #fff;
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
 .tel-card {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--panel-border);

@@ -44,6 +44,7 @@ const state = {
     dragStartSizes: [],
     pixelsPerFr: 1,
     gridSizes: {}, // keys: connId -> { count, cols: [], rows: [] }
+    panelLayouts: {}, // keys: connId -> selected layout name
     
     // Recent connections history
     recentConnections: [],
@@ -672,6 +673,82 @@ function updatePanelHUDAnchors(panel, width, height) {
     if (br) br.position.set(width, 0, 0);
 }
 
+function getPanelLayouts(count) {
+    if (count === 2) {
+        return [
+            { key: 'columns', label: 'Side by Side', cols: 2, rows: 1,
+                areas: [{ row: 0, col: 0 }, { row: 0, col: 1 }] },
+            { key: 'rows', label: 'Stacked', cols: 1, rows: 2,
+                areas: [{ row: 0, col: 0 }, { row: 1, col: 0 }] }
+        ];
+    }
+
+    if (count === 3) {
+        return [
+            { key: 'large-bottom', label: 'Large Bottom', cols: 2, rows: 2,
+                areas: [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 0, colSpan: 2 }] },
+            { key: 'large-top', label: 'Large Top', cols: 2, rows: 2,
+                areas: [{ row: 0, col: 0, colSpan: 2 }, { row: 1, col: 0 }, { row: 1, col: 1 }] },
+            { key: 'large-left', label: 'Large Left', cols: 2, rows: 2,
+                areas: [{ row: 0, col: 0, rowSpan: 2 }, { row: 0, col: 1 }, { row: 1, col: 1 }] },
+            { key: 'large-right', label: 'Large Right', cols: 2, rows: 2,
+                areas: [{ row: 0, col: 1, rowSpan: 2 }, { row: 0, col: 0 }, { row: 1, col: 0 }] },
+            { key: 'columns', label: 'Three Columns', cols: 3, rows: 1,
+                areas: [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }] },
+            { key: 'rows', label: 'Three Rows', cols: 1, rows: 3,
+                areas: [{ row: 0, col: 0 }, { row: 1, col: 0 }, { row: 2, col: 0 }] }
+        ];
+    }
+
+    return [];
+}
+
+function getPanelLayout(count) {
+    const layouts = getPanelLayouts(count);
+    if (layouts.length > 0) {
+        const selected = state.panelLayouts[state.activeConnId];
+        return layouts.find(layout => layout.key === selected) || layouts[0];
+    }
+
+    const cols = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / cols);
+    const areas = [];
+    for (let i = 0; i < count; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        areas.push({ row, col, colSpan: i === count - 1 ? cols - col : 1 });
+    }
+    return { key: 'automatic', cols, rows, areas };
+}
+
+function updatePanelLayoutOptions(count) {
+    const section = document.getElementById('panel-layout-section');
+    const options = document.getElementById('panel-layout-options');
+    const layouts = getPanelLayouts(count);
+
+    if (layouts.length === 0) {
+        section.classList.add('hide');
+        options.innerHTML = '';
+        return;
+    }
+
+    section.classList.remove('hide');
+    const selected = getPanelLayout(count).key;
+    options.innerHTML = '';
+
+    layouts.forEach(layout => {
+        const button = document.createElement('button');
+        button.className = `btn btn-secondary btn-small panel-layout-btn${layout.key === selected ? ' active' : ''}`;
+        button.textContent = layout.label;
+        button.addEventListener('click', () => {
+            state.panelLayouts[state.activeConnId] = layout.key;
+            delete state.gridSizes[state.activeConnId];
+            updateCanvasGrid();
+        });
+        options.appendChild(button);
+    });
+}
+
 function updateCanvasGrid() {
     const container = document.getElementById('canvas-container');
     const order = state.panelOrder[state.activeConnId] || [];
@@ -682,6 +759,7 @@ function updateCanvasGrid() {
         .filter(p => p !== null && p !== undefined);
         
     const count = activeFeedPanels.length;
+    updatePanelLayoutOptions(count);
     
     // Clear container completely to rebuild DOM grid from scratch
     container.innerHTML = '';
@@ -691,13 +769,16 @@ function updateCanvasGrid() {
         return;
     }
     
-    const cols = Math.ceil(Math.sqrt(count));
-    const rows = Math.ceil(count / cols);
+    const layout = getPanelLayout(count);
+    const { cols, rows } = layout;
     
     if (!state.gridSizes) state.gridSizes = {};
-    if (!state.gridSizes[state.activeConnId] || state.gridSizes[state.activeConnId].count !== count) {
+    if (!state.gridSizes[state.activeConnId] ||
+        state.gridSizes[state.activeConnId].count !== count ||
+        state.gridSizes[state.activeConnId].layout !== layout.key) {
         state.gridSizes[state.activeConnId] = {
             count: count,
+            layout: layout.key,
             cols: new Array(cols).fill(1),
             rows: new Array(rows).fill(1)
         };
@@ -710,18 +791,12 @@ function updateCanvasGrid() {
     
     // 1. Append all panel cards at precise grid coordinates
     activeFeedPanels.forEach((panel, i) => {
-        const r = Math.floor(i / cols);
-        const c = i % cols;
-        
-        panel.card.style.gridRow = `${r * 2 + 1}`;
-        
-        // If this is the last panel, make it span any remaining columns to avoid empty holes
-        if (i === count - 1) {
-            const remainingCols = cols - c;
-            panel.card.style.gridColumn = `${c * 2 + 1} / span ${remainingCols * 2 - 1}`;
-        } else {
-            panel.card.style.gridColumn = `${c * 2 + 1}`;
-        }
+        const area = layout.areas[i];
+        const rowSpan = area.rowSpan || 1;
+        const colSpan = area.colSpan || 1;
+
+        panel.card.style.gridRow = `${area.row * 2 + 1} / span ${rowSpan * 2 - 1}`;
+        panel.card.style.gridColumn = `${area.col * 2 + 1} / span ${colSpan * 2 - 1}`;
         
         panel.card.style.display = 'block';
         container.appendChild(panel.card);
@@ -734,20 +809,17 @@ function updateCanvasGrid() {
     // meet. In an incomplete final row, the last panel spans the empty cells;
     // a full-height splitter would otherwise overlay that spanning panel.
     const panelAtCell = (r, c) => {
-        const index = r * cols + c;
-        if (index < count) return index;
-
-        const lastIndex = count - 1;
-        const lastRow = Math.floor(lastIndex / cols);
-        const lastCol = lastIndex % cols;
-        return r === lastRow && c >= lastCol ? lastIndex : null;
+        return layout.areas.findIndex(area =>
+            r >= area.row && r < area.row + (area.rowSpan || 1) &&
+            c >= area.col && c < area.col + (area.colSpan || 1)
+        );
     };
 
     for (let c = 0; c < cols - 1; c++) {
         for (let r = 0; r < rows; r++) {
             const leftPanel = panelAtCell(r, c);
             const rightPanel = panelAtCell(r, c + 1);
-            if (leftPanel === null || rightPanel === null || leftPanel === rightPanel) continue;
+            if (leftPanel < 0 || rightPanel < 0 || leftPanel === rightPanel) continue;
 
             const splitter = document.createElement('div');
             splitter.className = 'grid-splitter';
@@ -772,33 +844,35 @@ function updateCanvasGrid() {
         }
     }
     
-    // 3. Inject Draggable Horizontal Splitters
+    // 3. Inject horizontal splitters only where two distinct panels meet.
     for (let r = 0; r < rows - 1; r++) {
-        const splitterH = document.createElement('div');
-        splitterH.className = 'grid-splitter-h';
-        splitterH.style.gridRow = `${r * 2 + 2}`;
-        splitterH.style.gridColumn = '1 / -1';
-        
-        splitterH.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            state.isResizingSplitH = true;
-            state.dragSplitIndex = r;
-            state.dragStartPos = e.clientY;
-            state.dragStartSizes = [...sizes.rows];
-            
-            const totalFr = sizes.rows.reduce((a, b) => a + b, 0);
-            const availablePixels = container.clientHeight - (rows - 1) * 6;
-            state.pixelsPerFr = availablePixels / totalFr;
-            
-            splitterH.classList.add('active-dragging');
-            document.body.style.cursor = 'row-resize';
-        });
-        container.appendChild(splitterH);
+        for (let c = 0; c < cols; c++) {
+            const topPanel = panelAtCell(r, c);
+            const bottomPanel = panelAtCell(r + 1, c);
+            if (topPanel < 0 || bottomPanel < 0 || topPanel === bottomPanel) continue;
+
+            const splitterH = document.createElement('div');
+            splitterH.className = 'grid-splitter-h';
+            splitterH.style.gridRow = `${r * 2 + 2}`;
+            splitterH.style.gridColumn = `${c * 2 + 1}`;
+
+            splitterH.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                state.isResizingSplitH = true;
+                state.dragSplitIndex = r;
+                state.dragStartPos = e.clientY;
+                state.dragStartSizes = [...sizes.rows];
+
+                const totalFr = sizes.rows.reduce((a, b) => a + b, 0);
+                const availablePixels = container.clientHeight - (rows - 1) * 6;
+                state.pixelsPerFr = availablePixels / totalFr;
+
+                splitterH.classList.add('active-dragging');
+                document.body.style.cursor = 'row-resize';
+            });
+            container.appendChild(splitterH);
+        }
     }
-    
-    // Hide the manual slider, as we now support infinite multi-panel drag sashes
-    const splitRatioRow = document.getElementById('split-ratio-row');
-    if (splitRatioRow) splitRatioRow.classList.add('hide');
     
     // Manage visibility of inactive panels
     Object.keys(state.panels).forEach(cid => {
@@ -1291,6 +1365,7 @@ function clearGatewayState() {
     state.objectCounters = {};
     state.activeFlags = {};
     state.gridSizes = {};
+    state.panelLayouts = {};
     state.activeConnections = [];
     state.activeConnId = null;
     state.fpsHistory = [];
@@ -1330,6 +1405,7 @@ function updateConnectionListUI(connections) {
             delete state.objectCounters[c_id];
             delete state.activeFlags[c_id];
             delete state.gridSizes[c_id];
+            delete state.panelLayouts[c_id];
         }
     });
 
@@ -2431,32 +2507,6 @@ function initUI() {
         autoFitSceneBounds();
     });
 
-    // 4. Rendering Toggle switches
-    document.getElementById('wireframe-toggle').addEventListener('change', (e) => {
-        state.wireframe = e.target.checked;
-        Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
-            panel.scene.traverse(child => {
-                if (child.isMesh && child.material) {
-                    child.material.wireframe = state.wireframe;
-                }
-            });
-        });
-    });
-
-    document.getElementById('grid-toggle').addEventListener('change', (e) => {
-        state.gridEnabled = e.target.checked;
-        Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
-            panel.gridHelper.visible = state.gridEnabled;
-        });
-    });
-
-    document.getElementById('axes-toggle').addEventListener('change', (e) => {
-        state.axesEnabled = e.target.checked;
-        Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
-            panel.axesHelper.visible = state.axesEnabled;
-        });
-    });
-
     // GLFW Key Mapping for C++ backend parity
     const glfwKeyMap = {
         'Space': 32, 'Quote': 39, 'Comma': 44, 'Minus': 45, 'Period': 46, 'Slash': 47,
@@ -2613,45 +2663,52 @@ function initUI() {
         }
     });
 
-    // Bind Panel Split Ratio range slider
-    const splitRatioSlider = document.getElementById('split-ratio-slider');
-    if (splitRatioSlider) {
-        splitRatioSlider.addEventListener('input', (e) => {
-            const container = document.getElementById('canvas-container');
-            const leftPercent = parseInt(e.target.value);
-            
-            container.style.gridTemplateColumns = `${leftPercent}% 6px ${100 - leftPercent}%`;
-            
-            // Reflow all active WebGL viewports
-            Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
-                resizePanel(panel);
-            });
-        });
-    }
 }
 
 function triggerCameraPreset(preset) {
+    let fitted = false;
+
     Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
-        panel.controls.reset();
-        panel.orthoControls.reset();
+        // View-angle presets are meaningful only for perspective 3D scenes.
+        // Leave 2D plot cameras and their pan/zoom state untouched.
+        if (panel.is2DPlotMode) return;
+
+        const target = panel.controls.target;
+        const direction = new THREE.Vector3();
+        const up = new THREE.Vector3(0, 0, 1);
+
         switch (preset) {
             case 'isometric':
-                panel.camera.position.set(5, 5, 5);
+                direction.set(1, 1, 1);
                 break;
             case 'top':
-                panel.camera.position.set(0, 0, 10);
-                panel.orthoCamera.position.set(0, 0, 1000);
+                direction.set(0, 0, 1);
+                up.set(0, 1, 0);
                 break;
             case 'front':
-                panel.camera.position.set(0, -10, 0);
+                direction.set(0, -1, 0);
                 break;
             case 'side':
-                panel.camera.position.set(10, 0, 0);
+                direction.set(1, 0, 0);
                 break;
+            default:
+                return;
         }
+
+        // Establish the requested viewing direction around the current target.
+        // autoFitPanelBounds then recenters and chooses the distance required to
+        // contain the complete 3D scene while preserving this direction.
+        panel.camera.up.copy(up);
+        panel.camera.position.copy(target).add(direction.normalize());
+        panel.camera.lookAt(target);
         panel.controls.update();
-        panel.orthoControls.update();
+
+        if (autoFitPanelBounds(panel)) fitted = true;
     });
+
+    if (fitted) {
+        showToast('Applied camera view and fit 3D scene bounds', 'success');
+    }
 }
 
 function autoFitPanelBounds(panel) {
@@ -2714,8 +2771,11 @@ function autoFitPanelBounds(panel) {
         const targetDelta = new THREE.Vector3().subVectors(center, oldTarget);
         panel.camera.position.add(targetDelta);
         
-        const fov = panel.camera.fov * (Math.PI / 180);
-        let cameraDist = Math.max(Math.abs(radius / Math.sin(fov / 2)) * 1.25, 0.1);
+        const verticalFov = panel.camera.fov * (Math.PI / 180);
+        const aspect = Math.max(panel.camera.aspect, 1e-6);
+        const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * aspect);
+        const limitingFov = Math.min(verticalFov, horizontalFov);
+        let cameraDist = Math.max(Math.abs(radius / Math.sin(limitingFov / 2)) * 1.25, 0.1);
         
         // Dynamically update clipping planes to perfectly enclose the data while maximizing depth buffer precision
         panel.camera.near = Math.max(cameraDist / 1000, 0.001);
