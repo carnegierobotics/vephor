@@ -1267,9 +1267,43 @@ function connectWebSocket() {
     
     state.ws.onclose = () => {
         console.log('[WS] Disconnected. Reconnecting in 3s...');
+        clearGatewayState();
         showToast('Gateway Disconnected', 'error');
         setTimeout(connectWebSocket, 3000);
     };
+}
+
+function clearGatewayState() {
+    // Connection and window IDs are only meaningful within one gateway. Clear
+    // them before reconnecting so IDs reused by a different gateway cannot
+    // inherit scenes, controls, or layout state from the previous one.
+    Object.values(state.panels).forEach(feedPanels => {
+        Object.values(feedPanels).forEach(panel => {
+            panel.card.remove();
+            disposeObject3D(panel.feedGroup);
+            disposeObject3D(panel.feedHUDGroup);
+            panel.renderer.dispose();
+        });
+    });
+
+    state.panels = {};
+    state.panelOrder = {};
+    state.objectCounters = {};
+    state.activeFlags = {};
+    state.gridSizes = {};
+    state.activeConnections = [];
+    state.activeConnId = null;
+    state.fpsHistory = [];
+    state.lastFrameTime = null;
+
+    document.getElementById('connections-list').innerHTML =
+        `<div class="empty-state">Gateway disconnected. Waiting to reconnect...</div>`;
+    document.getElementById('tel-source').textContent = '-';
+    document.getElementById('tel-objects').textContent = '0';
+    document.getElementById('tel-fps').textContent = '0.0';
+    document.getElementById('tel-latency').textContent = '0ms';
+    renderControlFlags(null, []);
+    updateCanvasGrid();
 }
 
 function updateConnectionListUI(connections) {
@@ -1295,6 +1329,7 @@ function updateConnectionListUI(connections) {
             delete state.panelOrder[c_id];
             delete state.objectCounters[c_id];
             delete state.activeFlags[c_id];
+            delete state.gridSizes[c_id];
         }
     });
 
