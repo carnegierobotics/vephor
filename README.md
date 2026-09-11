@@ -236,6 +236,16 @@ p.show()
 
 The list of supported objects and function calls can be found farther down.
 
+By default, temporary artifacts are stored below `/tmp/vephor` on Linux. On systems where that location is not
+writable, configure another root before creating any windows, plots, or textured objects:
+
+```python
+v4.setTempDir("/path/to/writable/vephor")
+```
+
+The C++ call is `vephor::setTempDir(path)`. Vephor creates its `tmp` and `save` subdirectories beneath the configured
+root. Calling the setter after temporary storage has already been used raises an error.
+
 ## Examples
 
 Note that the following examples alternate between C++ and Python, but all features are available in both.
@@ -746,6 +756,7 @@ lower-level renderer-specific facilities and is documented by its headers.
 	<tr><td></td><td>generateFlatNormalImage</td><td>Create a flat normal-map image.</td><td>(size)</td></tr>
 	<tr><td></td><td>loadImage / saveImage</td><td>Load or save an image file.</td><td>(path, image)</td></tr>
 	<tr><th>Utilities</th><td>setTextureCompression</td><td>Configure texture compression and quality.</td><td>(compress, quality=default)</td></tr>
+	<tr><td></td><td>setTempDir</td><td>Set the writable root for temporary and generated save artifacts. Call before creating windows, plots, or textured objects.</td><td>(path)</td></tr>
 	<tr><td></td><td>convertStringToColor</td><td>Parse a color string.</td><td>(text)</td></tr>
 	<tr><td></td><td>getBaseAssetDir</td><td>Return Vephor's installed asset directory.</td></tr>
 	<tr><td></td><td>makePerspectiveProj / makeOrthoProj</td><td>Create projection matrices.</td><td>(projection parameters)</td></tr>

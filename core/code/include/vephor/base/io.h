@@ -21,6 +21,32 @@ namespace vephor
 	
 namespace fs = std::filesystem;
 
+inline string& tempRootDir()
+{
+#if defined(_WIN32)
+	static string root = "c:/Users/Public/AppData/Local/Temp/vephor";
+#else
+	static string root = "/tmp/vephor";
+#endif
+	return root;
+}
+
+inline bool& tempDirInitialized()
+{
+	static bool initialized = false;
+	return initialized;
+}
+
+inline void setTempDir(const string& path)
+{
+	if (path.empty())
+		throw std::invalid_argument("Vephor temporary directory cannot be empty.");
+	if (tempDirInitialized())
+		throw std::runtime_error("Vephor temporary directory must be set before it is first used.");
+
+	tempRootDir() = fs::path(path).lexically_normal().string();
+}
+
 inline string getDateString()
 {
 	auto t = std::time(nullptr);
@@ -32,13 +58,8 @@ inline string getDateString()
 
 inline string getTempDir()
 {
-#if defined(_WIN32)
-	string temp_dir = "c:/Users/Public/AppData/Local/Temp";
-#else
-	string temp_dir = "/tmp";
-#endif
-
-	temp_dir += "/vephor/tmp";
+	tempDirInitialized() = true;
+	string temp_dir = (fs::path(tempRootDir()) / "tmp").string();
 
 	static string temp_date_str;
 	if (temp_date_str.empty())
@@ -67,13 +88,8 @@ inline string getTempDir()
 
 inline string getSaveDir()
 {
-#if defined(_WIN32)
-	string temp_dir = "c:/Users/Public/AppData/Local/Temp";
-#else
-	string temp_dir = "/tmp";
-#endif
-
-	temp_dir += "/vephor/save";
+	tempDirInitialized() = true;
+	string temp_dir = (fs::path(tempRootDir()) / "save").string();
 
 	static string save_date_str;
 	if (save_date_str.empty())

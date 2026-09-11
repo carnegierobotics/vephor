@@ -512,6 +512,7 @@ PYBIND11_MODULE(_core, m) {
 		
 	
 	m.def("setTextureCompression", &setTextureCompression, py::arg("compress"), py::arg("quality") = DEFAULT_COMPRESSION_QUALITY);
+	m.def("setTempDir", &setTempDir, py::arg("path"));
 	m.def("formLine", &formLine, py::arg("vert_list"), py::arg("rad"));
 	m.def("formLineLoop", &formLineLoop, py::arg("vert_list"), py::arg("rad"));
 	m.def("formPolygon", &formPolygon, py::arg("vert_list"));
