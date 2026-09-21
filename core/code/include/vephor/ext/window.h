@@ -1444,7 +1444,10 @@ public:
 		const string& host = "localhost", 
 		int port = VEPHOR_DEFAULT_PORT,
 		bool p_record_also = false, 
-		const string p_record_path = "")
+		const string p_record_path = "",
+		double connect_timeout_s = 10.0,
+		double retry_initial_delay_s = 0.1,
+		double retry_max_delay_s = 1.0)
 	{
 		if (manager.mode == WindowManager::Mode::Client)
 			return;
@@ -1457,7 +1460,13 @@ public:
 
 		manager.network_mode = true;
 		v4print "Connecting client...";
-		manager.net.connectClient(wait, host, port);
+		try {
+			manager.net.connectClient(wait, host, port, connect_timeout_s,
+				retry_initial_delay_s, retry_max_delay_s);
+		} catch (...) {
+			manager.network_mode = false;
+			throw;
+		}
 		v4print "Client connected.";
 
 		if (p_record_also)
@@ -1476,7 +1485,9 @@ public:
 		manager.mode = WindowManager::Mode::Client;
 	}
 	
-	static void setClientModeBYOS(bool p_record_also = false, const string p_record_path = "")
+	static void setClientModeBYOS(bool p_record_also = false, const string p_record_path = "",
+		double connect_timeout_s = 10.0, double retry_initial_delay_s = 0.1,
+		double retry_max_delay_s = 1.0)
 	{
 		if (manager.mode == WindowManager::Mode::ClientBYOS)
 			return;
@@ -1507,14 +1518,14 @@ public:
 		
 		manager.network_mode = true;
 		v4print "Connecting client...";
-		while (true)
-		{
-			try {
-				manager.net.connectClient(true, "localhost", port);
-				break;
-			} catch (...) {}
-
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		try {
+			manager.net.connectClient(true, "localhost", port, connect_timeout_s,
+				retry_initial_delay_s, retry_max_delay_s);
+		} catch (const std::exception& ex) {
+			server_proc.reset();
+			manager.network_mode = false;
+			throw std::runtime_error("Failed to start Vephor BYOS viewer at localhost:" +
+				std::to_string(port) + ": " + ex.what());
 		}
 		v4print "Client connected.";
 
@@ -1551,7 +1562,12 @@ public:
 			throw std::runtime_error("Must set window mode before first render.");
 
 		manager.network_mode = true;
-		manager.net.connectServer(wait, port);
+		if (!manager.net.connectServer(wait, port))
+		{
+			manager.network_mode = false;
+			throw std::runtime_error("Failed to start Vephor server on port " +
+				std::to_string(port) + ": " + manager.net.getLastBindErrorMessage());
+		}
 
 		if (p_record_also)
 		{
@@ -1570,7 +1586,8 @@ public:
 		manager.mode = WindowManager::Mode::Server;
 	}
 
-	static void setServerModeBYOC(bool p_record_also = false, const string p_record_path = "")
+	static void setServerModeBYOC(bool p_record_also = false, const string p_record_path = "",
+		double connect_timeout_s = 10.0, int max_port_attempts = 16)
 	{
 		if (manager.mode == WindowManager::Mode::ServerBYOC)
 			return;
@@ -1590,16 +1607,36 @@ public:
 
 		int port;
 		
-		while (true)
+		if (connect_timeout_s <= 0.0)
+			throw std::runtime_error("BYOC connection timeout must be greater than zero.");
+		if (max_port_attempts <= 0)
+			throw std::runtime_error("BYOC max port attempts must be greater than zero.");
+
+		bool prepared = false;
+		for (int attempt = 0; attempt < max_port_attempts; attempt++)
 		{
 			port = port_dist(rng);
-			v4print "Using port:", port;
 
 			if (manager.net.prepareServerMode(port))
+			{
+				prepared = true;
 				break;
+			}
 
-			v4print "Bind failed, tryin another port.";
+			const int bind_error = manager.net.getLastBindError();
+#if defined(_WIN32)
+			if (bind_error != WSAEADDRINUSE)
+#else
+			if (bind_error != EADDRINUSE)
+#endif
+				throw std::runtime_error("Failed to start Vephor BYOC listener: " +
+					manager.net.getLastBindErrorMessage());
 		}
+		if (!prepared)
+			throw std::runtime_error("Failed to start Vephor BYOC listener after " +
+				std::to_string(max_port_attempts) + " occupied ports.");
+
+		v4print "Using port:", port;
 	
 		v4print "Starting client process...";
 		server_proc = make_unique<Process>(vector<string>{"vephor_show", 
@@ -1617,10 +1654,21 @@ public:
 		if (!server_proc->isAlive())
 		{
 			server_proc->printOutput();
+			server_proc.reset();
+			manager.net.resetPreparedServer();
+			manager.network_mode = false;
 			throw std::runtime_error("BYOC client crashed.");
 		}
 		
-		manager.net.connectPreparedServer();
+		try {
+			manager.net.connectPreparedServer(connect_timeout_s);
+		} catch (const std::exception& ex) {
+			server_proc.reset();
+			manager.net.resetPreparedServer();
+			manager.network_mode = false;
+			throw std::runtime_error("Failed to start Vephor BYOC viewer at localhost:" +
+				std::to_string(port) + ": " + ex.what());
+		}
 
 		if (p_record_also)
 		{

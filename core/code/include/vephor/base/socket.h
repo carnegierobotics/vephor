@@ -28,6 +28,7 @@
 #include <thread>
 #include <mutex>
 #include <filesystem>
+#include <chrono>
 
 namespace fs = std::filesystem;
 
@@ -91,6 +92,8 @@ inline void writeJSONBMessageToFile(const json& header, const vector<vector<char
 class TCPSocket
 {
 public:
+	int getLastErrorCode() const { return last_error_code; }
+
 #if defined(_WIN32)
 	void init()
 	{
@@ -131,8 +134,12 @@ private:
 		}
 	}
 public:
-	void connect(const string& host, int port)
+	void connect(const string& host, int port, double timeout_s = 10.0,
+		double retry_initial_delay_s = 0.1, double retry_max_delay_s = 1.0)
 	{
+		(void)timeout_s;
+		(void)retry_initial_delay_s;
+		(void)retry_max_delay_s;
 		if (needs_init)
 			init();
 		
@@ -180,6 +187,7 @@ public:
 		
 		if (sock == INVALID_SOCKET)
 		{
+			last_error_code = WSAGetLastError();
 			error("could not find address to connect to.", 0);
 			throw std::runtime_error("Could not find address to connect to.");
 		}
@@ -216,17 +224,21 @@ public:
 			sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);	
 			
 			if (sock == INVALID_SOCKET) {
+				last_error_code = WSAGetLastError();
 				freeaddrinfo(result);
-				error("socket error", WSAGetLastError());
-				throw std::runtime_error("Socket creation failed.");
+				throw std::runtime_error("Socket creation failed with error " +
+					std::to_string(last_error_code) + ".");
 			}
 			
 			// Setup the TCP listening socket
 			iResult = ::bind( sock, result->ai_addr, (int)result->ai_addrlen);
 			if (iResult == SOCKET_ERROR) {
+				last_error_code = WSAGetLastError();
 				freeaddrinfo(result);
-				error("bind failed", WSAGetLastError());
-				throw std::runtime_error("Bind failed.");
+				closesocket(sock);
+				sock = INVALID_SOCKET;
+				throw std::runtime_error("Bind failed with error " +
+					std::to_string(last_error_code) + ".");
 			}
 			
 			freeaddrinfo(result);
@@ -405,7 +417,8 @@ private:
 		}
 	}
 public:
-	void connect(const string& host, int port)
+	void connect(const string& host, int port, double timeout_s = 10.0,
+		double retry_initial_delay_s = 0.1, double retry_max_delay_s = 1.0)
 	{
 		signal(SIGPIPE, SIG_IGN);
 
@@ -414,9 +427,9 @@ public:
 
 		sock_fd = socket(AF_INET, SOCK_STREAM, 0);
 		if (sock_fd < 0)
-		{			
-			error("Error opening socket");
-			throw std::runtime_error("Error opening socket.");
+		{
+			last_error_code = errno;
+			throw std::runtime_error(string("socket creation failed: ") + strerror(last_error_code));
 		}
 		
 		int enable = 1;
@@ -436,15 +449,27 @@ public:
 			(char *)&serv_addr.sin_addr.s_addr,
 			server->h_length);
 		serv_addr.sin_port = htons(port);
-		/*if (::connect(sock_fd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+		const auto start = std::chrono::steady_clock::now();
+		double retry_delay_s = std::max(0.001, retry_initial_delay_s);
+		while (::connect(sock_fd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
 		{
-			error("Error connecting");
-			throw std::runtime_error("Error connecting.");
-		}*/
+			last_error_code = errno;
+			const bool retryable = last_error_code == ECONNREFUSED ||
+				last_error_code == EINTR || last_error_code == ETIMEDOUT;
+			const double elapsed_s = std::chrono::duration<double>(
+				std::chrono::steady_clock::now() - start).count();
+			if (!retryable || timeout_s <= 0.0 || elapsed_s >= timeout_s)
+			{
+				disconnect();
+				throw std::runtime_error("failed to connect to " + host + ":" +
+					std::to_string(port) + " after " + std::to_string(elapsed_s) +
+					" seconds: " + strerror(last_error_code));
+			}
 
-		while (::connect(sock_fd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			const double sleep_s = std::min(retry_delay_s, timeout_s - elapsed_s);
+			std::this_thread::sleep_for(std::chrono::duration<double>(sleep_s));
+			retry_delay_s = std::min(retry_delay_s * 2.0,
+				std::max(0.001, retry_max_delay_s));
 		}
 	}
 	void bind_and_listen(int port)
@@ -457,8 +482,8 @@ public:
 			sock_fd = socket(AF_INET, SOCK_STREAM, 0);
 			if (sock_fd < 0)
 			{
-				error("Error opening socket");
-				throw std::runtime_error("Error opening socket.");
+				last_error_code = errno;
+				throw std::runtime_error(string("socket creation failed: ") + strerror(last_error_code));
 			}
 
 			int enable = 1;
@@ -473,10 +498,11 @@ public:
 			serv_addr.sin_port = htons(port);
 			if (::bind(sock_fd, (struct sockaddr *) &serv_addr,
 				sizeof(serv_addr)) < 0)
-			{				
-				error("Error on binding");
+			{
+				last_error_code = errno;
 				disconnect();
-				throw std::runtime_error("Error on binding.");
+				throw std::runtime_error(string("failed to bind port ") +
+					std::to_string(port) + ": " + strerror(last_error_code));
 			}
 			listen_socket = true;
 			::listen(sock_fd,5);
@@ -747,6 +773,7 @@ private:
 	int sock_fd = -1;
 #endif
 	bool listen_socket = false;
+	int last_error_code = 0;
 };
 	
 
@@ -759,7 +786,7 @@ public:
 	{
 		shutdown = true;
 		v4print "NetworkManager: Shutting down.";
-		if (waiting_for_connections)
+		if (conn_wait_thread.joinable())
 			conn_wait_thread.join();
 		for (auto& conn : conns)
 		{
@@ -767,7 +794,9 @@ public:
 		}
 		v4print "NetworkManager: Shutdown complete.";
 	}
-	void connectClient(bool wait_for_connection = true, const string& host = "localhost", int port = VEPHOR_DEFAULT_PORT)
+	void connectClient(bool wait_for_connection = true, const string& host = "localhost",
+		int port = VEPHOR_DEFAULT_PORT, double timeout_s = 10.0,
+		double retry_initial_delay_s = 0.1, double retry_max_delay_s = 1.0)
 	{
 		//if (client_mode)
 		//	throw std::runtime_error("Client mode already active");
@@ -779,18 +808,22 @@ public:
 			auto sock = make_shared<TCPSocket>();
 			
 			v4print "Waiting for client connection...";
-			sock->connect(host, port);
+			sock->connect(host, port, timeout_s, retry_initial_delay_s, retry_max_delay_s);
 			addConn(sock);
 		}
 		else
 		{
 			waiting_for_connections = true;
-			conn_wait_thread = std::thread([&,host,port](){
+			conn_wait_thread = std::thread([&,host,port,timeout_s,retry_initial_delay_s,retry_max_delay_s](){
 				auto sock = make_shared<TCPSocket>();
 				v4print "Waiting for client connection in background.";
-				sock->connect(host, port);
-				v4print "Client connection made.";
-				addConn(sock);
+				try {
+					sock->connect(host, port, timeout_s, retry_initial_delay_s, retry_max_delay_s);
+					v4print "Client connection made.";
+					addConn(sock);
+				} catch (const std::exception& ex) {
+					v4print "Connection to", host + ":" + std::to_string(port), "failed:", ex.what();
+				}
 				waiting_for_connections = false;
 			});
 		}
@@ -804,12 +837,21 @@ public:
 			listen_sock = make_shared<TCPSocket>();
 			try {
 				listen_sock->bind_and_listen(port);
-			} catch (...) {
+			} catch (const std::exception& ex) {
+				last_bind_error = listen_sock->getLastErrorCode();
+				last_bind_error_message = ex.what();
 				listen_sock = NULL;
 				return false;
 			}
 		}
 		return true;
+	}
+	int getLastBindError() const { return last_bind_error; }
+	const string& getLastBindErrorMessage() const { return last_bind_error_message; }
+	void resetPreparedServer()
+	{
+		listen_sock = NULL;
+		server_mode = false;
 	}
 	bool prepareServerMode(int port = VEPHOR_DEFAULT_PORT)
 	{
@@ -825,15 +867,20 @@ public:
 
 		return true;
 	}
-	void connectPreparedServer()
+	void connectPreparedServer(double timeout_s = 10.0)
 	{
 		v4print "(connectPreparedServer) Waiting for server connection...";
+		const auto start = std::chrono::steady_clock::now();
 		shared_ptr<TCPSocket> sock;
 		while (true)
 		{
 			sock = listen_sock->accept(-1);
 			if (sock)
 				break;
+			if (timeout_s <= 0.0 || std::chrono::duration<double>(
+				std::chrono::steady_clock::now() - start).count() >= timeout_s)
+				throw std::runtime_error("timed out waiting for a local viewer connection after " +
+					std::to_string(timeout_s) + " seconds");
 		}
 		addConn(sock);
 	}
@@ -1142,6 +1189,8 @@ private:
 	}
 
 	bool shutdown = false;
+	int last_bind_error = 0;
+	string last_bind_error_message;
 	ConnectionID next_id = 1;
 	shared_ptr<TCPSocket> listen_sock;
 	unordered_map<ConnectionID, shared_ptr<ConnRecord>> conns;

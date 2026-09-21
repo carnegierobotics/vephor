@@ -464,6 +464,20 @@ Pass `record_also=True` and a recording path to `setServerModeBYOC` to serve and
 time. `setClientModeBYOS` provides the inverse arrangement: it starts a local server process and makes the application
 act as its client.
 
+BYOC startup waits up to 10 seconds for its local viewer by default and tries at most 16 random ports when a port is
+already occupied. Both limits are configurable:
+
+```python
+v4.Window.setServerModeBYOC(connect_timeout_s=30.0, max_port_attempts=32)
+```
+
+Socket creation and permission errors fail immediately. A connection failure produces one final exception containing
+the endpoint and operating-system error instead of retrying and logging indefinitely. `setClientMode` and
+`setClientModeBYOS` also accept `connect_timeout_s`, `retry_initial_delay_s`, and `retry_max_delay_s` options.
+
+Batch jobs which only call `Window.save` or `Plot.save` do not need a socket mode at all. Leave the window in its
+default file mode so the visualization is written without starting a viewer or opening a network socket.
+
 ### Transform tree
 
 Every object added to a `Window` receives a `RenderNode`. Nodes hold pose, scale, visibility, layer, and parent
@@ -595,9 +609,9 @@ lower-level renderer-specific facilities and is documented by its headers.
 	<tr><td></td><td>setOpacity</td><td>Set window opacity.</td><td>(opacity)</td></tr>
 	<tr><td></td><td>setFrameLock / setFrameSkipMessageLimit</td><td>Control frame rate and skipped-frame reporting.</td><td>(value)</td></tr>
 	<tr><td></td><td>setServerMode</td><td>Put the window in server mode.</td><td>(wait=false, port=5533, record_also=false, record_path="", metadata=default)</td></tr>
-	<tr><td></td><td>setServerModeBYOC</td><td>Put the window in server mode, and spawns a client to connect.</td><td>(record_also=false,record_path="")</td></tr>
-	<tr><td></td><td>setClientMode</td><td>Connect all windows to a Vephor server.</td><td>(wait=false, host="localhost", port=5533, record_also=false, record_path="")</td></tr>
-	<tr><td></td><td>setClientModeBYOS</td><td>Spawn a server and make the application its client.</td><td>(record_also=false, record_path="")</td></tr>
+	<tr><td></td><td>setServerModeBYOC</td><td>Put the window in server mode, and spawn a client to connect.</td><td>(record_also=false, record_path="", connect_timeout_s=10, max_port_attempts=16)</td></tr>
+	<tr><td></td><td>setClientMode</td><td>Connect all windows to a Vephor server.</td><td>(wait=false, host="localhost", port=5533, record_also=false, record_path="", connect_timeout_s=10, retry_initial_delay_s=0.1, retry_max_delay_s=1)</td></tr>
+	<tr><td></td><td>setClientModeBYOS</td><td>Spawn a server and make the application its client.</td><td>(record_also=false, record_path="", connect_timeout_s=10, retry_initial_delay_s=0.1, retry_max_delay_s=1)</td></tr>
 	<tr><td></td><td>setRecordMode</td><td>Put the window in record mode.</td><td>(path="")</td></tr>
 	<tr><td></td><td>checkAndConsumeFlag</td><td>Check a server metadata flag, and consume it if it is a one-shot flag.</td><td>(flag)</td></tr>
 	<tr><td></td><td>setKeyPressCallback</td><td>Set key press callback function.</td><td>(callback)</td></tr>

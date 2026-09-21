@@ -916,10 +916,16 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("host")="localhost", 
 			py::arg("port")=VEPHOR_DEFAULT_PORT,
 			py::arg("record_also")=false,
-			py::arg("record_path")="")
+			py::arg("record_path")="",
+			py::arg("connect_timeout_s")=10.0,
+			py::arg("retry_initial_delay_s")=0.1,
+			py::arg("retry_max_delay_s")=1.0)
 		.def_static("setClientModeBYOS", &Window::setClientModeBYOS, 
 			py::arg("record_also")=false,
-			py::arg("record_path")="")
+			py::arg("record_path")="",
+			py::arg("connect_timeout_s")=10.0,
+			py::arg("retry_initial_delay_s")=0.1,
+			py::arg("retry_max_delay_s")=1.0)
 		.def_static("setServerMode", &Window::setServerMode, 
 			py::arg("wait")=false, 
 			py::arg("port")=VEPHOR_DEFAULT_PORT,
@@ -928,7 +934,9 @@ PYBIND11_MODULE(_core, m) {
 			py::arg("show_metadata")=ShowMetadata())
 		.def_static("setServerModeBYOC", &Window::setServerModeBYOC, 
 			py::arg("record_also")=false,
-			py::arg("record_path")="")
+			py::arg("record_path")="",
+			py::arg("connect_timeout_s")=10.0,
+			py::arg("max_port_attempts")=16)
 		.def_static("checkAndConsumeFlag", &Window::checkAndConsumeFlag)
 		.def("getWindowTopLeftNode", &Window::getWindowTopLeftNode)
 		.def("getWindowTopNode", &Window::getWindowTopNode)
