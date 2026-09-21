@@ -225,6 +225,29 @@ input[type="text"]:focus {
     box-shadow: 0 0 5px var(--accent-glow);
 }
 
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.78rem;
+}
+
+.setting-row select {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    color: #fff;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    outline: none;
+}
+
+.setting-row select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px var(--accent-glow);
+}
+
 /* Buttons */
 .btn {
     border: none;

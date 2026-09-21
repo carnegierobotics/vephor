@@ -26,6 +26,8 @@ const state = {
     objectCounters: {}, // Track total objects per connection
     fpsHistory: [],
     lastFrameTime: null,
+    frameRateLimit: 30,
+    lastRenderTime: null,
     
     // Active UI flag controls
     activeFlags: {},
@@ -56,10 +58,11 @@ const state = {
 // Initial setup on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
     loadRecentConnections();
+    loadFrameRateLimit();
     initUI();
     renderRecentConnections();
     connectWebSocket();
-    animate(); // Starts global animation frame
+    requestAnimationFrame(animate); // Starts global animation frame
 });
 
 // ==========================================
@@ -81,6 +84,36 @@ function saveRecentConnections() {
         localStorage.setItem('vephor_recent_connections', JSON.stringify(state.recentConnections));
     } catch (e) {
         console.warn("Failed to save recent connections to local storage:", e);
+    }
+}
+
+function loadFrameRateLimit() {
+    const validLimits = [0, 10, 20, 30, 60];
+
+    try {
+        const saved = localStorage.getItem('vephor_frame_rate_limit');
+        if (saved !== null) {
+            const parsed = Number(saved);
+            if (validLimits.includes(parsed)) {
+                state.frameRateLimit = parsed;
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to load frame rate limit from local storage:", e);
+    }
+}
+
+function setFrameRateLimit(limit) {
+    const validLimits = [0, 10, 20, 30, 60];
+    state.frameRateLimit = validLimits.includes(limit) ? limit : 30;
+    state.lastRenderTime = null;
+    state.lastFrameTime = null;
+    state.fpsHistory = [];
+
+    try {
+        localStorage.setItem('vephor_frame_rate_limit', String(state.frameRateLimit));
+    } catch (e) {
+        console.warn("Failed to save frame rate limit to local storage:", e);
     }
 }
 
@@ -885,8 +918,20 @@ function updateCanvasGrid() {
     });
 }
 
-function animate() {
+function animate(now) {
     requestAnimationFrame(animate);
+
+    if (state.frameRateLimit > 0 && state.lastRenderTime !== null) {
+        const frameInterval = 1000 / state.frameRateLimit;
+        const elapsed = now - state.lastRenderTime;
+        if (elapsed < frameInterval) return;
+
+        // Keep the unused fraction of the interval so display refresh rates
+        // that are not multiples of the limit still average the requested FPS.
+        state.lastRenderTime = now - (elapsed % frameInterval);
+    } else {
+        state.lastRenderTime = now;
+    }
     
     // Update and render each active panel of the selected connection feed
     if (state.activeConnId && state.panels[state.activeConnId]) {
@@ -928,7 +973,6 @@ function animate() {
     }
     
     // Telemetry tracking
-    const now = performance.now();
     if (state.lastFrameTime) {
         const fps = 1000 / (now - state.lastFrameTime);
         state.fpsHistory.push(fps);
@@ -2455,6 +2499,12 @@ function loadTextureToMaterial(material, texInfo, baseBufIdx, payloads, onLoadCa
 // 6. UI Controls & Present Managers
 // ==========================================
 function initUI() {
+    const frameRateSelect = document.getElementById('frame-rate-select');
+    frameRateSelect.value = String(state.frameRateLimit);
+    frameRateSelect.addEventListener('change', () => {
+        setFrameRateLimit(Number(frameRateSelect.value));
+    });
+
     // 1. Peer Connection Form
     const connectBtn = document.getElementById('connect-btn');
     const targetHost = document.getElementById('target-host');
