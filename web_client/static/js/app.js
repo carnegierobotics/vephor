@@ -26,8 +26,9 @@ const state = {
     objectCounters: {}, // Track total objects per connection
     fpsHistory: [],
     lastFrameTime: null,
-    frameRateLimit: 30,
+    frameRateLimit: -1,
     lastRenderTime: null,
+    renderRequested: true,
     
     // Active UI flag controls
     activeFlags: {},
@@ -88,7 +89,7 @@ function saveRecentConnections() {
 }
 
 function loadFrameRateLimit() {
-    const validLimits = [0, 10, 20, 30, 60];
+    const validLimits = [-1, 0, 10, 20, 30, 60];
 
     try {
         const saved = localStorage.getItem('vephor_frame_rate_limit');
@@ -104,11 +105,12 @@ function loadFrameRateLimit() {
 }
 
 function setFrameRateLimit(limit) {
-    const validLimits = [0, 10, 20, 30, 60];
-    state.frameRateLimit = validLimits.includes(limit) ? limit : 30;
+    const validLimits = [-1, 0, 10, 20, 30, 60];
+    state.frameRateLimit = validLimits.includes(limit) ? limit : -1;
     state.lastRenderTime = null;
     state.lastFrameTime = null;
     state.fpsHistory = [];
+    requestRender();
 
     try {
         localStorage.setItem('vephor_frame_rate_limit', String(state.frameRateLimit));
@@ -116,6 +118,23 @@ function setFrameRateLimit(limit) {
         console.warn("Failed to save frame rate limit to local storage:", e);
     }
 }
+
+function requestRender() {
+    state.renderRequested = true;
+}
+
+// Browser integrations can request a fresh frame either through
+// window.vephorRequestRender() or by dispatching `vephor-request-render`.
+window.vephorRequestRender = requestRender;
+window.addEventListener('vephor-request-render', requestRender);
+window.addEventListener('pageshow', requestRender);
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) requestRender();
+});
+window.addEventListener('resize', () => {
+    Object.values(state.panels[state.activeConnId] || {}).forEach(resizePanel);
+    requestRender();
+});
 
 function addOrUpdateRecentConnection(peer, status) {
     // Remove if exists to bring to top
@@ -386,6 +405,12 @@ function createPanel(connId, windowId, title) {
         dragStartMouse: new THREE.Vector2(),
         dragStartFrustum: { left: 0, right: 0, top: 0, bottom: 0 }
     };
+
+    // OrbitControls emits change events for direct input and for each damping
+    // step. In on-demand mode this keeps frames flowing only until motion has
+    // settled.
+    controls.addEventListener('change', requestRender);
+    orthoControls.addEventListener('change', requestRender);
     
     // ==========================================
     // Interaction Handlers (Dragging & Scaling)
@@ -393,6 +418,7 @@ function createPanel(connId, windowId, title) {
     
     // 1. Pointer down right-click hook (Capture phase to preempt OrbitControls)
     panel.card.addEventListener('pointerdown', (e) => {
+        requestRender();
         // DO NOT intercept pointerdown if the user is trying to click the title tag for dragging
         if (e.target.classList && e.target.classList.contains('viewport-panel-title-tag')) return;
 
@@ -431,6 +457,7 @@ function createPanel(connId, windowId, title) {
     // 2. Pointer move right-click drag scaling hook
     panel.card.addEventListener('pointermove', (e) => {
         if (!panel.isRightDragging) return;
+        requestRender();
         
         const deltaX = e.clientX - panel.dragStartMouse.x;
         const deltaY = e.clientY - panel.dragStartMouse.y;
@@ -515,6 +542,7 @@ function createPanel(connId, windowId, title) {
     
     // 3. Pointer up right-click release hook
     panel.card.addEventListener('pointerup', (e) => {
+        requestRender();
         if (e.button === 2 && panel.isRightDragging) {
             panel.isRightDragging = false;
             
@@ -672,6 +700,7 @@ function resizePanel(panel) {
     }
     
     panel.renderer.setSize(width, height);
+    requestRender();
 }
 
 function updatePanelHUDAnchors(panel, width, height) {
@@ -783,6 +812,7 @@ function updatePanelLayoutOptions(count) {
 }
 
 function updateCanvasGrid() {
+    requestRender();
     const container = document.getElementById('canvas-container');
     const order = state.panelOrder[state.activeConnId] || [];
     
@@ -921,7 +951,12 @@ function updateCanvasGrid() {
 function animate(now) {
     requestAnimationFrame(animate);
 
-    if (state.frameRateLimit > 0 && state.lastRenderTime !== null) {
+    const onDemand = state.frameRateLimit === -1;
+    if (onDemand) {
+        if (!state.renderRequested) return;
+        state.renderRequested = false;
+        state.lastRenderTime = now;
+    } else if (state.frameRateLimit > 0 && state.lastRenderTime !== null) {
         const frameInterval = 1000 / state.frameRateLimit;
         const elapsed = now - state.lastRenderTime;
         if (elapsed < frameInterval) return;
@@ -973,7 +1008,9 @@ function animate(now) {
     }
     
     // Telemetry tracking
-    if (state.lastFrameTime) {
+    if (onDemand) {
+        document.getElementById('tel-fps').textContent = 'On demand';
+    } else if (state.lastFrameTime) {
         const fps = 1000 / (now - state.lastFrameTime);
         state.fpsHistory.push(fps);
         if (state.fpsHistory.length > 30) state.fpsHistory.shift();
@@ -1359,6 +1396,7 @@ function connectWebSocket() {
     
     state.ws.onmessage = (event) => {
         try {
+            requestRender();
             const data = JSON.parse(event.data);
             
             if (data.type === 'connection_list') {
@@ -1895,6 +1933,7 @@ function parseScenePayload(connId, header, payloads) {
                 });
                 document.getElementById('tel-objects').textContent = totalObjects;
             }
+            requestRender();
         });
     }
 }

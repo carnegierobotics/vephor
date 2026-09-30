@@ -386,6 +386,11 @@ python3 web_client/gateway.py
 Then open `http://localhost:8080`. By default, the viewer lets the user enter the address of a Vephor visualization
 server, such as `localhost:5533`, in the Peer Connections panel.
 
+The Rendering section can limit drawing to 10, 20, 30, or 60 FPS, leave it unlimited, or use **On Demand** mode.
+On Demand draws only when visualization data changes, user input changes a view, the browser resizes or restores the
+page, or an integration explicitly requests a frame with `window.vephorRequestRender()` (equivalently, by dispatching
+the `vephor-request-render` window event). The selected mode is saved in browser local storage; the default is On Demand.
+
 The gateway uses the following ports by default:
 
 | Port | Purpose |
