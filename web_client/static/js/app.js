@@ -123,6 +123,30 @@ function requestRender() {
     state.renderRequested = true;
 }
 
+function makeTrackballFrame(upValue) {
+    const up = upValue.clone().normalize();
+    const candidates = [
+        new THREE.Vector3(1, 0, 0),
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(0, 0, 1)
+    ];
+    let candidate = candidates[0];
+    let minDot = Math.abs(up.dot(candidate));
+    candidates.slice(1).forEach(testCandidate => {
+        const dot = Math.abs(up.dot(testCandidate));
+        if (dot < minDot) {
+            minDot = dot;
+            candidate = testCandidate;
+        }
+    });
+
+    // Match the OpenGL trackball's findCrossVec construction exactly.
+    const fore = up.clone().cross(candidate).cross(up).normalize();
+
+    const right = up.clone().cross(fore).normalize();
+    return { up, fore, right };
+}
+
 // Browser integrations can request a fresh frame either through
 // window.vephorRequestRender() or by dispatching `vephor-request-render`.
 window.vephorRequestRender = requestRender;
@@ -398,6 +422,8 @@ function createPanel(connId, windowId, title) {
         orthoHeightUnits: 10,
         plotEqualAspect: false,
         frameQueue: Promise.resolve(),
+        trackballAssignedUp: new THREE.Vector3(0, 0, -1),
+        trackballFrame: makeTrackballFrame(new THREE.Vector3(0, 0, -1)),
         
         // Custom Right-Click Drag Scaling parameters
         isRightDragging: false,
@@ -503,15 +529,12 @@ function createPanel(connId, windowId, title) {
             const offset = new THREE.Vector3().subVectors(panel.dragStartCamPos, panel.controls.target);
             const offsetMag = offset.length();
             
-            const up = panel.camera.up.clone().normalize();
-            
-            // Replicate C++ findCrossVec to establish a static rotation reference frame
-            const fore = new THREE.Vector3(1, 0, 0);
-            if (Math.abs(up.x) > 0.9) fore.set(0, 1, 0);
-            fore.cross(up).normalize();
-            
-            // trackball_right = trackball_up x trackball_fore
-            const right = new THREE.Vector3().crossVectors(up, fore).normalize();
+            // Rotate in the frame assigned by the visualization, independent
+            // of the temporary camera-up vector chosen by a view preset.
+            const frame = panel.trackballFrame || makeTrackballFrame(panel.camera.up);
+            const up = frame.up;
+            const fore = frame.fore;
+            const right = frame.right;
             
             // Calculate absolute initial Euler angles relative to this static frame
             const rightDot = right.dot(offset);
@@ -520,7 +543,7 @@ function createPanel(connId, windowId, title) {
             let pitch = -Math.atan2(up.dot(offset), Math.sqrt(rightDot * rightDot + foreDot * foreDot));
             let yaw = -Math.atan2(rightDot, foreDot);
             
-            // Apply mouse deltas precisely identical to C++ scaling constants
+            // DOM pointer Y is opposite the OpenGL trackball's input Y.
             yaw += deltaX / 100.0;
             pitch -= deltaY / 100.0;
             
@@ -535,6 +558,7 @@ function createPanel(connId, windowId, title) {
             newOffset.applyAxisAngle(up, -yaw);     // Yaw around static up vector (inverted angle per C++ formula)
             
             panel.camera.position.copy(panel.controls.target).add(newOffset);
+            panel.camera.up.copy(frame.up);
             panel.camera.lookAt(panel.controls.target);
             panel.controls.update(); // Synchronize OrbitControls internal state seamlessly!
         }
@@ -1772,9 +1796,14 @@ function parseScenePayload(connId, header, payloads) {
                 resizePanel(panel);
             }
             
+            if (cam.up) {
+                panel.trackballAssignedUp.set(cam.up[0], cam.up[1], cam.up[2]).normalize();
+            }
+            panel.trackballFrame = makeTrackballFrame(panel.trackballAssignedUp);
+
             // Constantly ensure the 3D up vector is completely respected by OrbitControls for rotations!
             if (cam.up) {
-                const newUp = new THREE.Vector3(cam.up[0], cam.up[1], cam.up[2]).normalize();
+                const newUp = panel.trackballAssignedUp;
                 
                 // Only overwrite if it actually changed, preventing interference with damping momentum!
                 if (panel.camera.up.distanceToSquared(newUp) > 1e-6) {
@@ -2756,6 +2785,7 @@ function initUI() {
 
 function triggerCameraPreset(preset) {
     let fitted = false;
+    let zeroed = false;
 
     Object.values(state.panels[state.activeConnId] || {}).forEach(panel => {
         // View-angle presets are meaningful only for perspective 3D scenes.
@@ -2763,22 +2793,38 @@ function triggerCameraPreset(preset) {
         if (panel.is2DPlotMode) return;
 
         const target = panel.controls.target;
+
+        if (preset === 'zero') {
+            const offset = panel.camera.position.clone().sub(target);
+            target.set(0, 0, 0);
+            panel.camera.position.copy(offset);
+            panel.camera.lookAt(target);
+            panel.controls.update();
+            zeroed = true;
+            return;
+        }
+
+        const frame = panel.trackballFrame || makeTrackballFrame(panel.camera.up);
         const direction = new THREE.Vector3();
-        const up = new THREE.Vector3(0, 0, 1);
 
         switch (preset) {
             case 'isometric':
-                direction.set(1, 1, 1);
+                // Use the same positive offsets as the individual front,
+                // side, and top views. The camera therefore looks back along
+                // all three negative trackball axes, including trackball down.
+                direction.copy(frame.fore).add(frame.right).add(frame.up);
                 break;
             case 'top':
-                direction.set(0, 0, 1);
-                up.set(0, 1, 0);
+                // Place the camera on trackball up so its viewing ray points
+                // along trackball down. The OpenGL-style pole adjustment below
+                // keeps subsequent pitch and yaw controls well-defined.
+                direction.copy(frame.up);
                 break;
             case 'front':
-                direction.set(0, -1, 0);
+                direction.copy(frame.fore);
                 break;
             case 'side':
-                direction.set(1, 0, 0);
+                direction.copy(frame.right);
                 break;
             default:
                 return;
@@ -2787,8 +2833,14 @@ function triggerCameraPreset(preset) {
         // Establish the requested viewing direction around the current target.
         // autoFitPanelBounds then recenters and chooses the distance required to
         // contain the complete 3D scene while preserving this direction.
-        panel.camera.up.copy(up);
-        panel.camera.position.copy(target).add(direction.normalize());
+        direction.normalize();
+        // OpenGL's trackball keeps its assigned up for every view. A tiny
+        // forward offset avoids a singular look-at when Top is pole-on.
+        if (Math.abs(direction.dot(frame.up)) >= 1.0 - 1e-9) {
+            direction.addScaledVector(frame.fore, -0.001).normalize();
+        }
+        panel.camera.up.copy(frame.up);
+        panel.camera.position.copy(target).add(direction);
         panel.camera.lookAt(target);
         panel.controls.update();
 
@@ -2797,6 +2849,8 @@ function triggerCameraPreset(preset) {
 
     if (fitted) {
         showToast('Applied camera view and fit 3D scene bounds', 'success');
+    } else if (zeroed) {
+        showToast('Set 3D camera focal point to zero', 'success');
     }
 }
 
