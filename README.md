@@ -140,6 +140,91 @@ pip install .
 pip install . --config-settings=cmake.generator="MinGW Makefiles"
 ```
 
+### Steam Deck (SteamOS)
+
+Run the installer on the Deck as the normal `deck` user, without `sudo`. It installs
+the Python bindings **with OpenGL support** into a private Python 3.12 environment
+under `~/vephor-tools`, leaving the SteamOS system partition unchanged. Allow about
+3 GB of free space, an internet connection, and several minutes for compilation.
+Keep the Deck awake during installation.
+
+In a Desktop Mode terminal:
+
+```bash
+git clone --recursive https://github.com/carnegierobotics/vephor.git
+cd vephor
+bash scripts/install-steam-deck.sh
+```
+
+For an existing checkout, run `bash scripts/install-steam-deck.sh` from its root.
+The script installs that checkout, including any local changes. You can also run
+the script over SSH after copying or cloning the repository onto the Deck; no
+passwords or device addresses are stored in the installer.
+
+Activate the environment in each new Bash terminal before running Python:
+
+```bash
+source ~/vephor-tools/activate.sh
+python -c 'import vephor; print(vephor.__file__)'
+python python/examples/mini_example.py
+```
+
+Run interactive visualizations from a Desktop Mode terminal so Python inherits
+the desktop's display authorization. The installer verifies import, NumPy
+arguments, scene creation, saving, and availability of the OpenGL bindings without
+opening a window.
+
+The installer provides micromamba, a compiler, CMake, and graphics dependencies.
+It installs `manif` separately to provide the `MANIF::manif` CMake target, pins
+Eigen and CMake below version 4, and pins GLFW below 3.4 for Vephor's X11/GLX GLEW
+backend. Explicit library paths prevent mixing SteamOS and environment libraries.
+This configuration was tested on SteamOS 3.8.28.
+
+To choose another installation directory:
+
+```bash
+VEPHOR_INSTALL_DIR="$HOME/my-vephor" bash scripts/install-steam-deck.sh
+source "$HOME/my-vephor/activate.sh"
+```
+
+Builds use two parallel jobs by default; override with `CMAKE_BUILD_PARALLEL_LEVEL`
+if needed. Logs and environment versions are saved as `install.log` and
+`environment.yml` in the installation directory. Rerun the script to reinstall
+from the checkout; it reuses downloaded tools and the CMake build directory.
+
+#### Install from another computer over the network
+
+Enable SSH on the Deck first. In a Desktop Mode terminal, set the account password
+with `passwd` if needed, then run `sudo systemctl enable --now sshd`. Find the
+Deck's IP address in its network settings. Keep the Deck awake during the build.
+
+On the Linux computer containing this checkout, install `sshpass`, OpenSSH client
+tools, and `tar` (for example, `sudo apt install sshpass openssh-client tar` on
+Ubuntu), then run:
+
+```bash
+bash scripts/install-steam-deck-network.sh 192.168.68.81 deck
+```
+
+The script prompts for the SSH password without displaying it. An explicit
+password is also supported:
+
+```bash
+bash scripts/install-steam-deck-network.sh 192.168.68.81 deck 'your-password'
+```
+
+Prefer the prompt to avoid putting the password in shell history or process
+arguments. The username defaults to `deck` if omitted. SSH records new host keys
+in your normal `known_hosts` file and rejects changed keys.
+
+The wrapper uploads the local checkout, including uncommitted files, while
+excluding Git metadata, build directories, and virtual environments. It runs
+`install-steam-deck.sh` remotely and streams its output, returning a failure if
+transfer or installation fails. Each invocation preserves a separate source
+snapshot and build cache under `~/vephor-tools/sources/` on the Deck; the Python
+environment is reused. Logs remain at `~/vephor-tools/install.log`. Afterward,
+activate `~/vephor-tools/activate.sh` in a Deck Desktop Mode terminal as above.
+
 ### Without OpenGL
 
 ```bash
